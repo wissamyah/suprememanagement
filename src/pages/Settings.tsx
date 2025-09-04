@@ -30,7 +30,7 @@ export const Settings = () => {
     lastSaved
   } = useData();
   
-  const { toasts, showSuccess, showError, showWarning, removeToast } = useToast();
+  const { toasts, showSuccess, showError, removeToast } = useToast();
   
   const [githubSettings, setGithubSettings] = useState({
     token: '',

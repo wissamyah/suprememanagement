@@ -131,7 +131,6 @@ export const useInventoryWithPersistence = () => {
       quantityBooked: 0,
       availableQuantity: initialQuantity,
       unit,
-      price,
       reorderLevel,
       status: getStockStatus(initialQuantity, reorderLevel),
       createdAt: now,
@@ -346,8 +345,8 @@ export const useInventoryWithPersistence = () => {
   const bookStock = useCallback((
     productId: string,
     quantity: number,
-    referenceType: string,
-    referenceId: string
+    _referenceType: string,
+    _referenceId: string
   ): boolean => {
     try {
       const product = products.find(p => p.id === productId);

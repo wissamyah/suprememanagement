@@ -20,8 +20,6 @@ import {
   exportInventoryToJSON,
   exportInventoryToCSV,
   importInventoryFromJSON,
-  backupInventoryData,
-  restoreInventoryData,
   downloadFile
 } from '../utils/inventory';
 
@@ -44,7 +42,6 @@ export const Inventory = () => {
     products,
     categories,
     movements,
-    loading,
     addCategory,
     updateCategory,
     deleteCategory,
@@ -56,7 +53,7 @@ export const Inventory = () => {
     refreshData: refresh
   } = useInventoryWithGitHub();
   
-  const { toasts, showSuccess, showError, showInfo, removeToast } = useToast();
+  const { toasts, showSuccess, showError, removeToast } = useToast();
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -119,7 +116,7 @@ export const Inventory = () => {
     }
   };
   
-  const handleProductionEntry = (productId: string, quantity: number, notes?: string, date?: Date) => {
+  const handleProductionEntry = (productId: string, quantity: number, notes?: string) => {
     const result = addProductionEntry(productId, quantity, notes);
     if (result.success) {
       showSuccess('Production entry added successfully');

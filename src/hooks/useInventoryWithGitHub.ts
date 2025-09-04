@@ -438,9 +438,8 @@ export const useInventoryWithGitHub = () => {
     const product = products.find(p => p.id === productId);
     if (!product) return 0;
     
-    const productMovements = movements.filter(m => m.productId === productId);
     return product.availableQuantity || product.quantityOnHand;
-  }, [products, movements]);
+  }, [products]);
 
   // Force sync method
   const forceSync = useCallback(async () => {
