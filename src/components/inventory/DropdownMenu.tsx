@@ -8,7 +8,7 @@ interface DropdownMenuProps {
   productName: string;
 }
 
-export const DropdownMenu = ({ onAdjustStock, onDelete, productName }: DropdownMenuProps) => {
+export const DropdownMenu = ({ onAdjustStock, onDelete }: DropdownMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);

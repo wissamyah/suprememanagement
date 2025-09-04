@@ -29,7 +29,7 @@ export const ProductionModal = ({
   const [time, setTime] = useState(new Date().toTimeString().split(' ')[0].slice(0, 5));
   const [errors, setErrors] = useState<string[]>([]);
   const [successCount, setSuccessCount] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -89,18 +89,13 @@ export const ProductionModal = ({
     const failedProducts: string[] = [];
 
     validEntries.forEach(entry => {
-      const success = onAddProduction(
+      onAddProduction(
         entry.productId,
         entry.quantity,
         entry.notes || undefined,
         productionDate
       );
-      
-      if (success) {
-        successfulEntries++;
-      } else {
-        failedProducts.push(entry.productName);
-      }
+      successfulEntries++;
     });
 
     if (successfulEntries === validEntries.length) {

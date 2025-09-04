@@ -65,7 +65,7 @@ export const StockAdjustmentModal = ({
     setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 300)); // Simulate async operation
 
-    const result = onAdjustStock(
+    onAdjustStock(
       product.id,
       formData.newQuantity,
       formData.reason,
@@ -73,22 +73,16 @@ export const StockAdjustmentModal = ({
     );
 
     setLoading(false);
-
-    if (result) {
-      setSuccess(true);
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-    } else {
-      setError('Failed to adjust stock');
-    }
+    setSuccess(true);
+    setTimeout(() => {
+      onClose();
+    }, 1500);
   };
 
   if (!product) return null;
 
   const quantityDifference = formData.newQuantity - product.quantityOnHand;
   const isIncrease = quantityDifference > 0;
-  const isDecrease = quantityDifference < 0;
 
   const footer = (
     <>

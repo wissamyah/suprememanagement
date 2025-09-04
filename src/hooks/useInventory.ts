@@ -339,8 +339,8 @@ export const useInventory = () => {
   const bookStock = useCallback((
     productId: string,
     quantity: number,
-    referenceType: string,
-    referenceId: string
+    _referenceType: string,
+    _referenceId: string
   ): boolean => {
     try {
       const product = products.find(p => p.id === productId);
