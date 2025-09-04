@@ -1,6 +1,10 @@
 # Supreme Management - MVP
 
+[![Deploy to GitHub Pages](https://github.com/wissamyah/suprememanagement/actions/workflows/deploy.yml/badge.svg)](https://github.com/wissamyah/suprememanagement/actions/workflows/deploy.yml)
+
 A modern, single-page web application for managing manufacturing operations with a beautiful dark glassmorphism UI and comprehensive inventory management system.
+
+**Live Demo**: https://wissamyah.github.io/suprememanagement/
 
 ## Features
 
