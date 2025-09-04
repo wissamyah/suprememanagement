@@ -164,45 +164,72 @@ class GitHubStorage {
     // Get default data structure
     getDefaultData(): any {
         return {
-            inventory: [],
-            lastUpdated: new Date().toISOString(),
-            version: '1.0.0'
+            products: [],
+            categories: [],
+            movements: [],
+            productionEntries: [],
+            customers: [],
+            suppliers: [],
+            sales: [],
+            loadings: [],
+            metadata: {
+                lastUpdated: new Date().toISOString(),
+                version: '2.0.0'
+            }
         };
     }
 
-    // Load inventory data
-    async loadInventory(): Promise<any[]> {
+    // Load all data
+    async loadAllData(): Promise<any> {
         try {
             const result = await this.getFileContent();
-            return result.data.inventory || [];
+            return result.data || this.getDefaultData();
         } catch (error) {
-            console.error('Error loading inventory:', error);
-            // Fallback to localStorage if GitHub fails
-            const localData = localStorage.getItem('inventory');
-            return localData ? JSON.parse(localData) : [];
+            console.error('Error loading data from GitHub:', error);
+            // Return default structure if GitHub fails
+            return this.getDefaultData();
         }
     }
 
-    // Save inventory data
-    async saveInventory(inventory: any[]): Promise<boolean> {
+    // Save all data
+    async saveAllData(data: any): Promise<boolean> {
         try {
-            const data = {
-                inventory: inventory,
-                lastUpdated: new Date().toISOString(),
-                version: '1.0.0'
+            const fullData = {
+                ...data,
+                metadata: {
+                    lastUpdated: new Date().toISOString(),
+                    version: '2.0.0'
+                }
             };
 
-            await this.saveFileContent(data, 'Update inventory');
+            await this.saveFileContent(fullData, 'Update inventory data');
             
-            // Keep localStorage as backup
-            localStorage.setItem('inventory', JSON.stringify(inventory));
+            // Keep localStorage as backup for each data type
+            if (data.products) localStorage.setItem('products', JSON.stringify(data.products));
+            if (data.categories) localStorage.setItem('product_categories', JSON.stringify(data.categories));
+            if (data.movements) localStorage.setItem('inventory_movements', JSON.stringify(data.movements));
+            if (data.productionEntries) localStorage.setItem('production_entries', JSON.stringify(data.productionEntries));
+            
             localStorage.setItem('lastSync', new Date().toISOString());
             
             return true;
         } catch (error) {
-            console.error('Error saving inventory:', error);
+            console.error('Error saving data to GitHub:', error);
             throw error;
         }
+    }
+
+    // Legacy method for backward compatibility
+    async loadInventory(): Promise<any[]> {
+        const data = await this.loadAllData();
+        return data.products || [];
+    }
+
+    // Legacy method for backward compatibility
+    async saveInventory(inventory: any[]): Promise<boolean> {
+        const currentData = await this.loadAllData();
+        currentData.products = inventory;
+        return this.saveAllData(currentData);
     }
 
     // Clear authentication

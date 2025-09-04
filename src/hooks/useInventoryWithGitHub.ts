@@ -56,24 +56,21 @@ export const useInventoryWithGitHub = () => {
     setLoading(true);
     try {
       if (isAuthenticated) {
-        // Load from GitHub
-        const githubData = await githubStorage.loadInventory();
+        // Load all data from GitHub
+        const githubData = await githubStorage.loadAllData();
         
-        if (githubData && Array.isArray(githubData)) {
-          // GitHub returns the full inventory array
-          setProducts(githubData);
+        if (githubData) {
+          // Set all data from GitHub
+          setProducts(githubData.products || []);
+          setCategories(githubData.categories || []);
+          setMovements(githubData.movements || []);
+          setProductionEntries(githubData.productionEntries || []);
           
-          // Also load other data from localStorage for now
-          const storedCategories = storage.get<ProductCategory[]>(CATEGORIES_KEY) || [];
-          const storedMovements = storage.get<InventoryMovement[]>(MOVEMENTS_KEY) || [];
-          const storedProduction = storage.get<ProductionEntry[]>(PRODUCTION_KEY) || [];
-          
-          setCategories(storedCategories);
-          setMovements(storedMovements);
-          setProductionEntries(storedProduction);
-          
-          // Update localStorage with GitHub data
-          storage.set(PRODUCTS_KEY, githubData);
+          // Update localStorage with GitHub data as backup
+          storage.set(PRODUCTS_KEY, githubData.products || []);
+          storage.set(CATEGORIES_KEY, githubData.categories || []);
+          storage.set(MOVEMENTS_KEY, githubData.movements || []);
+          storage.set(PRODUCTION_KEY, githubData.productionEntries || []);
         }
       } else {
         // Load from localStorage
@@ -108,8 +105,16 @@ export const useInventoryWithGitHub = () => {
     if (!isAuthenticated) return;
 
     try {
-      await githubStorage.saveInventory(products);
-      console.log('Inventory synced to GitHub');
+      // Save all data types to GitHub
+      const allData = {
+        products,
+        categories,
+        movements,
+        productionEntries
+      };
+      
+      await githubStorage.saveAllData(allData);
+      console.log('All data synced to GitHub');
     } catch (error) {
       console.error('Error syncing to GitHub:', error);
     }
@@ -124,16 +129,19 @@ export const useInventoryWithGitHub = () => {
   const saveCategories = (newCategories: ProductCategory[]) => {
     setCategories(newCategories);
     storage.set(CATEGORIES_KEY, newCategories);
+    setSyncPending(true);
   };
 
   const saveMovements = (newMovements: InventoryMovement[]) => {
     setMovements(newMovements);
     storage.set(MOVEMENTS_KEY, newMovements);
+    setSyncPending(true);
   };
 
   const saveProduction = (newProduction: ProductionEntry[]) => {
     setProductionEntries(newProduction);
     storage.set(PRODUCTION_KEY, newProduction);
+    setSyncPending(true);
   };
 
   // Category operations
