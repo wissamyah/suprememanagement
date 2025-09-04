@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button';
 import { ToastContainer } from '../components/ui/Toast';
 import { Plus, Tags, Factory, Upload, Download, FileJson, Settings, MoreVertical } from 'lucide-react';
 import type { Product } from '../types';
-import { useInventory } from '../hooks/useInventory';
+import { useInventoryWithGitHub } from '../hooks/useInventoryWithGitHub';
 import { useToast } from '../hooks/useToast';
 import { storage } from '../utils/storage';
 import { InventoryStats } from '../components/inventory/InventoryStats';
@@ -53,8 +53,8 @@ export const Inventory = () => {
     deleteProduct,
     addProductionEntry,
     adjustStock,
-    refresh
-  } = useInventory();
+    refreshData: refresh
+  } = useInventoryWithGitHub();
   
   const { toasts, showSuccess, showError, showInfo, removeToast } = useToast();
   
@@ -99,8 +99,8 @@ export const Inventory = () => {
     };
   }, [products, showSettingsMenu, showMobileMenu]);
 
-  const handleAddProduct = (name: string, category: string, initialQuantity: number, unit: string, price: number, reorderLevel: number) => {
-    const result = addProduct(name, category, initialQuantity, unit, price, reorderLevel);
+  const handleAddProduct = (name: string, category: string, initialQuantity: number, unit: string, reorderLevel: number) => {
+    const result = addProduct(name, category, initialQuantity, unit, reorderLevel);
     if (result.success) {
       showSuccess(`Product "${name}" added successfully`);
       return { success: true };
@@ -120,23 +120,23 @@ export const Inventory = () => {
   };
   
   const handleProductionEntry = (productId: string, quantity: number, notes?: string, date?: Date) => {
-    const success = addProductionEntry(productId, quantity, notes, date);
-    if (success) {
+    const result = addProductionEntry(productId, quantity, notes);
+    if (result.success) {
       showSuccess('Production entry added successfully');
     } else {
       showError('Failed to add production entry');
     }
-    return success;
+    return result.success;
   };
   
   const handleAdjustStock = (productId: string, newQuantity: number, reason: string, notes?: string) => {
-    const success = adjustStock(productId, newQuantity, reason, notes);
-    if (success) {
+    const result = adjustStock(productId, newQuantity, reason, notes);
+    if (result.success) {
       showSuccess('Stock adjusted successfully');
     } else {
       showError('Failed to adjust stock');
     }
-    return success;
+    return result.success;
   };
   
   const handleExport = (format: 'json' | 'csv') => {
@@ -169,7 +169,6 @@ export const Inventory = () => {
             product.category,
             product.quantityOnHand,
             product.unit,
-            product.price,
             product.reorderLevel
           );
         });

@@ -8,7 +8,7 @@ interface StockAdjustmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product | null;
-  onAdjustStock: (productId: string, newQuantity: number, reason: string, notes?: string) => boolean;
+  onAdjustStock: (productId: string, newQuantity: number, reason: string, notes?: string) => void;
 }
 
 export const StockAdjustmentModal = ({

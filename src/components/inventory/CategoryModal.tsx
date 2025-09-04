@@ -8,9 +8,9 @@ interface CategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   categories: ProductCategory[];
-  onAddCategory: (name: string, description?: string) => boolean;
-  onUpdateCategory: (id: string, name: string, description?: string) => boolean;
-  onDeleteCategory: (id: string) => boolean;
+  onAddCategory: (name: string, description?: string) => { success: boolean };
+  onUpdateCategory: (id: string, name: string, description?: string) => { success: boolean };
+  onDeleteCategory: (id: string) => { success: boolean };
 }
 
 export const CategoryModal = ({

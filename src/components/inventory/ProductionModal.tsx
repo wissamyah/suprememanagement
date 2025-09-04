@@ -15,7 +15,7 @@ interface ProductionModalProps {
   isOpen: boolean;
   onClose: () => void;
   products: Product[];
-  onAddProduction: (productId: string, quantity: number, notes?: string, date?: Date) => boolean;
+  onAddProduction: (productId: string, quantity: number, notes?: string, date?: Date) => void;
 }
 
 export const ProductionModal = ({
