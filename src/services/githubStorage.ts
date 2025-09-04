@@ -126,7 +126,7 @@ class GitHubStorage {
 
             const content = btoa(JSON.stringify(data, null, 2));
 
-            const body = {
+            const body: any = {
                 message: `${message} - ${new Date().toISOString()}`,
                 content: content,
                 branch: this.branch

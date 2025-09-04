@@ -40,7 +40,7 @@ interface DataStore {
 class DataService {
   private config: DataServiceConfig;
   private dataCache: DataStore | null = null;
-  private saveTimer: NodeJS.Timeout | null = null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private isDirty: boolean = false;
 
   constructor(config?: Partial<DataServiceConfig>) {

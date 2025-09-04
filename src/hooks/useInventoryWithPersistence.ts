@@ -119,7 +119,7 @@ export const useInventoryWithPersistence = () => {
     category: string,
     initialQuantity: number,
     unit: string = 'pcs',
-    price: number = 0,
+    _price: number = 0,
     reorderLevel: number = 10
   ): { success: boolean; errors?: string[]; product?: Product } => {
     const now = new Date();
