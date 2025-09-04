@@ -1,0 +1,492 @@
+import { useState, useEffect } from 'react';
+import { GlassCard } from '../components/ui/GlassCard';
+import { Button } from '../components/ui/Button';
+import { ToastContainer } from '../components/ui/Toast';
+import { Plus, Tags, Factory, Upload, Download, FileJson, Settings, MoreVertical } from 'lucide-react';
+import type { Product } from '../types';
+import { useInventory } from '../hooks/useInventory';
+import { useToast } from '../hooks/useToast';
+import { storage } from '../utils/storage';
+import { InventoryStats } from '../components/inventory/InventoryStats';
+import { InventoryFilters } from '../components/inventory/InventoryFilters';
+import { InventoryTable } from '../components/inventory/InventoryTable';
+import { CategoryModal } from '../components/inventory/CategoryModal';
+import { AddProductModal } from '../components/inventory/AddProductModal';
+import { EditProductModal } from '../components/inventory/EditProductModal';
+import { ProductionModal } from '../components/inventory/ProductionModal';
+import { MovementModal } from '../components/inventory/MovementModal';
+import { StockAdjustmentModal } from '../components/inventory/StockAdjustmentModal';
+import {
+  exportInventoryToJSON,
+  exportInventoryToCSV,
+  importInventoryFromJSON,
+  backupInventoryData,
+  restoreInventoryData,
+  downloadFile
+} from '../utils/inventory';
+
+export const Inventory = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [stockFilter, setStockFilter] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [showProductionModal, setShowProductionModal] = useState(false);
+  const [showMovementModal, setShowMovementModal] = useState(false);
+  const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
+  
+  const {
+    products,
+    categories,
+    movements,
+    loading,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    addProductionEntry,
+    adjustStock,
+    refresh
+  } = useInventory();
+  
+  const { toasts, showSuccess, showError, showInfo, removeToast } = useToast();
+  
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch(e.key) {
+          case 'n':
+            e.preventDefault();
+            setShowAddProductModal(true);
+            break;
+          case 'p':
+            e.preventDefault();
+            setShowProductionModal(true);
+            break;
+          case 'e':
+            e.preventDefault();
+            handleExport('json');
+            break;
+        }
+      }
+    };
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.settings-dropdown')) {
+        setShowSettingsMenu(false);
+      }
+      if (!target.closest('.mobile-menu-dropdown')) {
+        setShowMobileMenu(false);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    if (showSettingsMenu || showMobileMenu) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [products, showSettingsMenu, showMobileMenu]);
+
+  const handleAddProduct = (name: string, category: string, initialQuantity: number, unit: string, price: number, reorderLevel: number) => {
+    const result = addProduct(name, category, initialQuantity, unit, price, reorderLevel);
+    if (result.success) {
+      showSuccess(`Product "${name}" added successfully`);
+      return { success: true };
+    } else {
+      return result;
+    }
+  };
+  
+  const handleDeleteProduct = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    const success = deleteProduct(productId);
+    if (success) {
+      showSuccess(`Product "${product?.name}" deleted`);
+    } else {
+      showError('Failed to delete product');
+    }
+  };
+  
+  const handleProductionEntry = (productId: string, quantity: number, notes?: string, date?: Date) => {
+    const success = addProductionEntry(productId, quantity, notes, date);
+    if (success) {
+      showSuccess('Production entry added successfully');
+    } else {
+      showError('Failed to add production entry');
+    }
+    return success;
+  };
+  
+  const handleAdjustStock = (productId: string, newQuantity: number, reason: string, notes?: string) => {
+    const success = adjustStock(productId, newQuantity, reason, notes);
+    if (success) {
+      showSuccess('Stock adjusted successfully');
+    } else {
+      showError('Failed to adjust stock');
+    }
+    return success;
+  };
+  
+  const handleExport = (format: 'json' | 'csv') => {
+    if (format === 'json') {
+      const json = exportInventoryToJSON(products);
+      downloadFile(json, `inventory_${new Date().toISOString().split('T')[0]}.json`, 'json');
+      showSuccess('Inventory exported as JSON');
+    } else {
+      const csv = exportInventoryToCSV(products);
+      downloadFile(csv, `inventory_${new Date().toISOString().split('T')[0]}.csv`, 'csv');
+      showSuccess('Inventory exported as CSV');
+    }
+  };
+  
+  const handleImport = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      
+      const text = await file.text();
+      const imported = importInventoryFromJSON(text);
+      
+      if (imported) {
+        imported.forEach(product => {
+          addProduct(
+            product.name,
+            product.category,
+            product.quantityOnHand,
+            product.unit,
+            product.price,
+            product.reorderLevel
+          );
+        });
+        showSuccess(`Imported ${imported.length} products`);
+        refresh();
+      } else {
+        showError('Failed to import inventory. Please check the file format.');
+      }
+    };
+    input.click();
+  };
+  
+  const handleBackup = () => {
+    const backup = {
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+      products,
+      categories,
+      movements,
+      productionEntries: []
+    };
+    const jsonStr = JSON.stringify(backup, null, 2);
+    downloadFile(jsonStr, `inventory_backup_${new Date().toISOString().split('T')[0]}.json`, 'json');
+    showSuccess('Backup created successfully');
+  };
+  
+  const handleRestore = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      
+      const text = await file.text();
+      try {
+        const backup = JSON.parse(text);
+        
+        // Restore data to localStorage
+        if (backup.products) {
+          storage.set('products', backup.products);
+        }
+        if (backup.categories) {
+          storage.set('product_categories', backup.categories);
+        }
+        if (backup.movements) {
+          storage.set('inventory_movements', backup.movements);
+        }
+        if (backup.productionEntries) {
+          storage.set('production_entries', backup.productionEntries);
+        }
+        
+        showSuccess('Backup restored successfully');
+        refresh();
+      } catch (error) {
+        console.error('Restore error:', error);
+        showError('Failed to restore backup. Please check the file format.');
+      }
+    };
+    input.click();
+  };
+  
+  const clearFilters = () => {
+    setSearchTerm('');
+    setCategoryFilter('');
+    setStockFilter('');
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-row justify-between items-start gap-4">
+        <div className="flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Inventory Management</h1>
+          <p className="text-muted text-sm sm:text-base">Track production, manage stock levels, and monitor movements</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Desktop buttons */}
+          <div className="hidden sm:flex gap-2">
+            <Button variant="secondary" onClick={() => setShowCategoryModal(true)}>
+              <Tags size={20} />
+              Categories
+            </Button>
+            <Button variant="secondary" onClick={() => setShowProductionModal(true)}>
+              <Factory size={20} />
+              Production
+            </Button>
+          </div>
+          
+          {/* Mobile dropdown menu */}
+          <div className="relative mobile-menu-dropdown sm:hidden">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMobileMenu(!showMobileMenu);
+              }}
+              className="p-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+              title="More Options"
+            >
+              <MoreVertical size={20} />
+            </button>
+            {showMobileMenu && (
+              <div className="absolute right-0 top-full mt-2 rounded-lg shadow-xl z-50 py-1 min-w-[160px] bg-gray-900 border border-white/20 animate-fadeIn">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCategoryModal(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
+                >
+                  <Tags size={16} />
+                  Categories
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowProductionModal(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
+                >
+                  <Factory size={16} />
+                  Production
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {/* Add Product button always visible */}
+          <button
+            onClick={() => setShowAddProductModal(true)}
+            className="p-2 sm:px-4 sm:py-2 bg-white text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center gap-2"
+            title="Add Product"
+          >
+            <Plus size={18} />
+            <span className="hidden sm:inline">Add Product</span>
+          </button>
+        </div>
+      </div>
+      
+      <InventoryStats products={products} movements={movements} />
+      
+      <GlassCard>
+        <div className="mb-6 space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 className="text-xl font-semibold">Product Inventory</h2>
+            <div className="flex flex-wrap gap-1 sm:gap-2">
+              <button 
+                onClick={handleImport}
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg hover:bg-white/10 transition-all duration-200"
+                title="Import"
+              >
+                <Upload size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Import</span>
+              </button>
+              <button 
+                onClick={() => handleExport('csv')}
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg hover:bg-white/10 transition-all duration-200"
+                title="Export CSV"
+              >
+                <Download size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Export CSV</span>
+              </button>
+              <button 
+                onClick={() => handleExport('json')}
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-lg hover:bg-white/10 transition-all duration-200"
+                title="Export JSON"
+              >
+                <FileJson size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Export JSON</span>
+              </button>
+              <div className="relative settings-dropdown">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowSettingsMenu(!showSettingsMenu);
+                  }}
+                  className="p-1.5 sm:p-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+                  title="Settings"
+                >
+                  <Settings size={14} className="sm:w-4 sm:h-4" />
+                </button>
+                {showSettingsMenu && (
+                  <div className="absolute right-0 top-full mt-2 rounded-lg shadow-xl z-50 py-1 min-w-[140px] bg-gray-900 border border-white/20 animate-fadeIn">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleBackup();
+                        setShowSettingsMenu(false);
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors"
+                    >
+                      Create Backup
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRestore();
+                        setShowSettingsMenu(false);
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors"
+                    >
+                      Restore Backup
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <InventoryFilters
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            categoryFilter={categoryFilter}
+            onCategoryChange={setCategoryFilter}
+            stockFilter={stockFilter}
+            onStockFilterChange={setStockFilter}
+            categories={categories}
+            onClearFilters={clearFilters}
+          />
+        </div>
+        
+        <InventoryTable
+          products={products}
+          searchTerm={searchTerm}
+          categoryFilter={categoryFilter}
+          stockFilter={stockFilter}
+          onEditProduct={setEditingProduct}
+          onDeleteProduct={handleDeleteProduct}
+          onViewMovement={(product) => {
+            setSelectedProduct(product);
+            setShowMovementModal(true);
+          }}
+          onAdjustStock={(product) => {
+            setSelectedProduct(product);
+            setShowAdjustmentModal(true);
+          }}
+        />
+      </GlassCard>
+      
+      <CategoryModal
+        isOpen={showCategoryModal}
+        onClose={() => setShowCategoryModal(false)}
+        categories={categories}
+        onAddCategory={(name, desc) => {
+          const success = addCategory(name, desc);
+          if (success) showSuccess('Category added successfully');
+          return success;
+        }}
+        onUpdateCategory={(id, name, desc) => {
+          const success = updateCategory(id, name, desc);
+          if (success) showSuccess('Category updated successfully');
+          return success;
+        }}
+        onDeleteCategory={(id) => {
+          const success = deleteCategory(id);
+          if (success) showSuccess('Category deleted successfully');
+          else showError('Cannot delete category with existing products');
+          return success;
+        }}
+      />
+      
+      <AddProductModal
+        isOpen={showAddProductModal}
+        onClose={() => setShowAddProductModal(false)}
+        categories={categories}
+        onAddProduct={handleAddProduct}
+      />
+      
+      <EditProductModal
+        isOpen={!!editingProduct}
+        onClose={() => setEditingProduct(null)}
+        product={editingProduct}
+        categories={categories}
+        onUpdateProduct={(id, updates) => {
+          const result = updateProduct(id, updates);
+          if (result.success) {
+            showSuccess('Product updated successfully');
+          } else {
+            showError('Failed to update product');
+          }
+          return result;
+        }}
+      />
+      
+      <ProductionModal
+        isOpen={showProductionModal}
+        onClose={() => setShowProductionModal(false)}
+        products={products}
+        onAddProduction={handleProductionEntry}
+      />
+      
+      <MovementModal
+        isOpen={showMovementModal}
+        onClose={() => {
+          setShowMovementModal(false);
+          setSelectedProduct(null);
+        }}
+        product={selectedProduct}
+        movements={movements}
+      />
+      
+      <StockAdjustmentModal
+        isOpen={showAdjustmentModal}
+        onClose={() => {
+          setShowAdjustmentModal(false);
+          setSelectedProduct(null);
+        }}
+        product={selectedProduct}
+        onAdjustStock={handleAdjustStock}
+      />
+      
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+      
+      <div className="text-xs text-muted mt-8">
+        <p>Keyboard shortcuts: Ctrl+N (Add Product), Ctrl+P (Production), Ctrl+E (Export)</p>
+      </div>
+    </div>
+  );
+};

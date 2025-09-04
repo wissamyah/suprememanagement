@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LocalStorage Test</title>
+</head>
+<body>
+    <h1>LocalStorage Debug</h1>
+    <button onclick="showStorage()">Show Storage</button>
+    <button onclick="clearStorage()">Clear Storage</button>
+    <button onclick="addTestData()">Add Test Data</button>
+    <pre id="output"></pre>
+    
+    <script>
+        function showStorage() {
+            const output = document.getElementById('output');
+            const items = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('supreme_mgmt_')) {
+                    try {
+                        items[key] = JSON.parse(localStorage.getItem(key));
+                    } catch (e) {
+                        items[key] = localStorage.getItem(key);
+                    }
+                }
+            }
+            output.textContent = JSON.stringify(items, null, 2);
+        }
+        
+        function clearStorage() {
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const key = localStorage.key(i);
+                if (key.startsWith('supreme_mgmt_')) {
+                    localStorage.removeItem(key);
+                }
+            }
+            showStorage();
+        }
+        
+        function addTestData() {
+            localStorage.setItem('supreme_mgmt_product_categories', JSON.stringify([
+                { id: 'test1', name: 'Test Category', description: 'Test', createdAt: new Date(), updatedAt: new Date() }
+            ]));
+            showStorage();
+        }
+        
+        // Show on load
+        showStorage();
+    </script>
+</body>
+</html>
