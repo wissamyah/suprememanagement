@@ -55,7 +55,7 @@ export const SyncStatus: React.FC = () => {
                         </span>
                         {pendingChanges && pendingChanges > 0 && (
                             <span className="text-xs text-yellow-400">
-                                {pendingChanges}
+                                ({pendingChanges} pending)
                             </span>
                         )}
                     </div>
