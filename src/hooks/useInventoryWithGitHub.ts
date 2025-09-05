@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useContext } from 'react';
+import { useState, useEffect, useCallback, useContext, useRef } from 'react';
 import type { Product, ProductCategory, InventoryMovement, ProductionEntry } from '../types';
 import { storage, generateId } from '../utils/storage';
 import { GitHubContext } from '../App';
 import githubStorage from '../services/githubStorage';
+import { syncQueue } from '../services/syncQueue';
 import { 
   getStockStatus, 
   validateProduct 
@@ -20,8 +21,12 @@ export const useInventoryWithGitHub = () => {
   const [productionEntries, setProductionEntries] = useState<ProductionEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncPending, setSyncPending] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState(0);
+  const [lastSyncError, setLastSyncError] = useState<string | null>(null);
 
   const { isAuthenticated } = useContext(GitHubContext);
+  const syncInProgress = useRef(false);
+  const lastSyncData = useRef<string>('');
 
   // Debounce timer for auto-sync
   const [syncTimer, setSyncTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -30,7 +35,12 @@ export const useInventoryWithGitHub = () => {
     loadData();
   }, [isAuthenticated]);
 
-  // Auto-sync when data changes
+  // Update pending changes count
+  useEffect(() => {
+    setPendingChanges(syncQueue.getPendingCount());
+  }, [products, categories, movements, productionEntries]);
+
+  // Auto-sync when data changes with better debouncing
   useEffect(() => {
     if (!isAuthenticated || !syncPending) return;
 
@@ -39,11 +49,10 @@ export const useInventoryWithGitHub = () => {
       clearTimeout(syncTimer);
     }
 
-    // Set new timer for auto-sync after 3 seconds of inactivity
+    // Set new timer for auto-sync after 5 seconds of inactivity
     const timer = setTimeout(() => {
-      syncToGitHub();
-      setSyncPending(false);
-    }, 3000);
+      performBatchSync();
+    }, 5000);
 
     setSyncTimer(timer);
 
@@ -101,11 +110,14 @@ export const useInventoryWithGitHub = () => {
     }
   };
 
-  const syncToGitHub = async () => {
-    if (!isAuthenticated) return;
+  const performBatchSync = async () => {
+    if (!isAuthenticated || syncInProgress.current) return;
+
+    syncInProgress.current = true;
+    setLastSyncError(null);
 
     try {
-      // Save all data types to GitHub
+      // Create a snapshot of current data
       const allData = {
         products,
         categories,
@@ -113,16 +125,57 @@ export const useInventoryWithGitHub = () => {
         productionEntries
       };
       
-      await githubStorage.saveAllData(allData);
-      console.log('All data synced to GitHub');
+      // Convert to string for comparison
+      const dataString = JSON.stringify(allData);
+      
+      // Only sync if data has actually changed
+      if (dataString !== lastSyncData.current) {
+        await githubStorage.saveAllData(allData);
+        lastSyncData.current = dataString;
+        
+        // Clear the queue on successful sync
+        syncQueue.clearQueue();
+        setPendingChanges(0);
+        console.log('All data synced to GitHub');
+      }
+      
+      setSyncPending(false);
     } catch (error) {
       console.error('Error syncing to GitHub:', error);
+      setLastSyncError(error instanceof Error ? error.message : 'Sync failed');
+      
+      // Keep sync pending for retry
+      setSyncPending(true);
+      
+      // Retry after 10 seconds
+      setTimeout(() => {
+        performBatchSync();
+      }, 10000);
+    } finally {
+      syncInProgress.current = false;
     }
   };
 
-  const saveProducts = (newProducts: Product[]) => {
+
+  const saveProducts = (newProducts: Product[], operation?: 'add' | 'update' | 'delete') => {
+    // Save to local state immediately (optimistic update)
     setProducts(newProducts);
     storage.set(PRODUCTS_KEY, newProducts);
+    
+    // Add to sync queue if operation specified
+    if (operation) {
+      const changedProducts = newProducts.filter(p => 
+        !products.find(op => op.id === p.id && JSON.stringify(op) === JSON.stringify(p))
+      );
+      changedProducts.forEach(product => {
+        syncQueue.addToQueue({
+          type: 'product',
+          operation,
+          data: product
+        });
+      });
+    }
+    
     setSyncPending(true);
   };
 
@@ -233,7 +286,7 @@ export const useInventoryWithGitHub = () => {
       };
 
       const updatedProducts = [...products, newProduct];
-      saveProducts(updatedProducts);
+      saveProducts(updatedProducts, 'add');
       
       // Create initial stock movement
       const movement: InventoryMovement = {
@@ -289,7 +342,7 @@ export const useInventoryWithGitHub = () => {
   const deleteProduct = useCallback((id: string): { success: boolean } => {
     try {
       const updatedProducts = products.filter(product => product.id !== id);
-      saveProducts(updatedProducts, 'update');
+      saveProducts(updatedProducts, 'delete');
       return { success: true };
     } catch (error) {
       console.error('Error deleting product:', error);
@@ -441,12 +494,18 @@ export const useInventoryWithGitHub = () => {
     return product.availableQuantity || product.quantityOnHand;
   }, [products]);
 
-  // Force sync method
+  // Force sync method with retry mechanism
   const forceSync = useCallback(async () => {
     if (isAuthenticated) {
-      await syncToGitHub();
+      // Clear any existing timer
+      if (syncTimer) {
+        clearTimeout(syncTimer);
+      }
+      
+      // Force immediate sync
+      await performBatchSync();
     }
-  }, [isAuthenticated, products]);
+  }, [isAuthenticated, products, categories, movements, productionEntries]);
 
   return {
     products,
@@ -454,6 +513,9 @@ export const useInventoryWithGitHub = () => {
     movements,
     productionEntries,
     loading,
+    pendingChanges,
+    lastSyncError,
+    syncInProgress: syncInProgress.current,
     addCategory,
     updateCategory,
     deleteCategory,
