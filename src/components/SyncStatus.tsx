@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { GitHubContext } from '../AppWithGitHub';
+import { GitHubContext } from '../App';
 
 export const SyncStatus: React.FC = () => {
     const { isAuthenticated, syncStatus, lastSync, syncData, logout } = useContext(GitHubContext);

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useContext } from 'react';
 import type { Product, ProductCategory, InventoryMovement, ProductionEntry } from '../types';
 import { storage, generateId } from '../utils/storage';
-import { GitHubContext } from '../AppWithGitHub';
+import { GitHubContext } from '../App';
 import githubStorage from '../services/githubStorage';
 import { 
   getStockStatus, 
