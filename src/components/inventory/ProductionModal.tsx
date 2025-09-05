@@ -196,7 +196,7 @@ export const ProductionModal = ({
                       <select
                         value={entry.productId}
                         onChange={(e) => updateEntry(index, 'productId', e.target.value)}
-                        className="w-full px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-sm"
+                        className="w-full px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-sm text-gray-100"
                       >
                         {products.map(product => (
                           <option key={product.id} value={product.id}>

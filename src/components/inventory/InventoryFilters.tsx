@@ -41,7 +41,7 @@ export const InventoryFilters = ({
       <select
         value={categoryFilter}
         onChange={(e) => onCategoryChange(e.target.value)}
-        className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 min-w-[150px]"
+        className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 min-w-[150px] text-gray-100"
       >
         <option value="">All Categories</option>
         {categories.map(cat => (
@@ -54,7 +54,7 @@ export const InventoryFilters = ({
       <select
         value={stockFilter}
         onChange={(e) => onStockFilterChange(e.target.value)}
-        className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 min-w-[150px]"
+        className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 min-w-[150px] text-gray-100"
       >
         <option value="">All Stock Levels</option>
         <option value="in-stock">In Stock</option>

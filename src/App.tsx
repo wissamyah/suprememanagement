@@ -41,6 +41,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [pendingChanges, setPendingChanges] = useState<number>(0);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   // Check authentication on mount
   useEffect(() => {

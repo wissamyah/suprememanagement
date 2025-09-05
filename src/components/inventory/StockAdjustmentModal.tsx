@@ -168,7 +168,7 @@ export const StockAdjustmentModal = ({
           <select
             value={formData.reason}
             onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-            className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+            className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-gray-100"
             required
           >
             <option value="">Select a reason</option>

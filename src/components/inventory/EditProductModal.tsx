@@ -124,7 +124,7 @@ export const EditProductModal = ({
           <select
             value={formData.category}
             onChange={(e) => handleInputChange('category', e.target.value)}
-            className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+            className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-gray-100"
             required
             disabled={loading}
           >
@@ -146,7 +146,7 @@ export const EditProductModal = ({
             <select
               value={formData.unit}
               onChange={(e) => handleInputChange('unit', e.target.value)}
-              className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+              className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-gray-100"
               disabled={loading}
             >
               <option value="bags">Bags</option>

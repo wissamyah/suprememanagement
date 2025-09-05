@@ -47,6 +47,22 @@
   }
 }
 
+/* Style dropdown options to match input fields */
+select option {
+  background-color: #111827;
+  color: #e5e7eb;
+  padding: 0.5rem;
+}
+
+select option:hover {
+  background-color: #1f2937;
+}
+
+/* For better cross-browser compatibility */
+select.glass option {
+  background-color: #111827;
+}
+
 /* Ripple effect for buttons */
 @keyframes ripple {
   0% {

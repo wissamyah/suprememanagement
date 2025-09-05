@@ -138,7 +138,7 @@ export const MovementModal = ({
               <select
                 value={filters.movementType}
                 onChange={(e) => setFilters({ ...filters, movementType: e.target.value })}
-                className="w-full px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-sm"
+                className="w-full px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-sm text-gray-100"
               >
                 <option value="">All Types</option>
                 <option value="production">Production</option>
