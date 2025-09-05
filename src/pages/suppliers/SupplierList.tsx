@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
-import { Plus, Search, Phone, Mail, MapPin, Truck } from 'lucide-react';
+import { Plus, Search, Truck, Mail, Phone, MapPin } from 'lucide-react';
 
 const suppliers = [
   {

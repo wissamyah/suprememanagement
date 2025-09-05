@@ -3,7 +3,6 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { 
   Calendar, 
-  Package, 
   Plus, 
   Trash2, 
   AlertCircle,

@@ -5,12 +5,9 @@ import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { ToastContainer } from '../components/ui/Toast';
 import { 
   Trash2, 
-  RefreshCw, 
   Database, 
   AlertTriangle,
   Download,
-  Upload,
-  Settings as SettingsIcon,
   TestTube,
   Shield,
   Code
@@ -286,7 +283,6 @@ export const Settings = () => {
         title="Reset All Data"
         message="Are you absolutely sure you want to delete all your local data? This action cannot be undone. Please make sure you have exported a backup if needed."
         confirmText="Yes, Reset Everything"
-        confirmVariant="danger"
       />
 
       {/* Generate Test Data Confirmation Modal */}
@@ -297,7 +293,6 @@ export const Settings = () => {
         title="Generate Test Data"
         message="This will replace your existing data with sample test data. Your current data will be lost unless you've made a backup. Continue?"
         confirmText="Generate Test Data"
-        confirmVariant="primary"
       />
 
       {/* Toast Container */}

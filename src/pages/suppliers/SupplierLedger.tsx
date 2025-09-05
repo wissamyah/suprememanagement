@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
-import { Search, Download, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { Search, Download, TrendingUp, Wallet, TrendingDown } from 'lucide-react';
 
 const ledgerEntries = [
   {

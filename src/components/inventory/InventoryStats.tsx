@@ -1,5 +1,5 @@
 import type { Product, InventoryMovement } from '../../types';
-import { Package, AlertTriangle, TrendingUp, Activity } from 'lucide-react';
+import { Package, AlertTriangle, Activity, TrendingUp } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 
 interface InventoryStatsProps {

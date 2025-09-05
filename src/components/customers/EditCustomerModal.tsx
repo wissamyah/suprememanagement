@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { User, Phone, MapPin, AlertCircle, Info } from 'lucide-react';
+import { User, AlertCircle, Info, Phone, MapPin } from 'lucide-react';
 import { NIGERIAN_STATES } from '../../constants/nigerianStates';
-import { validatePhoneNumber, formatPhoneNumber, formatCurrency } from '../../utils/customers';
+import { validatePhoneNumber, formatPhoneNumber } from '../../utils/customers';
 import type { Customer } from '../../types';
 
 interface EditCustomerModalProps {

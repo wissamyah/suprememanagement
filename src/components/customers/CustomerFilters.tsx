@@ -1,4 +1,4 @@
-import { Search, Filter, MapPin, Banknote, X } from 'lucide-react';
+import { Search, Filter, Banknote, X, MapPin } from 'lucide-react';
 import { NIGERIAN_STATES } from '../../constants/nigerianStates';
 
 interface CustomerFiltersProps {

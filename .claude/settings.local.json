@@ -32,7 +32,8 @@
       "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\components\\ui/**)",
       "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\components\\ui/**)",
       "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\components\\ui/**)",
-      "Read(//c/Users/wissa/Pictures/Screenshots/**)"
+      "Read(//c/Users/wissa/Pictures/Screenshots/**)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

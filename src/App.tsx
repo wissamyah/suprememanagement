@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import { Dashboard } from './pages/Dashboard';
 import { Inventory } from './pages/Inventory';
@@ -225,7 +225,7 @@ function App() {
 
   return (
     <GitHubContext.Provider value={contextValue}>
-      <BrowserRouter basename="/suprememanagement">
+      <HashRouter>
         <Routes>
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Dashboard />} />
@@ -247,7 +247,7 @@ function App() {
           onSuccess={handleAuthSuccess}
           onClose={() => setShowAuthModal(false)}
         />
-      </BrowserRouter>
+      </HashRouter>
     </GitHubContext.Provider>
   );
 }

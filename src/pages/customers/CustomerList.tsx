@@ -9,8 +9,7 @@ import {
   Upload, 
   FileJson, 
   FileText,
-  RefreshCw,
-  Users
+  RefreshCw
 } from 'lucide-react';
 import { useCustomersWithGitHub } from '../../hooks/useCustomersWithGitHub';
 import { useToast } from '../../hooks/useToast';

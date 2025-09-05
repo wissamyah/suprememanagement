@@ -4,8 +4,6 @@ import { Button } from '../ui/Button';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { 
   User,
-  Phone,
-  MapPin,
   Edit2,
   Trash2,
   Package,

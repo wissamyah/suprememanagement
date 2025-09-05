@@ -1,6 +1,6 @@
 import { GlassCard } from '../ui/GlassCard';
 import { Skeleton } from '../ui/Skeleton';
-import { Users, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
+import { Users, TrendingUp, AlertCircle, TrendingDown } from 'lucide-react';
 import { formatCurrency } from '../../utils/customers';
 
 interface CustomerStatsProps {

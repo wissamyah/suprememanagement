@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { User, Phone, MapPin, AlertCircle } from 'lucide-react';
+import { User, AlertCircle, Phone, MapPin } from 'lucide-react';
 import { NIGERIAN_STATES } from '../../constants/nigerianStates';
 import { validatePhoneNumber, formatPhoneNumber } from '../../utils/customers';
 

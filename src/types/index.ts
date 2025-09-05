@@ -81,7 +81,7 @@ export interface Sale {
   date: Date;
   items: SaleItem[];
   totalAmount: number;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  status: 'pending' | 'processing' | 'completed';
   paymentStatus: 'pending' | 'partial' | 'paid';
   createdAt: Date;
   updatedAt: Date;

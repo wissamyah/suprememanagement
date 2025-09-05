@@ -4,14 +4,14 @@ import { Button } from '../ui/Button';
 import { DropdownMenu } from './DropdownMenu';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { 
-  Package, 
   AlertTriangle, 
   Edit2,
   Activity,
   ChevronUp,
   ChevronDown,
   CheckSquare,
-  Square
+  Square,
+  Package
 } from 'lucide-react';
 
 interface InventoryTableProps {

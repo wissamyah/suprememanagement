@@ -8,14 +8,12 @@ import {
   FileText,
   ChevronDown,
   ChevronRight,
-  Menu,
   X,
   ShoppingCart,
   BookOpen,
   List,
   Wheat,
   Settings as SettingsIcon,
-  Home,
   ArrowRight
 } from 'lucide-react';
 

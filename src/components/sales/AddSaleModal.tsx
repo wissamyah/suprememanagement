@@ -4,7 +4,6 @@ import { Button } from '../ui/Button';
 import { 
   Calendar, 
   User, 
-  Package, 
   Plus, 
   Trash2, 
   AlertCircle,

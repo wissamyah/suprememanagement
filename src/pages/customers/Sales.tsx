@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
 import { ToastContainer } from '../../components/ui/Toast';
-import { Skeleton } from '../../components/ui/Skeleton';
 import { 
   Plus, 
   Search, 
@@ -10,11 +9,9 @@ import {
   TrendingUp, 
   RefreshCw,
   Download,
-  Upload,
   FileJson,
   FileText,
-  DollarSign,
-  Clock
+  DollarSign
 } from 'lucide-react';
 import { useSalesWithGitHub } from '../../hooks/useSalesWithGitHub';
 import { useToast } from '../../hooks/useToast';
@@ -46,8 +43,7 @@ export const Sales = () => {
     deleteSale,
     getProducts,
     getCustomers,
-    forceSync,
-    refreshData
+    forceSync
   } = useSalesWithGitHub();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
