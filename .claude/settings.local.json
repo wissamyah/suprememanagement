@@ -14,7 +14,8 @@
       "Bash(mv:*)",
       "Bash(gh repo view:*)",
       "Bash(git commit:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(git pull:*)"
     ],
     "deny": []
   }

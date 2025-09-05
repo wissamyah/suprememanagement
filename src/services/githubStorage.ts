@@ -3,7 +3,7 @@ class GitHubStorage {
     private owner: string = 'wissamyah';
     private repo: string = 'suprememanagement';
     private path: string = 'data/inventory.json';
-    private branch: string = 'main';
+    private branch: string = 'data';
     private token: string | null = null;
     private apiBase: string = 'https://api.github.com';
 
