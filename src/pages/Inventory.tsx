@@ -42,6 +42,7 @@ export const Inventory = () => {
     products,
     categories,
     movements,
+    loading,
     addCategory,
     updateCategory,
     deleteCategory,
@@ -306,7 +307,22 @@ export const Inventory = () => {
         </div>
       </div>
       
-      <InventoryStats products={products} movements={movements} />
+      {loading ? (
+        <div className="glass rounded-xl p-6">
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="inline-flex items-center gap-3">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+              </div>
+              <p className="text-sm text-muted mt-3">Loading inventory...</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <InventoryStats products={products} movements={movements} />
+      )}
       
       <GlassCard>
         <div className="mb-6 space-y-4">
@@ -388,22 +404,35 @@ export const Inventory = () => {
           />
         </div>
         
-        <InventoryTable
-          products={products}
-          searchTerm={searchTerm}
-          categoryFilter={categoryFilter}
-          stockFilter={stockFilter}
-          onEditProduct={setEditingProduct}
-          onDeleteProduct={handleDeleteProduct}
-          onViewMovement={(product) => {
-            setSelectedProduct(product);
-            setShowMovementModal(true);
-          }}
-          onAdjustStock={(product) => {
-            setSelectedProduct(product);
-            setShowAdjustmentModal(true);
-          }}
-        />
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="inline-flex items-center gap-3">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+              </div>
+              <p className="text-sm text-muted mt-3">Syncing with GitHub...</p>
+            </div>
+          </div>
+        ) : (
+          <InventoryTable
+            products={products}
+            searchTerm={searchTerm}
+            categoryFilter={categoryFilter}
+            stockFilter={stockFilter}
+            onEditProduct={setEditingProduct}
+            onDeleteProduct={handleDeleteProduct}
+            onViewMovement={(product) => {
+              setSelectedProduct(product);
+              setShowMovementModal(true);
+            }}
+            onAdjustStock={(product) => {
+              setSelectedProduct(product);
+              setShowAdjustmentModal(true);
+            }}
+          />
+        )}
       </GlassCard>
       
       <CategoryModal
@@ -479,10 +508,6 @@ export const Inventory = () => {
       />
       
       <ToastContainer toasts={toasts} onClose={removeToast} />
-      
-      <div className="text-xs text-muted mt-8">
-        <p>Keyboard shortcuts: Ctrl+N (Add Product), Ctrl+P (Production), Ctrl+E (Export)</p>
-      </div>
     </div>
   );
 };

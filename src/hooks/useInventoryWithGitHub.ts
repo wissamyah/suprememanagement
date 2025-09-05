@@ -31,36 +31,7 @@ export const useInventoryWithGitHub = () => {
   // Debounce timer for auto-sync
   const [syncTimer, setSyncTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, [isAuthenticated]);
-
-  // Update pending changes count
-  useEffect(() => {
-    setPendingChanges(syncQueue.getPendingCount());
-  }, [products, categories, movements, productionEntries]);
-
-  // Auto-sync when data changes with better debouncing
-  useEffect(() => {
-    if (!isAuthenticated || !syncPending) return;
-
-    // Clear existing timer
-    if (syncTimer) {
-      clearTimeout(syncTimer);
-    }
-
-    // Set new timer for auto-sync after 5 seconds of inactivity
-    const timer = setTimeout(() => {
-      performBatchSync();
-    }, 5000);
-
-    setSyncTimer(timer);
-
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [products, categories, movements, productionEntries, syncPending]);
-
+  // Define loadData function
   const loadData = async () => {
     setLoading(true);
     try {
@@ -110,6 +81,7 @@ export const useInventoryWithGitHub = () => {
     }
   };
 
+  // Define performBatchSync BEFORE useEffects that use it
   const performBatchSync = async () => {
     if (!isAuthenticated || syncInProgress.current) return;
 
@@ -130,13 +102,19 @@ export const useInventoryWithGitHub = () => {
       
       // Only sync if data has actually changed
       if (dataString !== lastSyncData.current) {
+        console.log('Syncing data to GitHub...', { 
+          products: products.length,
+          categories: categories.length 
+        });
         await githubStorage.saveAllData(allData);
         lastSyncData.current = dataString;
         
         // Clear the queue on successful sync
         syncQueue.clearQueue();
         setPendingChanges(0);
-        console.log('All data synced to GitHub');
+        console.log('All data synced to GitHub successfully');
+      } else {
+        console.log('No changes to sync');
       }
       
       setSyncPending(false);
@@ -156,6 +134,36 @@ export const useInventoryWithGitHub = () => {
     }
   };
 
+  useEffect(() => {
+    loadData();
+  }, [isAuthenticated]);
+
+  // Update pending changes count
+  useEffect(() => {
+    setPendingChanges(syncQueue.getPendingCount());
+  }, [products, categories, movements, productionEntries]);
+
+  // Auto-sync when data changes with better debouncing
+  useEffect(() => {
+    if (!isAuthenticated || !syncPending) return;
+
+    // Clear existing timer
+    if (syncTimer) {
+      clearTimeout(syncTimer);
+    }
+
+    // Set new timer for auto-sync after 5 seconds of inactivity
+    const timer = setTimeout(() => {
+      console.log('Auto-sync triggered after 5 seconds');
+      performBatchSync();
+    }, 5000);
+
+    setSyncTimer(timer);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [products, categories, movements, productionEntries, syncPending]);
 
   const saveProducts = (newProducts: Product[], operation?: 'add' | 'update' | 'delete') => {
     // Save to local state immediately (optimistic update)
@@ -502,10 +510,11 @@ export const useInventoryWithGitHub = () => {
         clearTimeout(syncTimer);
       }
       
+      console.log('Force sync triggered');
       // Force immediate sync
       await performBatchSync();
     }
-  }, [isAuthenticated, products, categories, movements, productionEntries]);
+  }, [isAuthenticated, syncTimer]);
 
   return {
     products,

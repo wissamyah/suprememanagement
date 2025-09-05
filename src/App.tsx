@@ -56,8 +56,8 @@ function App() {
       setIsAuthenticated(authenticated);
       
       if (!authenticated) {
-        // Show auth modal after a short delay for better UX
-        setTimeout(() => setShowAuthModal(true), 500);
+        // Show auth modal immediately without delay
+        setShowAuthModal(true);
       } else {
         // Load initial data from GitHub
         await loadDataFromGitHub();
@@ -126,7 +126,8 @@ function App() {
     setIsAuthenticated(false);
     setLastSync(null);
     setSyncStatus('idle');
-    // Optionally clear local data or keep it as offline backup
+    // Immediately show the auth modal after logout
+    setShowAuthModal(true);
   };
 
   const contextValue = {

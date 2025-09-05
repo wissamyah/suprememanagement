@@ -6,6 +6,8 @@ class GitHubStorage {
     private branch: string = 'data';
     private token: string | null = null;
     private apiBase: string = 'https://api.github.com';
+    private saveLock: boolean = false;
+    private saveQueue: Promise<any> | null = null;
 
     constructor() {
         // Initialize properties in constructor if needed
@@ -74,8 +76,9 @@ class GitHubStorage {
     // Get file content from GitHub
     async getFileContent(): Promise<any> {
         try {
+            // Add timestamp to prevent caching
             const response = await fetch(
-                `${this.apiBase}/repos/${this.owner}/${this.repo}/contents/${this.path}?ref=${this.branch}`,
+                `${this.apiBase}/repos/${this.owner}/${this.repo}/contents/${this.path}?ref=${this.branch}&t=${Date.now()}`,
                 {
                     headers: {
                         'Authorization': `Bearer ${this.token}`,
@@ -114,11 +117,13 @@ class GitHubStorage {
     // Update or create file on GitHub
     async saveFileContent(data: any, message: string = 'Update inventory data'): Promise<any> {
         try {
-            // Get current file SHA if it exists
+            // Always get fresh SHA right before saving to avoid conflicts
             let sha = null;
             try {
+                console.log('Fetching current file SHA...');
                 const current = await this.getFileContent();
                 sha = current.sha;
+                console.log('Current SHA:', sha);
             } catch (error) {
                 // File doesn't exist, will create new
                 console.log('Creating new file on GitHub');
@@ -136,6 +141,12 @@ class GitHubStorage {
                 body.sha = sha;
             }
 
+            console.log('Sending PUT request to GitHub API...', {
+                url: `${this.apiBase}/repos/${this.owner}/${this.repo}/contents/${this.path}`,
+                branch: this.branch,
+                hasSha: !!sha
+            });
+
             const response = await fetch(
                 `${this.apiBase}/repos/${this.owner}/${this.repo}/contents/${this.path}`,
                 {
@@ -151,6 +162,45 @@ class GitHubStorage {
 
             if (!response.ok) {
                 const error = await response.json();
+                console.error('GitHub API error response:', error);
+                
+                // If it's a SHA mismatch, retry with fresh SHA
+                if (response.status === 409 && error.message?.includes('does not match')) {
+                    console.log('SHA mismatch detected, retrying with fresh SHA...');
+                    
+                    // Get fresh SHA
+                    const freshData = await this.getFileContent();
+                    const freshSha = freshData.sha;
+                    
+                    if (freshSha && freshSha !== sha) {
+                        console.log('Got fresh SHA:', freshSha);
+                        body.sha = freshSha;
+                        
+                        // Retry the request with fresh SHA
+                        const retryResponse = await fetch(
+                            `${this.apiBase}/repos/${this.owner}/${this.repo}/contents/${this.path}`,
+                            {
+                                method: 'PUT',
+                                headers: {
+                                    'Authorization': `Bearer ${this.token}`,
+                                    'Accept': 'application/vnd.github.v3+json',
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(body)
+                            }
+                        );
+                        
+                        if (retryResponse.ok) {
+                            console.log('Retry successful!');
+                            return await retryResponse.json();
+                        }
+                        
+                        const retryError = await retryResponse.json();
+                        console.error('Retry failed:', retryError);
+                        throw new Error(`GitHub API error after retry: ${retryError.message || retryResponse.status}`);
+                    }
+                }
+                
                 throw new Error(`GitHub API error: ${error.message || response.status}`);
             }
 
@@ -191,9 +241,40 @@ class GitHubStorage {
         }
     }
 
-    // Save all data
+    // Save all data with queue to prevent concurrent saves
     async saveAllData(data: any): Promise<boolean> {
+        // If a save is already in progress, wait for it to complete
+        if (this.saveQueue) {
+            console.log('Save already in progress, waiting for it to complete...');
+            try {
+                await this.saveQueue;
+            } catch (error) {
+                console.log('Previous save failed, continuing with new save');
+            }
+        }
+
+        // Create a new save promise
+        this.saveQueue = this._doSave(data);
+        
         try {
+            const result = await this.saveQueue;
+            return result;
+        } finally {
+            this.saveQueue = null;
+        }
+    }
+
+    // Internal save method
+    private async _doSave(data: any): Promise<boolean> {
+        try {
+            console.log('Saving data to GitHub...', {
+                products: data.products?.length || 0,
+                categories: data.categories?.length || 0,
+                movements: data.movements?.length || 0,
+                branch: this.branch,
+                path: this.path
+            });
+
             const fullData = {
                 ...data,
                 metadata: {
@@ -202,7 +283,8 @@ class GitHubStorage {
                 }
             };
 
-            await this.saveFileContent(fullData, 'Update inventory data');
+            const result = await this.saveFileContent(fullData, 'Update inventory data');
+            console.log('GitHub save successful', result?.commit?.sha);
             
             // Keep localStorage as backup for each data type
             if (data.products) localStorage.setItem('products', JSON.stringify(data.products));
