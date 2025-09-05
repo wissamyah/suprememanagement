@@ -42,9 +42,32 @@ export const useInventoryWithGitHub = () => {
       }
     });
     
+    // Listen for storage changes from other components
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'supreme_mgmt_products' && e.newValue && mountedRef.current) {
+        try {
+          const updatedProducts = JSON.parse(e.newValue);
+          setProducts(updatedProducts);
+        } catch (error) {
+          console.error('Error parsing products from storage event:', error);
+        }
+      }
+      if (e.key === 'supreme_mgmt_inventory_movements' && e.newValue && mountedRef.current) {
+        try {
+          const updatedMovements = JSON.parse(e.newValue);
+          setMovements(updatedMovements);
+        } catch (error) {
+          console.error('Error parsing movements from storage event:', error);
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
     return () => {
       mountedRef.current = false;
       unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
@@ -398,12 +421,16 @@ export const useInventoryWithGitHub = () => {
     notes?: string
   ): { success: boolean } => {
     try {
-      const product = products.find(p => p.id === productId);
-      if (!product) {
+      // Get the current product state from the products array
+      const currentProducts = [...products];
+      const productIndex = currentProducts.findIndex(p => p.id === productId);
+      
+      if (productIndex === -1) {
         console.error('Product not found');
         return { success: false };
       }
 
+      const product = currentProducts[productIndex];
       const now = new Date();
       const newEntry: ProductionEntry = {
         id: generateId(),
@@ -419,7 +446,10 @@ export const useInventoryWithGitHub = () => {
       const updatedProduction = [...productionEntries, newEntry];
       saveProduction(updatedProduction);
 
-      // Create inventory movement
+      // Calculate new quantity based on current state
+      const newQuantity = product.quantityOnHand + quantityProduced;
+      
+      // Create inventory movement with correct quantities
       const movement: InventoryMovement = {
         id: generateId(),
         productId: productId,
@@ -427,7 +457,7 @@ export const useInventoryWithGitHub = () => {
         movementType: 'production',
         quantity: quantityProduced,
         previousQuantity: product.quantityOnHand,
-        newQuantity: product.quantityOnHand + quantityProduced,
+        newQuantity: newQuantity,
         reference: 'Production',
         notes: `Production: ${notes || 'Production entry'}`,
         date: now,
@@ -437,16 +467,110 @@ export const useInventoryWithGitHub = () => {
       const updatedMovements = [...movements, movement];
       saveMovements(updatedMovements);
 
-      // Update product quantity
-      const newQuantity = product.quantityOnHand + quantityProduced;
-      updateProduct(productId, { quantityOnHand: newQuantity });
+      // Update the product in the local array with new quantity
+      currentProducts[productIndex] = {
+        ...product,
+        quantityOnHand: newQuantity,
+        availableQuantity: newQuantity - (product.quantityBooked || 0),
+        status: getStockStatus(newQuantity, product.reorderLevel) as any,
+        updatedAt: now
+      };
+      
+      // Save all products with the updated one
+      saveProducts(currentProducts, 'update');
 
       return { success: true };
     } catch (error) {
       console.error('Error adding production entry:', error);
       return { success: false };
     }
-  }, [products, productionEntries, movements, updateProduct]);
+  }, [products, productionEntries, movements]);
+
+  const addBatchProductionEntries = useCallback((
+    entries: Array<{ productId: string; quantity: number; notes?: string }>
+  ): { success: boolean; successCount: number; failedProducts: string[] } => {
+    try {
+      const now = new Date();
+      let currentProducts = [...products];
+      let newProductionEntries: ProductionEntry[] = [];
+      let newMovements: InventoryMovement[] = [];
+      let successCount = 0;
+      const failedProducts: string[] = [];
+      
+      // Process each entry and accumulate changes
+      entries.forEach((entry) => {
+        const productIndex = currentProducts.findIndex(p => p.id === entry.productId);
+        
+        if (productIndex === -1) {
+          const product = products.find(p => p.id === entry.productId);
+          failedProducts.push(product?.name || 'Unknown');
+          return;
+        }
+        
+        const product = currentProducts[productIndex];
+        
+        // Create production entry
+        const productionEntry: ProductionEntry = {
+          id: generateId(),
+          productId: entry.productId,
+          productName: product.name,
+          quantity: entry.quantity,
+          date: now,
+          notes: entry.notes,
+          createdAt: now,
+          updatedAt: now
+        };
+        newProductionEntries.push(productionEntry);
+        
+        // Calculate new quantity
+        const newQuantity = product.quantityOnHand + entry.quantity;
+        
+        // Create movement
+        const movement: InventoryMovement = {
+          id: generateId(),
+          productId: entry.productId,
+          productName: product.name,
+          movementType: 'production',
+          quantity: entry.quantity,
+          previousQuantity: product.quantityOnHand,
+          newQuantity: newQuantity,
+          reference: 'Production',
+          notes: `Production: ${entry.notes || 'Production entry'}`,
+          date: now,
+          createdAt: now,
+          updatedAt: now
+        };
+        newMovements.push(movement);
+        
+        // Update product in the array
+        currentProducts[productIndex] = {
+          ...product,
+          quantityOnHand: newQuantity,
+          availableQuantity: newQuantity - (product.quantityBooked || 0),
+          status: getStockStatus(newQuantity, product.reorderLevel) as any,
+          updatedAt: now
+        };
+        
+        successCount++;
+      });
+      
+      if (successCount > 0) {
+        // Save all updates at once
+        saveProducts(currentProducts, 'update');
+        saveProduction([...productionEntries, ...newProductionEntries]);
+        saveMovements([...movements, ...newMovements]);
+      }
+      
+      return { 
+        success: successCount > 0, 
+        successCount,
+        failedProducts 
+      };
+    } catch (error) {
+      console.error('Error adding batch production entries:', error);
+      return { success: false, successCount: 0, failedProducts: [] };
+    }
+  }, [products, productionEntries, movements]);
 
   const getProductById = useCallback((id: string): Product | undefined => {
     return products.find(p => p.id === id);
@@ -485,6 +609,7 @@ export const useInventoryWithGitHub = () => {
     addMovement,
     adjustStock,
     addProductionEntry,
+    addBatchProductionEntries,
     getProductById,
     getAvailableQuantity,
     forceSync,

@@ -11,6 +11,7 @@ import { SupplierList } from './pages/suppliers/SupplierList';
 import { PaddyTrucks } from './pages/suppliers/PaddyTrucks';
 import { SupplierLedger } from './pages/suppliers/SupplierLedger';
 import { Reports } from './pages/Reports';
+import { Settings } from './pages/Settings';
 import GitHubAuthModal from './components/GitHubAuthModal';
 import githubStorage from './services/githubStorage';
 import { globalSyncManager } from './services/globalSyncManager';
@@ -237,6 +238,7 @@ function App() {
             <Route path="suppliers/paddy-trucks" element={<PaddyTrucks />} />
             <Route path="suppliers/ledger" element={<SupplierLedger />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
         

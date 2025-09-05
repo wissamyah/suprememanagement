@@ -198,9 +198,92 @@ export const InventoryTable = ({
         </div>
       )}
 
-      <div className="overflow-x-auto -mx-4 sm:mx-0">
-        <div className="inline-block min-w-full align-middle">
-      <table className="w-full min-w-[640px]">
+      {/* Mobile Card View */}
+      <div className="sm:hidden">
+        <div className="space-y-3">
+          {filteredAndSortedProducts.map((product) => (
+            <div
+              key={product.id}
+              className={`glass rounded-lg p-4 ${
+                selectedProducts.has(product.id) ? 'ring-2 ring-white/20' : ''
+              }`}
+            >
+              {/* Card Header */}
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start gap-3 flex-1">
+                  <button
+                    onClick={() => toggleProductSelection(product.id)}
+                    className="p-1 rounded hover:bg-glass transition-colors mt-1"
+                  >
+                    {selectedProducts.has(product.id) ? 
+                      <CheckSquare size={18} /> : 
+                      <Square size={18} />
+                    }
+                  </button>
+                  <div className="flex-1">
+                    <p className="font-medium text-base">{product.name}</p>
+                    <p className="text-xs text-muted mt-1">{product.category} • {product.unit}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  {getStockIndicator(product)}
+                </div>
+              </div>
+
+              {/* Stock Information */}
+              <div className="grid grid-cols-3 gap-3 mb-3 text-sm">
+                <div>
+                  <span className="text-xs text-muted block">On Hand</span>
+                  <span className="font-medium">{product.quantityOnHand}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted block">Booked</span>
+                  <span className={product.quantityBooked > 0 ? 'text-yellow-400' : ''}>
+                    {product.quantityBooked}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted block">Available</span>
+                  <span className={`font-medium ${
+                    product.availableQuantity === 0 ? 'text-red-400' :
+                    product.availableQuantity <= product.reorderLevel ? 'text-yellow-400' :
+                    'text-green-400'
+                  }`}>
+                    {product.availableQuantity}
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-1 justify-end border-t border-white/5 pt-3">
+                <button
+                  onClick={() => onEditProduct(product)}
+                  className="p-1.5 rounded-lg hover:bg-white/10 transition-all duration-200"
+                  title="Edit Product"
+                >
+                  <Edit2 size={16} />
+                </button>
+                <button
+                  onClick={() => onViewMovement(product)}
+                  className="p-1.5 rounded-lg hover:bg-white/10 transition-all duration-200"
+                  title="View Movement"
+                >
+                  <Activity size={16} />
+                </button>
+                <DropdownMenu
+                  onAdjustStock={() => onAdjustStock(product)}
+                  onDelete={() => setDeleteConfirm({ show: true, product })}
+                  productName={product.name}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden sm:block overflow-x-auto">
+      <table className="w-full">
         <thead>
           <tr className="border-b border-white/5">
             <th className="text-left py-3 px-3">
@@ -343,7 +426,6 @@ export const InventoryTable = ({
           ))}
         </tbody>
       </table>
-        </div>
       </div>
       
     <ConfirmModal

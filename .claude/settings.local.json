@@ -15,7 +15,24 @@
       "Bash(gh repo view:*)",
       "Bash(git commit:*)",
       "Bash(npm run dev:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\types/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\hooks/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\types/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\services/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\pages/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\pages\\customers/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\utils/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\components\\ui/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\components\\inventory/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\services/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\services/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\services/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\components\\ui/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\components\\ui/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\components\\ui/**)",
+      "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\components\\ui/**)",
+      "Read(//c/Users/wissa/Pictures/Screenshots/**)"
     ],
     "deny": []
   }

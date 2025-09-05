@@ -1,8 +1,8 @@
-// GitHub Storage Service for Inventory Management
+// GitHub Storage Service for Data Management
 class GitHubStorage {
     private owner: string = 'wissamyah';
     private repo: string = 'suprememanagement';
-    private path: string = 'data/inventory.json';
+    private path: string = 'data/data.json';
     private branch: string = 'data';
     private token: string | null = null;
     private apiBase: string = 'https://api.github.com';
@@ -139,6 +139,11 @@ class GitHubStorage {
         }
     }
 
+    // Check if currently authenticated (synchronous check)
+    isAuthenticated(): boolean {
+        return this.token !== null && sessionStorage.getItem('gh_token') !== null;
+    }
+
     // Check if token exists and is valid
     async checkAuthentication(): Promise<boolean> {
         const encryptedToken = sessionStorage.getItem('gh_token');
@@ -211,7 +216,7 @@ class GitHubStorage {
     }
 
     // Update or create file on GitHub
-    async saveFileContent(data: any, message: string = 'Update inventory data'): Promise<any> {
+    async saveFileContent(data: any, message: string = 'Update data'): Promise<any> {
         try {
             // Always get fresh SHA right before saving to avoid conflicts
             let sha = null;
@@ -344,6 +349,41 @@ class GitHubStorage {
         }
     }
 
+    // Clear all data - saves empty data structure to GitHub
+    async clearAllData(): Promise<boolean> {
+        if (!this.isAuthenticated()) {
+            console.log('Not authenticated, skipping GitHub clear');
+            return false;
+        }
+
+        try {
+            // Create empty data structure
+            const emptyData = {
+                products: [],
+                product_categories: [],
+                inventory_movements: [],
+                production_entries: [],
+                customers: [],
+                sales: []
+            };
+
+            // Save empty data to GitHub
+            console.log('Clearing all data in GitHub...');
+            const result = await this.saveAllData(emptyData);
+            
+            if (result) {
+                console.log('Successfully cleared all data in GitHub');
+            } else {
+                console.error('Failed to clear data in GitHub');
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('Error clearing GitHub data:', error);
+            return false;
+        }
+    }
+
     // Save all data with queue to prevent concurrent saves and rate limiting
     async saveAllData(data: any): Promise<boolean> {
         // Implement rate limiting
@@ -415,7 +455,7 @@ class GitHubStorage {
                 }
             };
 
-            const result = await this.saveFileContent(fullData, 'Update inventory data');
+            const result = await this.saveFileContent(fullData, 'Update data');
             console.log('GitHub save successful', result?.commit?.sha);
             
             // Keep localStorage as backup for each data type
@@ -423,6 +463,7 @@ class GitHubStorage {
             if (data.categories) localStorage.setItem('product_categories', JSON.stringify(data.categories));
             if (data.movements) localStorage.setItem('inventory_movements', JSON.stringify(data.movements));
             if (data.productionEntries) localStorage.setItem('production_entries', JSON.stringify(data.productionEntries));
+            if (data.customers) localStorage.setItem('customers', JSON.stringify(data.customers));
             
             localStorage.setItem('lastSync', new Date().toISOString());
             

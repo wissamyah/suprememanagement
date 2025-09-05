@@ -15,7 +15,7 @@ interface ProductionModalProps {
   isOpen: boolean;
   onClose: () => void;
   products: Product[];
-  onAddProduction: (productId: string, quantity: number, notes?: string, date?: Date) => void;
+  onAddProduction: (entries: Array<{ productId: string; quantity: number; notes?: string }>) => boolean;
 }
 
 export const ProductionModal = ({
@@ -29,7 +29,7 @@ export const ProductionModal = ({
   const [time, setTime] = useState(new Date().toTimeString().split(' ')[0].slice(0, 5));
   const [errors, setErrors] = useState<string[]>([]);
   const [successCount, setSuccessCount] = useState(0);
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -38,6 +38,7 @@ export const ProductionModal = ({
       setTime(new Date().toTimeString().split(' ')[0].slice(0, 5));
       setErrors([]);
       setSuccessCount(0);
+      setLoading(false);
     } else if (products.length > 0 && entries.length === 0) {
       addNewEntry();
     }
@@ -76,35 +77,36 @@ export const ProductionModal = ({
   const handleSubmit = () => {
     setErrors([]);
     setSuccessCount(0);
+    setLoading(true);
     
     const validEntries = entries.filter(entry => entry.quantity > 0);
     
     if (validEntries.length === 0) {
       setErrors(['Please add at least one product with quantity greater than 0']);
+      setLoading(false);
       return;
     }
 
     const productionDate = new Date(`${date}T${time}`);
-    let successfulEntries = 0;
-    const failedProducts: string[] = [];
-
-    validEntries.forEach(entry => {
-      onAddProduction(
-        entry.productId,
-        entry.quantity,
-        entry.notes || undefined,
-        productionDate
-      );
-      successfulEntries++;
-    });
-
-    if (successfulEntries === validEntries.length) {
-      setSuccessCount(successfulEntries);
+    
+    // Prepare entries for batch processing
+    const productionEntries = validEntries.map(entry => ({
+      productId: entry.productId,
+      quantity: entry.quantity,
+      notes: entry.notes || `Production on ${productionDate.toLocaleDateString()}`
+    }));
+    
+    // Call onAddProduction with all entries at once
+    const success = onAddProduction(productionEntries);
+    
+    if (success) {
+      setSuccessCount(validEntries.length);
       setTimeout(() => {
+        setLoading(false);
         onClose();
       }, 1500);
-    } else if (failedProducts.length > 0) {
-      setErrors([`Failed to add production for: ${failedProducts.join(', ')}`]);
+    } else {
+      setLoading(false);
     }
   };
 

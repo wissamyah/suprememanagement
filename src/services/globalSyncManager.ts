@@ -51,11 +51,38 @@ class GlobalSyncManager {
     }
   }
 
+  // Reset pending changes - used when clearing all data
+  resetPendingChanges() {
+    // Clear any pending sync timers
+    if (this.syncTimer) {
+      clearTimeout(this.syncTimer);
+      this.syncTimer = null;
+    }
+    
+    // Reset state
+    this.updateState({ 
+      isPending: false, 
+      pendingChanges: 0,
+      error: null 
+    });
+    
+    // Reset the data hash to reflect empty state
+    this.lastDataHash = JSON.stringify({
+      products: [],
+      categories: [],
+      movements: [],
+      productionEntries: [],
+      customers: [],
+      sales: []
+    });
+  }
+
   // Handle storage changes from any component
   private handleStorageChange = (e: StorageEvent) => {
     // Only care about our data keys
     const dataKeys = ['supreme_mgmt_products', 'supreme_mgmt_product_categories', 
-                     'supreme_mgmt_inventory_movements', 'supreme_mgmt_production_entries'];
+                     'supreme_mgmt_inventory_movements', 'supreme_mgmt_production_entries',
+                     'supreme_mgmt_customers', 'supreme_mgmt_sales'];
     
     if (e.key && dataKeys.includes(e.key)) {
       this.scheduleSyncDebounced();
@@ -83,10 +110,12 @@ class GlobalSyncManager {
         categories: JSON.parse(localStorage.getItem('supreme_mgmt_product_categories') || '[]'),
         movements: JSON.parse(localStorage.getItem('supreme_mgmt_inventory_movements') || '[]'),
         productionEntries: JSON.parse(localStorage.getItem('supreme_mgmt_production_entries') || '[]'),
+        customers: JSON.parse(localStorage.getItem('supreme_mgmt_customers') || '[]'),
+        sales: JSON.parse(localStorage.getItem('supreme_mgmt_sales') || '[]'),
       };
     } catch (error) {
       console.error('Error reading localStorage:', error);
-      return { products: [], categories: [], movements: [], productionEntries: [] };
+      return { products: [], categories: [], movements: [], productionEntries: [], customers: [], sales: [] };
     }
   }
 

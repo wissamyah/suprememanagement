@@ -1,13 +1,14 @@
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { AlertTriangle, Trash2, Info } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
   title?: string;
-  message: string;
+  message: ReactNode;
   confirmText?: string;
   cancelText?: string;
   type?: 'danger' | 'warning' | 'info';

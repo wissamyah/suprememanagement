@@ -1,114 +1,237 @@
 import { useState } from 'react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
-import { Plus, Search, Calendar, TrendingUp } from 'lucide-react';
-
-const salesData = [
-  {
-    id: 1,
-    orderId: 'ORD-2024-001',
-    customer: 'Raj Kumar',
-    date: '2024-01-15',
-    items: 5,
-    amount: '₦45,000',
-    status: 'completed',
-    paymentStatus: 'paid'
-  },
-  {
-    id: 2,
-    orderId: 'ORD-2024-002',
-    customer: 'Sharma Traders',
-    date: '2024-01-14',
-    items: 3,
-    amount: '₦32,500',
-    status: 'completed',
-    paymentStatus: 'pending'
-  },
-  {
-    id: 3,
-    orderId: 'ORD-2024-003',
-    customer: 'Gupta & Sons',
-    date: '2024-01-14',
-    items: 8,
-    amount: '₦67,800',
-    status: 'processing',
-    paymentStatus: 'partial'
-  },
-  {
-    id: 4,
-    orderId: 'ORD-2024-004',
-    customer: 'Kumar Enterprises',
-    date: '2024-01-13',
-    items: 12,
-    amount: '₦1,25,000',
-    status: 'completed',
-    paymentStatus: 'paid'
-  },
-];
+import { ToastContainer } from '../../components/ui/Toast';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { 
+  Plus, 
+  Search, 
+  Calendar, 
+  TrendingUp, 
+  RefreshCw,
+  Download,
+  Upload,
+  FileJson,
+  FileText,
+  DollarSign,
+  Clock
+} from 'lucide-react';
+import { useSalesWithGitHub } from '../../hooks/useSalesWithGitHub';
+import { useToast } from '../../hooks/useToast';
+import { SaleTable } from '../../components/sales/SaleTable';
+import { AddSaleModal } from '../../components/sales/AddSaleModal';
+import { EditSaleModal } from '../../components/sales/EditSaleModal';
+import { 
+  formatCurrency, 
+  calculateSalesStats,
+  exportSalesToJSON,
+  exportSalesToCSV 
+} from '../../utils/sales';
+import type { Sale } from '../../types';
 
 export const Sales = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [showImportExportMenu, setShowImportExportMenu] = useState(false);
+  
+  const {
+    sales,
+    loading,
+    syncInProgress,
+    pendingChanges,
+    addSale,
+    updateSale,
+    deleteSale,
+    getProducts,
+    getCustomers,
+    forceSync,
+    refreshData
+  } = useSalesWithGitHub();
+  
+  const { toasts, showSuccess, showError, removeToast } = useToast();
+  
+  // Calculate real-time statistics
+  const stats = calculateSalesStats(sales);
+  
+  const handleAddSale = (
+    customerId: string,
+    date: Date,
+    items: any[],
+    status: 'pending' | 'processing' | 'completed',
+    paymentStatus: 'pending' | 'partial' | 'paid'
+  ) => {
+    const result = addSale(customerId, date, items, status, paymentStatus);
+    if (result.success) {
+      showSuccess('Sale created successfully');
+      setShowAddModal(false);
+    }
+    return result;
+  };
+
+  const handleUpdateSale = (
+    id: string,
+    updates: Partial<Omit<Sale, 'id' | 'orderId' | 'createdAt' | 'updatedAt'>>
+  ) => {
+    const result = updateSale(id, updates);
+    if (result.success) {
+      showSuccess('Sale updated successfully');
+      setEditingSale(null);
+    }
+    return result;
+  };
+
+  const handleDeleteSale = (saleId: string) => {
+    const sale = sales.find(s => s.id === saleId);
+    const result = deleteSale(saleId);
+    
+    if (result.success) {
+      showSuccess(`Sale ${sale?.orderId} deleted`);
+    } else {
+      showError('Failed to delete sale');
+    }
+  };
+
+  const handleExportJSON = () => {
+    exportSalesToJSON(sales);
+    showSuccess('Sales exported to JSON');
+    setShowImportExportMenu(false);
+  };
+
+  const handleExportCSV = () => {
+    exportSalesToCSV(sales);
+    showSuccess('Sales exported to CSV');
+    setShowImportExportMenu(false);
+  };
   
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Sales</h1>
           <p className="text-muted">Track and manage your sales transactions</p>
         </div>
-        <Button variant="primary">
-          <Plus size={20} />
-          New Sale
-        </Button>
+        
+        <div className="flex flex-wrap gap-2">
+          {/* Sync Status */}
+          {syncInProgress && (
+            <div className="flex items-center gap-2 px-3 py-2 glass rounded-lg">
+              <RefreshCw className="animate-spin" size={16} />
+              <span className="text-sm">Syncing...</span>
+            </div>
+          )}
+          
+          {pendingChanges > 0 && !syncInProgress && (
+            <Button variant="ghost" onClick={forceSync}>
+              <RefreshCw size={16} />
+              Sync ({pendingChanges})
+            </Button>
+          )}
+          
+          {/* Import/Export Menu */}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              onClick={() => setShowImportExportMenu(!showImportExportMenu)}
+            >
+              <Download size={20} />
+              Export
+            </Button>
+            
+            {showImportExportMenu && (
+              <div className="absolute right-0 top-full mt-2 w-48 glass rounded-lg shadow-xl z-10 overflow-hidden">
+                <button
+                  onClick={handleExportJSON}
+                  className="w-full px-4 py-2 text-left hover:bg-glass flex items-center gap-2"
+                >
+                  <FileJson size={16} />
+                  Export as JSON
+                </button>
+                <button
+                  onClick={handleExportCSV}
+                  className="w-full px-4 py-2 text-left hover:bg-glass flex items-center gap-2"
+                >
+                  <FileText size={16} />
+                  Export as CSV
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {/* Add Sale Button */}
+          <Button variant="primary" onClick={() => setShowAddModal(true)}>
+            <Plus size={20} />
+            <span className="hidden sm:inline">New Sale</span>
+            <span className="sm:hidden">Sale</span>
+          </Button>
+        </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <GlassCard>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted">Today's Sales</p>
-              <p className="text-2xl font-bold">₦2,45,000</p>
+      {/* Statistics Cards */}
+      {loading ? (
+        <div className="glass rounded-xl p-6">
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="inline-flex items-center gap-3">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+              </div>
+              <p className="text-sm text-muted mt-3">Loading sales data...</p>
             </div>
-            <TrendingUp className="text-green-400" size={24} />
           </div>
-        </GlassCard>
-        <GlassCard>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted">This Week</p>
-              <p className="text-2xl font-bold">₦12,45,000</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <GlassCard>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted">Today's Sales</p>
+                <p className="text-2xl font-bold">{formatCurrency(stats.todaysTotal)}</p>
+              </div>
+              <TrendingUp className="text-green-400" size={24} />
             </div>
-            <Calendar className="text-blue-400" size={24} />
-          </div>
-        </GlassCard>
-        <GlassCard>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted">This Month</p>
-              <p className="text-2xl font-bold">₦45,67,000</p>
+          </GlassCard>
+          <GlassCard>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted">This Week</p>
+                <p className="text-2xl font-bold">{formatCurrency(stats.weekTotal)}</p>
+              </div>
+              <Calendar className="text-blue-400" size={24} />
             </div>
-            <Calendar className="text-purple-400" size={24} />
-          </div>
-        </GlassCard>
-        <GlassCard>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted">Pending Payment</p>
-              <p className="text-2xl font-bold">₦3,25,000</p>
+          </GlassCard>
+          <GlassCard>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted">This Month</p>
+                <p className="text-2xl font-bold">{formatCurrency(stats.monthTotal)}</p>
+              </div>
+              <Calendar className="text-purple-400" size={24} />
             </div>
-            <Calendar className="text-yellow-400" size={24} />
-          </div>
-        </GlassCard>
-      </div>
+          </GlassCard>
+          <GlassCard>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted">Pending Payment</p>
+                <p className="text-2xl font-bold">{formatCurrency(stats.pendingPaymentTotal)}</p>
+              </div>
+              <DollarSign className="text-yellow-400" size={24} />
+            </div>
+          </GlassCard>
+        </div>
+      )}
       
+      {/* Main Table Card */}
       <GlassCard>
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={20} />
             <input
               type="text"
-              placeholder="Search sales..."
+              placeholder="Search by order ID or customer..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text"
@@ -117,7 +240,7 @@ export const Sales = () => {
           <select 
             className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
             value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
+            onChange={(e) => setDateFilter(e.target.value as any)}
           >
             <option value="all">All Time</option>
             <option value="today">Today</option>
@@ -126,60 +249,57 @@ export const Sales = () => {
           </select>
         </div>
         
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-glass">
-                <th className="text-left py-3 px-4">Order ID</th>
-                <th className="text-left py-3 px-4">Customer</th>
-                <th className="text-left py-3 px-4">Date</th>
-                <th className="text-left py-3 px-4">Items</th>
-                <th className="text-left py-3 px-4">Amount</th>
-                <th className="text-left py-3 px-4">Status</th>
-                <th className="text-left py-3 px-4">Payment</th>
-                <th className="text-left py-3 px-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {salesData.map((sale) => (
-                <tr key={sale.id} className="border-b border-glass/50 hover:bg-glass transition-colors">
-                  <td className="py-3 px-4 font-medium">{sale.orderId}</td>
-                  <td className="py-3 px-4">{sale.customer}</td>
-                  <td className="py-3 px-4">{sale.date}</td>
-                  <td className="py-3 px-4">{sale.items}</td>
-                  <td className="py-3 px-4 font-semibold">{sale.amount}</td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      sale.status === 'completed'
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-yellow-500/20 text-yellow-400'
-                    }`}>
-                      {sale.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      sale.paymentStatus === 'paid'
-                        ? 'bg-green-500/20 text-green-400'
-                        : sale.paymentStatus === 'partial'
-                        ? 'bg-blue-500/20 text-blue-400'
-                        : 'bg-red-500/20 text-red-400'
-                    }`}>
-                      {sale.paymentStatus}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">View</Button>
-                      <Button variant="ghost" size="sm">Invoice</Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Sales Table */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="inline-flex items-center gap-3">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+              </div>
+              <p className="text-sm text-muted mt-3">Syncing with GitHub...</p>
+            </div>
+          </div>
+        ) : (
+          <SaleTable
+            sales={sales}
+            searchTerm={searchTerm}
+            dateFilter={dateFilter}
+            loading={false}
+            onEditSale={setEditingSale}
+            onDeleteSale={handleDeleteSale}
+          />
+        )}
       </GlassCard>
+      
+      {/* Modals */}
+      <AddSaleModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={handleAddSale}
+        products={getProducts()}
+        customers={getCustomers()}
+      />
+      
+      <EditSaleModal
+        isOpen={!!editingSale}
+        sale={editingSale}
+        onClose={() => setEditingSale(null)}
+        onUpdate={handleUpdateSale}
+        products={getProducts()}
+      />
+      
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+      
+      {/* Click outside to close menus */}
+      {showImportExportMenu && (
+        <div 
+          className="fixed inset-0 z-0" 
+          onClick={() => setShowImportExportMenu(false)}
+        />
+      )}
     </div>
   );
 };

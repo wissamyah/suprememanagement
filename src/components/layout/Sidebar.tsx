@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -13,7 +13,10 @@ import {
   ShoppingCart,
   BookOpen,
   List,
-  Wheat
+  Wheat,
+  Settings as SettingsIcon,
+  Home,
+  ArrowRight
 } from 'lucide-react';
 
 interface MenuItem {
@@ -57,12 +60,36 @@ const menuItems: MenuItem[] = [
     title: 'Reports',
     path: '/reports',
     icon: <FileText size={20} />
+  },
+  {
+    title: 'Settings',
+    path: '/settings',
+    icon: <SettingsIcon size={20} />
   }
 ];
 
 export const Sidebar = () => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileMenuOpen]);
 
   const toggleExpanded = (title: string) => {
     setExpandedItems(prev =>
@@ -86,6 +113,7 @@ export const Sidebar = () => {
             {item.path ? (
               <NavLink
                 to={item.path}
+                end={item.path === '/'}
                 className={({ isActive }) =>
                   `sidebar-item ${isActive ? 'sidebar-item-active' : 'glass-hover'}`
                 }
@@ -114,6 +142,7 @@ export const Sidebar = () => {
                       <NavLink
                         key={subItem.path}
                         to={subItem.path}
+                        end
                         className={({ isActive }) =>
                           `sidebar-item text-sm ${isActive ? 'sidebar-item-active' : 'glass-hover'}`
                         }
@@ -133,30 +162,158 @@ export const Sidebar = () => {
     </>
   );
 
+  const MobileMenu = () => (
+    <div className={`lg:hidden fixed inset-0 z-50 pointer-events-none`}>
+      {/* Backdrop */}
+      <div 
+        className={`absolute inset-0 bg-black transition-all duration-500 ease-out ${
+          isMobileMenuOpen 
+            ? 'bg-opacity-80 backdrop-blur-sm pointer-events-auto' 
+            : 'bg-opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+      
+      {/* Menu Content - Sliding from left */}
+      <div className={`absolute inset-y-0 left-0 w-full max-w-sm flex flex-col bg-gradient-to-br from-gray-900/95 via-gray-900/98 to-black/95 backdrop-blur-2xl shadow-2xl transform transition-transform duration-300 ease-[cubic-bezier(0.4,0.0,0.2,1)] pointer-events-auto ${
+        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-white/10">
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+              Supreme Management
+            </h1>
+            <p className="text-xs text-muted mt-1">Rice Mill Management System</p>
+          </div>
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="p-2.5 glass rounded-xl hover:bg-white/10 transition-all"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-2">
+            {menuItems.map((item) => (
+              <div key={item.title}>
+                {item.path ? (
+                  <NavLink
+                    to={item.path}
+                    end={item.path === '/'}
+                    className={({ isActive }) =>
+                      `flex items-center gap-4 p-4 rounded-xl transition-all ${
+                        isActive 
+                          ? 'bg-white/10 text-white shadow-lg' 
+                          : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                      }`
+                    }
+                  >
+                    <div className="p-2 glass rounded-lg">
+                      {item.icon}
+                    </div>
+                    <span className="font-medium text-base">{item.title}</span>
+                    {item.path && (
+                      <ArrowRight size={16} className="ml-auto opacity-50" />
+                    )}
+                  </NavLink>
+                ) : (
+                  <>
+                    <button
+                      className="w-full flex items-center gap-4 p-4 rounded-xl text-gray-300 hover:bg-white/5 hover:text-white transition-all"
+                      onClick={() => toggleExpanded(item.title)}
+                    >
+                      <div className="p-2 glass rounded-lg">
+                        {item.icon}
+                      </div>
+                      <span className="font-medium text-base flex-1 text-left">{item.title}</span>
+                      {expandedItems.includes(item.title) ? (
+                        <ChevronDown size={18} />
+                      ) : (
+                        <ChevronRight size={18} />
+                      )}
+                    </button>
+                    {expandedItems.includes(item.title) && item.subItems && (
+                      <div className="mt-2 ml-4 space-y-1">
+                        {item.subItems.map((subItem) => (
+                          <NavLink
+                            key={subItem.path}
+                            to={subItem.path}
+                            end
+                            className={({ isActive }) =>
+                              `flex items-center gap-3 p-3 pl-8 rounded-lg transition-all ${
+                                isActive 
+                                  ? 'bg-white/10 text-white' 
+                                  : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                              }`
+                            }
+                          >
+                            {subItem.icon || <div className="w-4" />}
+                            <span className="text-sm">{subItem.title}</span>
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </nav>
+        
+        {/* Footer */}
+        <div className="p-6 border-t border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <span className="text-white font-bold">S</span>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">Supreme Rice Mill</p>
+              <p className="text-xs text-muted">v1.0.0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <>
+      {/* Mobile Menu Button - Clean Design */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 glass rounded-lg glass-hover"
+        className={`lg:hidden fixed left-4 z-40 w-10 h-10 rounded-xl glass backdrop-blur-xl transition-all duration-300 ${
+          isMobileMenuOpen 
+            ? 'bg-white/20 shadow-lg' 
+            : 'bg-white/10 hover:bg-white/15 hover:shadow-md'
+        }`}
+        style={{ top: '12px' }}
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       >
-        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        <div className="relative flex items-center justify-center w-full h-full">
+          {/* Simple hamburger menu that transforms to X */}
+          <div className="relative w-5 h-4 flex flex-col justify-between">
+            <span className={`block h-0.5 w-full bg-white rounded-full transform transition-all duration-300 origin-left ${
+              isMobileMenuOpen ? 'rotate-45 translate-y-0.5' : ''
+            }`} />
+            <span className={`block h-0.5 w-full bg-white rounded-full transition-all duration-300 ${
+              isMobileMenuOpen ? 'opacity-0 translate-x-3' : ''
+            }`} />
+            <span className={`block h-0.5 w-full bg-white rounded-full transform transition-all duration-300 origin-left ${
+              isMobileMenuOpen ? '-rotate-45 -translate-y-0.5' : ''
+            }`} />
+          </div>
+        </div>
       </button>
 
+      {/* Desktop Sidebar */}
       <aside className="hidden lg:block w-64 h-screen glass border-r border-glass sticky top-0">
         <SidebarContent />
       </aside>
 
-      {isMobileMenuOpen && (
-        <>
-          <div
-            className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-          <aside className="lg:hidden fixed left-0 top-0 w-64 h-screen glass z-40">
-            <SidebarContent />
-          </aside>
-        </>
-      )}
+      {/* Mobile Menu */}
+      <MobileMenu />
     </>
   );
 };

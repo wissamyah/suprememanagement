@@ -49,7 +49,7 @@ export const Inventory = () => {
     addProduct,
     updateProduct,
     deleteProduct,
-    addProductionEntry,
+    addBatchProductionEntries,
     adjustStock,
     refreshData: refresh
   } = useInventoryWithGitHub();
@@ -96,13 +96,17 @@ export const Inventory = () => {
     }
   };
   
-  const handleProductionEntry = (productId: string, quantity: number, notes?: string) => {
-    const result = addProductionEntry(productId, quantity, notes);
-    if (result.success) {
-      showSuccess('Production entry added successfully');
+  const handleProductionEntry = (entries: Array<{ productId: string; quantity: number; notes?: string }>) => {
+    const result = addBatchProductionEntries(entries);
+    
+    if (result.success && result.failedProducts.length === 0) {
+      showSuccess(`Production added for ${result.successCount} product${result.successCount > 1 ? 's' : ''}`);
+    } else if (result.success && result.failedProducts.length > 0) {
+      showError(`Added ${result.successCount} entries, failed for ${result.failedProducts.join(', ')}`);
     } else {
-      showError('Failed to add production entry');
+      showError('Failed to add production entries');
     }
+    
     return result.success;
   };
   
@@ -216,12 +220,12 @@ export const Inventory = () => {
   
   return (
     <div className="space-y-6">
-      <div className="flex flex-row justify-between items-start gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-4">
         <div className="flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold mb-2">Inventory Management</h1>
           <p className="text-muted text-sm sm:text-base">Track production, manage stock levels, and monitor movements</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-start">
           {/* Desktop buttons */}
           <div className="hidden sm:flex gap-2">
             <Button variant="secondary" onClick={() => setShowCategoryModal(true)}>

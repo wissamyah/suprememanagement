@@ -1,10 +1,11 @@
 import React, { useContext, useState } from 'react';
 import { GitHubContext } from '../App';
-import { Settings, LogOut, RefreshCw, Check, AlertCircle } from 'lucide-react';
+import { Settings, LogOut, RefreshCw, Check, AlertCircle, Github } from 'lucide-react';
 
 export const SyncStatus: React.FC = () => {
     const { isAuthenticated, syncStatus, lastSync, syncData, logout, pendingChanges, syncError } = useContext(GitHubContext);
     const [showMenu, setShowMenu] = useState(false);
+    const [showMobileDropdown, setShowMobileDropdown] = useState(false);
 
     const formatLastSync = (dateString: string | null) => {
         if (!dateString) return 'Never';
@@ -36,14 +37,83 @@ export const SyncStatus: React.FC = () => {
         return (
             <div className="flex items-center space-x-2 text-sm text-gray-400">
                 <AlertCircle className="h-5 w-5 text-yellow-500" />
-                <span>Not connected to GitHub</span>
+                <span className="hidden sm:inline">Not connected to GitHub</span>
+                <span className="sm:hidden">Not connected</span>
             </div>
         );
     }
 
     return (
-        <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-4">
+        <div className="flex items-center">
+            {/* Mobile View - GitHub Icon with Dropdown */}
+            <div className="sm:hidden relative">
+                <button
+                    onClick={() => setShowMobileDropdown(!showMobileDropdown)}
+                    className="p-2 glass rounded-lg hover:bg-white/10 transition-all relative"
+                >
+                    <Github className="h-5 w-5" />
+                    {pendingChanges !== undefined && pendingChanges !== null && Number(pendingChanges) > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-yellow-500 text-gray-900 text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                            {pendingChanges}
+                        </span>
+                    )}
+                </button>
+                
+                {showMobileDropdown && (
+                    <>
+                        <div 
+                            className="fixed inset-0 z-40" 
+                            onClick={() => setShowMobileDropdown(false)}
+                        />
+                        <div className="absolute right-0 mt-2 w-64 bg-gray-900 rounded-lg shadow-xl border border-white/10 py-2 z-50">
+                            <div className="px-4 py-2 border-b border-white/10">
+                                <div className="flex items-center space-x-2 mb-2">
+                                    {getSyncIcon()}
+                                    <span className="text-sm text-gray-300">
+                                        {syncStatus === 'syncing' && 'Syncing...'}
+                                        {syncStatus === 'success' && 'Synced'}
+                                        {syncStatus === 'error' && 'Sync Error'}
+                                        {syncStatus === 'idle' && formatLastSync(lastSync)}
+                                    </span>
+                                </div>
+                                {syncError && syncStatus === 'error' && (
+                                    <p className="text-xs text-red-400 mt-1">{syncError}</p>
+                                )}
+                                {pendingChanges !== undefined && pendingChanges !== null && Number(pendingChanges) > 0 && (
+                                    <p className="text-xs text-yellow-400 mt-1">{pendingChanges} pending changes</p>
+                                )}
+                            </div>
+                            
+                            <button
+                                onClick={() => {
+                                    syncData();
+                                    setShowMobileDropdown(false);
+                                }}
+                                disabled={syncStatus === 'syncing'}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-white/10 transition-colors flex items-center gap-2 disabled:opacity-50"
+                            >
+                                <RefreshCw className={`h-4 w-4 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+                                <span>Sync Now</span>
+                            </button>
+                            
+                            <button
+                                onClick={() => {
+                                    logout();
+                                    setShowMobileDropdown(false);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-white/10 transition-colors flex items-center gap-2"
+                            >
+                                <LogOut className="h-4 w-4" />
+                                <span>Disconnect GitHub</span>
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {/* Desktop View - Full Display */}
+            <div className="hidden sm:flex items-center space-x-4">
+                <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                     {getSyncIcon()}
                     <div className="text-sm flex items-center space-x-2">
@@ -108,6 +178,7 @@ export const SyncStatus: React.FC = () => {
                         </>
                     )}
                 </div>
+            </div>
             </div>
         </div>
     );
