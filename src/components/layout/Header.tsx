@@ -1,4 +1,4 @@
-import { Bell, Search, Settings, User } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { SyncStatus } from '../SyncStatus';
 
 export const Header = () => {
@@ -16,23 +16,8 @@ export const Header = () => {
           </div>
         </div>
         
-        <div className="flex items-center gap-6">
+        <div className="flex items-center">
           <SyncStatus />
-          
-          <div className="flex items-center gap-3">
-            <button className="p-2 glass rounded-lg glass-hover relative">
-              <Bell size={20} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-            
-            <button className="p-2 glass rounded-lg glass-hover">
-              <Settings size={20} />
-            </button>
-            
-            <button className="p-2 glass rounded-lg glass-hover">
-              <User size={20} />
-            </button>
-          </div>
         </div>
       </div>
     </header>
