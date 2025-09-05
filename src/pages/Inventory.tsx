@@ -57,25 +57,6 @@ export const Inventory = () => {
   const { toasts, showSuccess, showError, removeToast } = useToast();
   
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        switch(e.key) {
-          case 'n':
-            e.preventDefault();
-            setShowAddProductModal(true);
-            break;
-          case 'p':
-            e.preventDefault();
-            setShowProductionModal(true);
-            break;
-          case 'e':
-            e.preventDefault();
-            handleExport('json');
-            break;
-        }
-      }
-    };
-    
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('.settings-dropdown')) {
@@ -86,16 +67,14 @@ export const Inventory = () => {
       }
     };
     
-    window.addEventListener('keydown', handleKeyDown);
     if (showSettingsMenu || showMobileMenu) {
       document.addEventListener('click', handleClickOutside);
     }
     
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('click', handleClickOutside);
     };
-  }, [products, showSettingsMenu, showMobileMenu]);
+  }, [showSettingsMenu, showMobileMenu]);
 
   const handleAddProduct = (name: string, category: string, initialQuantity: number, unit: string, reorderLevel: number) => {
     const result = addProduct(name, category, initialQuantity, unit, reorderLevel);

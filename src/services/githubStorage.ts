@@ -6,7 +6,6 @@ class GitHubStorage {
     private branch: string = 'data';
     private token: string | null = null;
     private apiBase: string = 'https://api.github.com';
-    private saveLock: boolean = false;
     private saveQueue: Promise<any> | null = null;
 
     constructor() {

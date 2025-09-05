@@ -7,7 +7,7 @@ interface GitHubAuthModalProps {
     onClose: () => void;
 }
 
-const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({ isOpen, onSuccess, onClose }) => {
+const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({ isOpen, onSuccess }) => {
     const [token, setToken] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
