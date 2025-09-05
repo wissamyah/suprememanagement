@@ -9,7 +9,8 @@ import {
   Upload, 
   FileJson, 
   FileText,
-  RefreshCw
+  RefreshCw,
+  MoreVertical
 } from 'lucide-react';
 import { useCustomersWithGitHub } from '../../hooks/useCustomersWithGitHub';
 import { useToast } from '../../hooks/useToast';
@@ -33,6 +34,7 @@ export const CustomerList = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [showImportExportMenu, setShowImportExportMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   
   const {
     customers,
@@ -164,55 +166,66 @@ export const CustomerList = () => {
           <p className="text-muted">Manage your customer information and relationships</p>
         </div>
         
-        <div className="flex flex-wrap gap-2">
-          {/* Sync Status */}
-          {syncInProgress && (
-            <div className="flex items-center gap-2 px-3 py-2 glass rounded-lg">
-              <RefreshCw className="animate-spin" size={16} />
-              <span className="text-sm">Syncing...</span>
-            </div>
-          )}
-          
-          {pendingChanges > 0 && !syncInProgress && (
-            <Button variant="ghost" onClick={forceSync}>
-              <RefreshCw size={16} />
-              Sync ({pendingChanges})
-            </Button>
-          )}
-          
-          {/* Import/Export Menu */}
-          <div className="relative order-2 sm:order-none">
-            <Button
-              variant="ghost"
-              onClick={() => setShowImportExportMenu(!showImportExportMenu)}
+        <div className="flex items-center gap-2 self-end sm:self-start">
+          {/* Mobile dropdown menu */}
+          <div className="relative mobile-menu-dropdown sm:hidden">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMobileMenu(!showMobileMenu);
+              }}
+              className="p-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+              title="More Options"
             >
-              <Download size={20} />
-              <span className="hidden sm:inline">Import/Export</span>
-            </Button>
-            
-            {showImportExportMenu && (
-              <div className="absolute right-0 top-full mt-2 w-48 glass rounded-lg shadow-xl z-10 overflow-hidden">
+              <MoreVertical size={20} />
+            </button>
+            {showMobileMenu && (
+              <div className="absolute right-0 top-full mt-2 rounded-lg shadow-xl z-50 py-1 min-w-[160px] bg-gray-900 border border-white/20 animate-fadeIn">
+                {pendingChanges > 0 && !syncInProgress && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      forceSync();
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
+                  >
+                    <RefreshCw size={16} />
+                    Sync ({pendingChanges})
+                  </button>
+                )}
                 <button
-                  onClick={handleExportJSON}
-                  className="w-full px-4 py-2 text-left hover:bg-glass flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleExportJSON();
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
                 >
                   <FileJson size={16} />
                   Export as JSON
                 </button>
                 <button
-                  onClick={handleExportCSV}
-                  className="w-full px-4 py-2 text-left hover:bg-glass flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleExportCSV();
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
                 >
                   <FileText size={16} />
                   Export as CSV
                 </button>
-                <label className="w-full px-4 py-2 hover:bg-glass flex items-center gap-2 cursor-pointer">
+                <label className="w-full px-3 py-2 hover:bg-white/10 transition-colors flex items-center gap-2 cursor-pointer">
                   <Upload size={16} />
-                  Import from JSON
+                  <span className="text-sm">Import from JSON</span>
                   <input
                     type="file"
                     accept=".json"
-                    onChange={handleImport}
+                    onChange={(e) => {
+                      handleImport(e);
+                      setShowMobileMenu(false);
+                    }}
                     className="hidden"
                   />
                 </label>
@@ -220,12 +233,73 @@ export const CustomerList = () => {
             )}
           </div>
           
-          {/* Add Customer Button */}
-          <Button variant="primary" onClick={() => setShowAddModal(true)} className="order-1 sm:order-none">
-            <Plus size={20} />
+          {/* Desktop buttons */}
+          <div className="hidden sm:flex gap-2">
+            {/* Sync Status */}
+            {syncInProgress && (
+              <div className="flex items-center gap-2 px-3 py-2 glass rounded-lg">
+                <RefreshCw className="animate-spin" size={16} />
+                <span className="text-sm">Syncing...</span>
+              </div>
+            )}
+            
+            {pendingChanges > 0 && !syncInProgress && (
+              <Button variant="ghost" onClick={forceSync}>
+                <RefreshCw size={16} />
+                Sync ({pendingChanges})
+              </Button>
+            )}
+            
+            {/* Import/Export Menu */}
+            <div className="relative">
+              <Button
+                variant="ghost"
+                onClick={() => setShowImportExportMenu(!showImportExportMenu)}
+              >
+                <Download size={20} />
+                Import/Export
+              </Button>
+              
+              {showImportExportMenu && (
+                <div className="absolute right-0 top-full mt-2 w-48 glass rounded-lg shadow-xl z-10 overflow-hidden">
+                  <button
+                    onClick={handleExportJSON}
+                    className="w-full px-4 py-2 text-left hover:bg-glass flex items-center gap-2"
+                  >
+                    <FileJson size={16} />
+                    Export as JSON
+                  </button>
+                  <button
+                    onClick={handleExportCSV}
+                    className="w-full px-4 py-2 text-left hover:bg-glass flex items-center gap-2"
+                  >
+                    <FileText size={16} />
+                    Export as CSV
+                  </button>
+                  <label className="w-full px-4 py-2 hover:bg-glass flex items-center gap-2 cursor-pointer">
+                    <Upload size={16} />
+                    Import from JSON
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleImport}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Add Customer Button - perfect square on mobile */}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="w-10 h-10 sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+            title="Add Customer"
+          >
+            <Plus size={18} />
             <span className="hidden sm:inline">Add Customer</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
+          </button>
         </div>
       </div>
       
@@ -307,10 +381,13 @@ export const CustomerList = () => {
       <ToastContainer toasts={toasts} onClose={removeToast} />
       
       {/* Click outside to close menus */}
-      {showImportExportMenu && (
+      {(showImportExportMenu || showMobileMenu) && (
         <div 
           className="fixed inset-0 z-0" 
-          onClick={() => setShowImportExportMenu(false)}
+          onClick={() => {
+            setShowImportExportMenu(false);
+            setShowMobileMenu(false);
+          }}
         />
       )}
     </div>

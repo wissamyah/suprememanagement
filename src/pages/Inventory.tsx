@@ -226,18 +226,6 @@ export const Inventory = () => {
           <p className="text-muted text-sm sm:text-base">Track production, manage stock levels, and monitor movements</p>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-start">
-          {/* Desktop buttons */}
-          <div className="hidden sm:flex gap-2">
-            <Button variant="secondary" onClick={() => setShowCategoryModal(true)}>
-              <Tags size={20} />
-              Categories
-            </Button>
-            <Button variant="secondary" onClick={() => setShowProductionModal(true)}>
-              <Factory size={20} />
-              Production
-            </Button>
-          </div>
-          
           {/* Mobile dropdown menu */}
           <div className="relative mobile-menu-dropdown sm:hidden">
             <button
@@ -278,10 +266,22 @@ export const Inventory = () => {
             )}
           </div>
           
-          {/* Add Product button always visible */}
+          {/* Desktop buttons */}
+          <div className="hidden sm:flex gap-2">
+            <Button variant="secondary" onClick={() => setShowCategoryModal(true)}>
+              <Tags size={20} />
+              Categories
+            </Button>
+            <Button variant="secondary" onClick={() => setShowProductionModal(true)}>
+              <Factory size={20} />
+              Production
+            </Button>
+          </div>
+          
+          {/* Add Product button always visible - perfect square on mobile */}
           <button
             onClick={() => setShowAddProductModal(true)}
-            className="p-2 sm:px-4 sm:py-2 bg-white text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center gap-2"
+            className="w-10 h-10 sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
             title="Add Product"
           >
             <Plus size={18} />
