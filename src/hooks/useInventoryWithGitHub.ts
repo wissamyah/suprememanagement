@@ -4,6 +4,7 @@ import { storage, generateId } from '../utils/storage';
 import { GitHubContext } from '../App';
 import githubStorage from '../services/githubStorage';
 import { syncQueue } from '../services/syncQueue';
+import { globalSyncManager } from '../services/globalSyncManager';
 import { 
   getStockStatus, 
   validateProduct 
@@ -25,14 +26,31 @@ export const useInventoryWithGitHub = () => {
   const [lastSyncError, setLastSyncError] = useState<string | null>(null);
 
   const { isAuthenticated } = useContext(GitHubContext);
-  const syncInProgress = useRef(false);
-  const lastSyncData = useRef<string>('');
+  const mountedRef = useRef(true);
+  const isInitialLoad = useRef(true);
 
-  // Debounce timer for auto-sync
-  const [syncTimer, setSyncTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  // Cleanup on unmount and subscribe to global sync
+  useEffect(() => {
+    mountedRef.current = true;
+    
+    // Subscribe to global sync state for UI updates
+    const unsubscribe = globalSyncManager.subscribe((syncState) => {
+      if (mountedRef.current) {
+        setSyncPending(syncState.isPending);
+        setPendingChanges(syncState.pendingChanges);
+        setLastSyncError(syncState.error);
+      }
+    });
+    
+    return () => {
+      mountedRef.current = false;
+      unsubscribe();
+    };
+  }, []);
 
   // Define loadData function
   const loadData = async () => {
+    if (!mountedRef.current) return;
     setLoading(true);
     try {
       if (isAuthenticated) {
@@ -77,93 +95,31 @@ export const useInventoryWithGitHub = () => {
       setMovements(storedMovements);
       setProductionEntries(storedProduction);
     } finally {
-      setLoading(false);
-    }
-  };
-
-  // Define performBatchSync BEFORE useEffects that use it
-  const performBatchSync = async () => {
-    if (!isAuthenticated || syncInProgress.current) return;
-
-    syncInProgress.current = true;
-    setLastSyncError(null);
-
-    try {
-      // Create a snapshot of current data
-      const allData = {
-        products,
-        categories,
-        movements,
-        productionEntries
-      };
-      
-      // Convert to string for comparison
-      const dataString = JSON.stringify(allData);
-      
-      // Only sync if data has actually changed
-      if (dataString !== lastSyncData.current) {
-        console.log('Syncing data to GitHub...', { 
-          products: products.length,
-          categories: categories.length 
-        });
-        await githubStorage.saveAllData(allData);
-        lastSyncData.current = dataString;
-        
-        // Clear the queue on successful sync
-        syncQueue.clearQueue();
-        setPendingChanges(0);
-        console.log('All data synced to GitHub successfully');
-      } else {
-        console.log('No changes to sync');
+      if (mountedRef.current) {
+        setLoading(false);
+        // Mark initial load as complete
+        setTimeout(() => {
+          isInitialLoad.current = false;
+        }, 100);
       }
-      
-      setSyncPending(false);
-    } catch (error) {
-      console.error('Error syncing to GitHub:', error);
-      setLastSyncError(error instanceof Error ? error.message : 'Sync failed');
-      
-      // Keep sync pending for retry
-      setSyncPending(true);
-      
-      // Retry after 10 seconds
-      setTimeout(() => {
-        performBatchSync();
-      }, 10000);
-    } finally {
-      syncInProgress.current = false;
     }
   };
+
+  // No longer need performBatchSync - handled by globalSyncManager
 
   useEffect(() => {
     loadData();
   }, [isAuthenticated]);
 
-  // Update pending changes count
+  // Notify global sync manager when data changes
   useEffect(() => {
-    setPendingChanges(syncQueue.getPendingCount());
-  }, [products, categories, movements, productionEntries]);
-
-  // Auto-sync when data changes with better debouncing
-  useEffect(() => {
-    if (!isAuthenticated || !syncPending) return;
-
-    // Clear existing timer
-    if (syncTimer) {
-      clearTimeout(syncTimer);
+    // Skip initial load to avoid marking as changed on mount
+    if (mountedRef.current && isAuthenticated && !loading && !isInitialLoad.current) {
+      globalSyncManager.markAsChanged();
     }
+  }, [products, categories, movements, productionEntries, isAuthenticated, loading]);
 
-    // Set new timer for auto-sync after 5 seconds of inactivity
-    const timer = setTimeout(() => {
-      console.log('Auto-sync triggered after 5 seconds');
-      performBatchSync();
-    }, 5000);
-
-    setSyncTimer(timer);
-
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [products, categories, movements, productionEntries, syncPending]);
+  // Auto-sync is now handled by globalSyncManager
 
   const saveProducts = (newProducts: Product[], operation?: 'add' | 'update' | 'delete') => {
     // Save to local state immediately (optimistic update)
@@ -184,25 +140,26 @@ export const useInventoryWithGitHub = () => {
       });
     }
     
-    setSyncPending(true);
+    // Notify global sync manager
+    globalSyncManager.markAsChanged();
   };
 
   const saveCategories = (newCategories: ProductCategory[]) => {
     setCategories(newCategories);
     storage.set(CATEGORIES_KEY, newCategories);
-    setSyncPending(true);
+    globalSyncManager.markAsChanged();
   };
 
   const saveMovements = (newMovements: InventoryMovement[]) => {
     setMovements(newMovements);
     storage.set(MOVEMENTS_KEY, newMovements);
-    setSyncPending(true);
+    globalSyncManager.markAsChanged();
   };
 
   const saveProduction = (newProduction: ProductionEntry[]) => {
     setProductionEntries(newProduction);
     storage.set(PRODUCTION_KEY, newProduction);
-    setSyncPending(true);
+    globalSyncManager.markAsChanged();
   };
 
   // Category operations
@@ -502,19 +459,13 @@ export const useInventoryWithGitHub = () => {
     return product.availableQuantity || product.quantityOnHand;
   }, [products]);
 
-  // Force sync method with retry mechanism
+  // Force sync method - delegate to global sync manager
   const forceSync = useCallback(async () => {
-    if (isAuthenticated) {
-      // Clear any existing timer
-      if (syncTimer) {
-        clearTimeout(syncTimer);
-      }
-      
+    if (isAuthenticated && mountedRef.current) {
       console.log('Force sync triggered');
-      // Force immediate sync
-      await performBatchSync();
+      await globalSyncManager.forceSync();
     }
-  }, [isAuthenticated, syncTimer]);
+  }, [isAuthenticated]);
 
   return {
     products,
@@ -524,7 +475,7 @@ export const useInventoryWithGitHub = () => {
     loading,
     pendingChanges,
     lastSyncError,
-    syncInProgress: syncInProgress.current,
+    syncInProgress: syncPending,
     addCategory,
     updateCategory,
     deleteCategory,

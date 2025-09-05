@@ -7,6 +7,9 @@ class GitHubStorage {
     private token: string | null = null;
     private apiBase: string = 'https://api.github.com';
     private saveQueue: Promise<any> | null = null;
+    private lastSaveTime: number = 0;
+    private minSaveInterval: number = 2000; // Minimum 2 seconds between saves
+    // private retryAttempts: Map<string, number> = new Map(); // Reserved for future use
 
     constructor() {
         // Initialize properties in constructor if needed
@@ -15,8 +18,9 @@ class GitHubStorage {
     // Initialize with token
     async initialize(token: string): Promise<boolean> {
         this.token = token;
-        // Store token securely in sessionStorage (encrypted in production)
-        sessionStorage.setItem('gh_token', this.encryptToken(token));
+        // Store token securely in sessionStorage with encryption
+        const encryptedToken = await this.encryptToken(token);
+        sessionStorage.setItem('gh_token', encryptedToken);
         
         // Verify token validity
         const isValid = await this.verifyToken();
@@ -27,18 +31,111 @@ class GitHubStorage {
         return true;
     }
 
-    // Simple encryption for token (use proper encryption in production)
-    encryptToken(token: string): string {
-        // In production, use a proper encryption library
-        return btoa(token);
+    // Enhanced token encryption using browser's crypto API
+    async encryptToken(token: string): Promise<string> {
+        try {
+            // Generate a random salt
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const encoder = new TextEncoder();
+            const data = encoder.encode(token);
+            
+            // Create a key from a fixed phrase (in production, use environment variable)
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode('supreme-mgmt-2024-secure-key-v2'),
+                { name: 'PBKDF2' },
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            
+            // Derive a key using PBKDF2
+            const key = await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt']
+            );
+            
+            // Encrypt the token
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const encrypted = await crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv },
+                key,
+                data
+            );
+            
+            // Combine salt, iv, and encrypted data
+            const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+            combined.set(salt, 0);
+            combined.set(iv, salt.length);
+            combined.set(new Uint8Array(encrypted), salt.length + iv.length);
+            
+            // Convert to base64 for storage
+            return btoa(String.fromCharCode(...combined));
+        } catch (error) {
+            console.error('Encryption failed, falling back to basic encoding:', error);
+            // Fallback to basic encoding if crypto API is not available
+            return btoa(token);
+        }
     }
 
     // Decrypt token
-    decryptToken(encryptedToken: string): string | null {
+    async decryptToken(encryptedToken: string): Promise<string | null> {
         try {
-            return atob(encryptedToken);
-        } catch {
-            return null;
+            // Convert from base64
+            const combined = Uint8Array.from(atob(encryptedToken), c => c.charCodeAt(0));
+            
+            // Extract salt, iv, and encrypted data
+            const salt = combined.slice(0, 16);
+            const iv = combined.slice(16, 28);
+            const encrypted = combined.slice(28);
+            
+            const encoder = new TextEncoder();
+            
+            // Recreate the key
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode('supreme-mgmt-2024-secure-key-v2'),
+                { name: 'PBKDF2' },
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            
+            const key = await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['decrypt']
+            );
+            
+            // Decrypt the token
+            const decrypted = await crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv },
+                key,
+                encrypted
+            );
+            
+            const decoder = new TextDecoder();
+            return decoder.decode(decrypted);
+        } catch (error) {
+            // Fallback for tokens encrypted with old method
+            try {
+                return atob(encryptedToken);
+            } catch {
+                return null;
+            }
         }
     }
 
@@ -49,7 +146,7 @@ class GitHubStorage {
             return false;
         }
 
-        this.token = this.decryptToken(encryptedToken);
+        this.token = await this.decryptToken(encryptedToken);
         return await this.verifyToken();
     }
 
@@ -163,41 +260,48 @@ class GitHubStorage {
                 const error = await response.json();
                 console.error('GitHub API error response:', error);
                 
-                // If it's a SHA mismatch, retry with fresh SHA
-                if (response.status === 409 && error.message?.includes('does not match')) {
-                    console.log('SHA mismatch detected, retrying with fresh SHA...');
+                // If it's a SHA mismatch, always retry with fresh SHA
+                if (response.status === 409) {
+                    console.log('Conflict detected (likely SHA mismatch), fetching fresh SHA...');
+                    
+                    // Wait a moment to avoid rapid API calls
+                    await new Promise(resolve => setTimeout(resolve, 500));
                     
                     // Get fresh SHA
                     const freshData = await this.getFileContent();
                     const freshSha = freshData.sha;
                     
-                    if (freshSha && freshSha !== sha) {
-                        console.log('Got fresh SHA:', freshSha);
-                        body.sha = freshSha;
-                        
-                        // Retry the request with fresh SHA
-                        const retryResponse = await fetch(
-                            `${this.apiBase}/repos/${this.owner}/${this.repo}/contents/${this.path}`,
-                            {
-                                method: 'PUT',
-                                headers: {
-                                    'Authorization': `Bearer ${this.token}`,
-                                    'Accept': 'application/vnd.github.v3+json',
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(body)
-                            }
-                        );
-                        
-                        if (retryResponse.ok) {
-                            console.log('Retry successful!');
-                            return await retryResponse.json();
+                    console.log('Retrying with fresh SHA:', freshSha);
+                    body.sha = freshSha;
+                    
+                    // Retry the request with fresh SHA
+                    const retryResponse = await fetch(
+                        `${this.apiBase}/repos/${this.owner}/${this.repo}/contents/${this.path}`,
+                        {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${this.token}`,
+                                'Accept': 'application/vnd.github.v3+json',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(body)
                         }
-                        
-                        const retryError = await retryResponse.json();
-                        console.error('Retry failed:', retryError);
-                        throw new Error(`GitHub API error after retry: ${retryError.message || retryResponse.status}`);
+                    );
+                    
+                    if (retryResponse.ok) {
+                        console.log('Retry with fresh SHA successful!');
+                        return await retryResponse.json();
                     }
+                    
+                    const retryError = await retryResponse.json();
+                    console.error('Retry failed:', retryError);
+                    
+                    // If it's still a conflict, the file was likely modified externally
+                    if (retryResponse.status === 409) {
+                        throw new Error('File was modified externally. Please refresh and try again.');
+                    }
+                    
+                    throw new Error(`GitHub API error after retry: ${retryError.message || retryResponse.status}`);
                 }
                 
                 throw new Error(`GitHub API error: ${error.message || response.status}`);
@@ -240,8 +344,18 @@ class GitHubStorage {
         }
     }
 
-    // Save all data with queue to prevent concurrent saves
+    // Save all data with queue to prevent concurrent saves and rate limiting
     async saveAllData(data: any): Promise<boolean> {
+        // Implement rate limiting
+        const now = Date.now();
+        const timeSinceLastSave = now - this.lastSaveTime;
+        
+        if (timeSinceLastSave < this.minSaveInterval) {
+            const delay = this.minSaveInterval - timeSinceLastSave;
+            console.log(`Rate limiting: waiting ${delay}ms before save`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
         // If a save is already in progress, wait for it to complete
         if (this.saveQueue) {
             console.log('Save already in progress, waiting for it to complete...');
@@ -252,14 +366,33 @@ class GitHubStorage {
             }
         }
 
-        // Create a new save promise
-        this.saveQueue = this._doSave(data);
+        // Create a new save promise with retry logic
+        this.saveQueue = this._doSaveWithRetry(data);
         
         try {
             const result = await this.saveQueue;
+            this.lastSaveTime = Date.now();
             return result;
         } finally {
             this.saveQueue = null;
+        }
+    }
+
+    // Save with automatic retry on failure
+    private async _doSaveWithRetry(data: any, attemptNumber: number = 1): Promise<boolean> {
+        const maxRetries = 3;
+        const retryDelay = 2000 * attemptNumber; // Exponential backoff
+        
+        try {
+            return await this._doSave(data);
+        } catch (error: any) {
+            if (attemptNumber < maxRetries) {
+                console.log(`Save attempt ${attemptNumber} failed, retrying in ${retryDelay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                return this._doSaveWithRetry(data, attemptNumber + 1);
+            }
+            console.error(`Save failed after ${maxRetries} attempts:`, error);
+            throw error;
         }
     }
 

@@ -53,11 +53,11 @@ export const SyncStatus: React.FC = () => {
                             {syncStatus === 'error' && `Sync Error${syncError ? `: ${syncError}` : ''}`}
                             {syncStatus === 'idle' && `Last sync: ${formatLastSync(lastSync)}`}
                         </span>
-                        {(pendingChanges && Number(pendingChanges) > 0) && (
+                        {pendingChanges !== undefined && pendingChanges !== null && Number(pendingChanges) > 0 ? (
                             <span className="text-xs text-yellow-400">
                                 ({pendingChanges} pending)
                             </span>
-                        )}
+                        ) : null}
                     </div>
                 </div>
                 
@@ -67,11 +67,11 @@ export const SyncStatus: React.FC = () => {
                     className="px-4 py-1.5 text-sm text-gray-300 glass rounded-lg hover:bg-white/10 disabled:opacity-50 transition-all flex items-center gap-2"
                 >
                     <span>Sync Now</span>
-                    {(pendingChanges && Number(pendingChanges) > 0) && (
+                    {pendingChanges !== undefined && pendingChanges !== null && Number(pendingChanges) > 0 ? (
                         <span className="bg-yellow-500 text-gray-900 text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
                             {pendingChanges}
                         </span>
-                    )}
+                    ) : null}
                 </button>
                 
                 <div className="relative">
