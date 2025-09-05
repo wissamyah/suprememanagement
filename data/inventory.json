@@ -116,6 +116,19 @@
       "id": "mf62vxnmc0ils7j2iah",
       "createdAt": "2025-09-05T00:09:51.394Z",
       "updatedAt": "2025-09-05T00:09:51.394Z"
+    },
+    {
+      "name": "Black Broken",
+      "category": "Head Rice",
+      "quantityOnHand": 0,
+      "quantityBooked": 0,
+      "availableQuantity": 0,
+      "unit": "bags",
+      "status": "out-of-stock",
+      "reorderLevel": 10,
+      "id": "mf63elzf2udqz2u1xhu",
+      "createdAt": "2025-09-05T00:24:22.731Z",
+      "updatedAt": "2025-09-05T00:24:22.731Z"
     }
   ],
   "categories": [
@@ -260,11 +273,25 @@
       "date": "2025-09-05T00:09:51.394Z",
       "createdAt": "2025-09-05T00:09:51.394Z",
       "updatedAt": "2025-09-05T00:09:51.394Z"
+    },
+    {
+      "id": "mf63elzfmddnfja8qy",
+      "productId": "mf63elzf2udqz2u1xhu",
+      "productName": "Black Broken",
+      "movementType": "adjustment",
+      "quantity": 0,
+      "previousQuantity": 0,
+      "newQuantity": 0,
+      "reference": "Initial stock",
+      "notes": "Initial stock for Black Broken",
+      "date": "2025-09-05T00:24:22.731Z",
+      "createdAt": "2025-09-05T00:24:22.731Z",
+      "updatedAt": "2025-09-05T00:24:22.731Z"
     }
   ],
   "productionEntries": [],
   "metadata": {
-    "lastUpdated": "2025-09-05T00:09:54.397Z",
+    "lastUpdated": "2025-09-05T00:24:25.764Z",
     "version": "2.0.0"
   }
 }
