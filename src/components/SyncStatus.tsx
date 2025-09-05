@@ -3,7 +3,7 @@ import { GitHubContext } from '../App';
 import { Settings, LogOut, RefreshCw, Check, AlertCircle } from 'lucide-react';
 
 export const SyncStatus: React.FC = () => {
-    const { isAuthenticated, syncStatus, lastSync, syncData, logout } = useContext(GitHubContext);
+    const { isAuthenticated, syncStatus, lastSync, syncData, logout, pendingChanges, syncError } = useContext(GitHubContext);
     const [showMenu, setShowMenu] = useState(false);
 
     const formatLastSync = (dateString: string | null) => {
@@ -50,18 +50,28 @@ export const SyncStatus: React.FC = () => {
                         <div className="text-gray-300">
                             {syncStatus === 'syncing' && 'Syncing...'}
                             {syncStatus === 'success' && 'Synced'}
-                            {syncStatus === 'error' && 'Sync Error'}
+                            {syncStatus === 'error' && `Sync Error${syncError ? `: ${syncError}` : ''}`}
                             {syncStatus === 'idle' && `Last sync: ${formatLastSync(lastSync)}`}
                         </div>
+                        {pendingChanges && pendingChanges > 0 && (
+                            <div className="text-xs text-yellow-400 mt-0.5">
+                                {pendingChanges} pending change{pendingChanges > 1 ? 's' : ''}
+                            </div>
+                        )}
                     </div>
                 </div>
                 
                 <button
                     onClick={syncData}
                     disabled={syncStatus === 'syncing'}
-                    className="px-4 py-1.5 text-sm text-gray-300 glass rounded-lg hover:bg-white/10 disabled:opacity-50 transition-all"
+                    className="px-4 py-1.5 text-sm text-gray-300 glass rounded-lg hover:bg-white/10 disabled:opacity-50 transition-all relative"
                 >
                     Sync Now
+                    {pendingChanges && pendingChanges > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-yellow-500 text-gray-900 text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                            {pendingChanges}
+                        </span>
+                    )}
                 </button>
                 
                 <div className="relative">

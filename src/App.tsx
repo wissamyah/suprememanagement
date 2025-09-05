@@ -20,6 +20,8 @@ interface GitHubContextType {
   isLoading: boolean;
   syncStatus: 'idle' | 'syncing' | 'success' | 'error';
   lastSync: string | null;
+  pendingChanges?: number;
+  syncError?: string | null;
   syncData: () => Promise<void>;
   logout: () => void;
 }
@@ -130,6 +132,8 @@ function App() {
     isLoading,
     syncStatus,
     lastSync,
+    pendingChanges,
+    syncError,
     syncData,
     logout: handleLogout
   };

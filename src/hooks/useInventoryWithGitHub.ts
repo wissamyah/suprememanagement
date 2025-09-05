@@ -278,7 +278,7 @@ export const useInventoryWithGitHub = () => {
         return product;
       });
 
-      saveProducts(updatedProducts);
+      saveProducts(updatedProducts, 'update');
       return { success: true };
     } catch (error) {
       console.error('Error updating product:', error);
@@ -289,7 +289,7 @@ export const useInventoryWithGitHub = () => {
   const deleteProduct = useCallback((id: string): { success: boolean } => {
     try {
       const updatedProducts = products.filter(product => product.id !== id);
-      saveProducts(updatedProducts);
+      saveProducts(updatedProducts, 'update');
       return { success: true };
     } catch (error) {
       console.error('Error deleting product:', error);
