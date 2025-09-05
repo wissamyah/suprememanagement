@@ -79,7 +79,7 @@ export const SyncStatus: React.FC = () => {
                                 className="fixed inset-0 z-40" 
                                 onClick={() => setShowMenu(false)}
                             />
-                            <div className="absolute right-0 mt-2 w-56 glass rounded-lg shadow-xl border border-white/10 py-2 z-50">
+                            <div className="absolute right-0 mt-2 w-56 bg-gray-900 rounded-lg shadow-xl border border-white/10 py-2 z-50">
                                 <div className="px-4 py-2 border-b border-white/10">
                                     <p className="text-xs text-gray-400">Connected to GitHub</p>
                                     <p className="text-sm text-gray-200 font-medium">wissamyah/suprememanagement</p>
