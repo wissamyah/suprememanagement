@@ -43,20 +43,20 @@ export const SyncStatus: React.FC = () => {
 
     return (
         <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                     {getSyncIcon()}
-                    <div className="text-sm">
-                        <div className="text-gray-300">
+                    <div className="text-sm flex items-center space-x-2">
+                        <span className="text-gray-300">
                             {syncStatus === 'syncing' && 'Syncing...'}
                             {syncStatus === 'success' && 'Synced'}
                             {syncStatus === 'error' && `Sync Error${syncError ? `: ${syncError}` : ''}`}
                             {syncStatus === 'idle' && `Last sync: ${formatLastSync(lastSync)}`}
-                        </div>
+                        </span>
                         {pendingChanges && pendingChanges > 0 && (
-                            <div className="text-xs text-yellow-400 mt-0.5">
-                                {pendingChanges} pending change{pendingChanges > 1 ? 's' : ''}
-                            </div>
+                            <span className="text-xs text-yellow-400">
+                                {pendingChanges}
+                            </span>
                         )}
                     </div>
                 </div>
@@ -64,11 +64,11 @@ export const SyncStatus: React.FC = () => {
                 <button
                     onClick={syncData}
                     disabled={syncStatus === 'syncing'}
-                    className="px-4 py-1.5 text-sm text-gray-300 glass rounded-lg hover:bg-white/10 disabled:opacity-50 transition-all relative"
+                    className="px-4 py-1.5 text-sm text-gray-300 glass rounded-lg hover:bg-white/10 disabled:opacity-50 transition-all flex items-center gap-2"
                 >
-                    Sync Now
+                    <span>Sync Now</span>
                     {pendingChanges && pendingChanges > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-yellow-500 text-gray-900 text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                        <span className="bg-yellow-500 text-gray-900 text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
                             {pendingChanges}
                         </span>
                     )}
