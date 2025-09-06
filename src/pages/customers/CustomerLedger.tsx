@@ -15,8 +15,6 @@ import {
   Plus,
   Edit2,
   Trash2,
-  Calendar,
-  Filter,
   RefreshCw,
   ArrowLeft,
   FileText,
@@ -51,9 +49,7 @@ export const CustomerLedger = () => {
     updateEntry,
     deleteEntry,
     getCustomerLedger,
-    getAllCustomersWithBalances,
-    forceSync,
-    refreshData
+    forceSync
   } = useLedgerWithGitHub();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
@@ -234,22 +230,6 @@ export const CustomerLedger = () => {
     setIsDeletingId(null);
   };
   
-  const getTransactionTypeColor = (type: string) => {
-    switch (type) {
-      case 'payment':
-        return 'text-green-400';
-      case 'sale':
-        return 'text-red-400';
-      case 'credit_note':
-        return 'text-blue-400';
-      case 'opening_balance':
-        return 'text-purple-400';
-      case 'adjustment':
-        return 'text-yellow-400';
-      default:
-        return 'text-gray-400';
-    }
-  };
   
   const getTransactionTypeLabel = (type: string) => {
     return type.split('_').map(word => 

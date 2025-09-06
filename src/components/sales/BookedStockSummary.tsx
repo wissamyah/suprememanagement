@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { GlassCard } from '../ui/GlassCard';
 import { Package, Users, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import { useBookedStockWithGitHub } from '../../hooks/useBookedStockWithGitHub';

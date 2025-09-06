@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { Package, Calendar, AlertCircle, TrendingUp } from 'lucide-react';
+import { Package, AlertCircle, TrendingUp } from 'lucide-react';
 import { useBookedStockWithGitHub } from '../../hooks/useBookedStockWithGitHub';
 import type { Customer, BookedStock } from '../../types';
-import { formatCurrency } from '../../utils/sales';
 
 interface CustomerBookingsModalProps {
   isOpen: boolean;

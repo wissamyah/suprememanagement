@@ -175,7 +175,7 @@ export const useLedgerWithGitHub = () => {
     // Recalculate balances for each customer
     const updatedEntries: LedgerEntry[] = [];
     
-    customerGroups.forEach((customerEntries, custId) => {
+    customerGroups.forEach((customerEntries) => {
       // Sort by date and then by creation time
       const sorted = [...customerEntries].sort((a, b) => {
         const dateA = new Date(a.date).getTime();
@@ -252,7 +252,7 @@ export const useLedgerWithGitHub = () => {
       // Update customer balance
       const customerBalance = updatedEntries
         .filter(e => e.customerId === customerId)
-        .reduce((balance, entry) => entry.runningBalance, 0);
+        .reduce((_, entry) => entry.runningBalance, 0);
       
       const updatedCustomers = customers.map(c => {
         if (c.id === customerId) {
@@ -301,7 +301,7 @@ export const useLedgerWithGitHub = () => {
       // Update customer balance
       const customerBalance = updatedEntries
         .filter(e => e.customerId === oldEntry.customerId)
-        .reduce((balance, entry) => entry.runningBalance, 0);
+        .reduce((_, entry) => entry.runningBalance, 0);
       
       const updatedCustomers = customers.map(c => {
         if (c.id === oldEntry.customerId) {
@@ -340,7 +340,7 @@ export const useLedgerWithGitHub = () => {
       // Update customer balance
       const customerBalance = updatedEntries
         .filter(e => e.customerId === entry.customerId)
-        .reduce((balance, e) => e.runningBalance, 0);
+        .reduce((_, e) => e.runningBalance, 0);
       
       const updatedCustomers = customers.map(c => {
         if (c.id === entry.customerId) {
@@ -393,7 +393,7 @@ export const useLedgerWithGitHub = () => {
       // Update customer balance
       const customerBalance = updatedEntries
         .filter(e => e.customerId === oldEntry.customerId)
-        .reduce((balance, entry) => entry.runningBalance, 0);
+        .reduce((_, entry) => entry.runningBalance, 0);
       
       const updatedCustomers = customers.map(c => {
         if (c.id === oldEntry.customerId) {

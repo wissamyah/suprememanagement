@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useContext, useRef } from 'react';
-import type { Sale, Product, Customer, InventoryMovement, LedgerEntry, BookedStock } from '../types';
+import type { Sale, Product, Customer, InventoryMovement, LedgerEntry } from '../types';
 import { storage, generateId } from '../utils/storage';
 import { GitHubContext } from '../App';
 import githubStorage from '../services/githubStorage';
@@ -279,8 +279,8 @@ export const useSalesWithGitHub = () => {
             ...product,
             quantityOnHand: product.quantityOnHand - item.quantity,
             availableQuantity: product.quantityOnHand - item.quantity - (product.quantityBooked || 0),
-            status: (product.quantityOnHand - item.quantity) <= 0 ? 'out-of-stock' : 
-                   (product.quantityOnHand - item.quantity) <= product.reorderLevel ? 'low-stock' : 'in-stock',
+            status: ((product.quantityOnHand - item.quantity) <= 0 ? 'out-of-stock' : 
+                   (product.quantityOnHand - item.quantity) <= product.reorderLevel ? 'low-stock' : 'in-stock') as Product['status'],
             updatedAt: new Date()
           };
         } else {
@@ -411,10 +411,6 @@ export const useSalesWithGitHub = () => {
 
   // Helper function to recalculate running balances for a customer
   const recalculateBalances = (entries: LedgerEntry[], customerId?: string): LedgerEntry[] => {
-    // Filter entries for specific customer if provided
-    const filteredEntries = customerId 
-      ? entries.filter(e => e.customerId === customerId)
-      : entries;
     
     // Group by customer
     const customerGroups = new Map<string, LedgerEntry[]>();
@@ -524,8 +520,8 @@ export const useSalesWithGitHub = () => {
               ...product,
               quantityOnHand: product.quantityOnHand - newItem.quantity,
               availableQuantity: (product.quantityOnHand - newItem.quantity) - (product.quantityBooked || 0),
-              status: (product.quantityOnHand - newItem.quantity) <= 0 ? 'out-of-stock' : 
-                     (product.quantityOnHand - newItem.quantity) <= product.reorderLevel ? 'low-stock' : 'in-stock',
+              status: ((product.quantityOnHand - newItem.quantity) <= 0 ? 'out-of-stock' : 
+                     (product.quantityOnHand - newItem.quantity) <= product.reorderLevel ? 'low-stock' : 'in-stock') as Product['status'],
               updatedAt: new Date()
             };
           } else {
@@ -712,7 +708,7 @@ export const useSalesWithGitHub = () => {
               ...product,
               quantityOnHand: product.quantityOnHand + saleItem.quantity,
               availableQuantity: (product.quantityOnHand + saleItem.quantity) - (product.quantityBooked || 0),
-              status: (product.quantityOnHand + saleItem.quantity) > product.reorderLevel ? 'in-stock' : 'low-stock',
+              status: ((product.quantityOnHand + saleItem.quantity) > product.reorderLevel ? 'in-stock' : 'low-stock') as Product['status'],
               updatedAt: new Date()
             };
           } else {

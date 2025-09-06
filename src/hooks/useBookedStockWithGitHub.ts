@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import githubStorage from '../services/githubStorage';
 import type { BookedStock } from '../types';
 
-const STORAGE_KEY = 'bookedStock';
 const CACHE_KEY = 'suprememanagement_bookedStock';
 
 export const useBookedStockWithGitHub = () => {
@@ -160,7 +159,7 @@ export const useBookedStockWithGitHub = () => {
       return { success: true, data: newBooking };
     } catch (error) {
       console.error('Error adding booked stock:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }, [bookedStock, saveToCache, syncWithGitHub]);
 
@@ -186,7 +185,7 @@ export const useBookedStockWithGitHub = () => {
       return { success: true };
     } catch (error) {
       console.error('Error updating booked stock:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }, [bookedStock, saveToCache, syncWithGitHub]);
 
@@ -204,7 +203,7 @@ export const useBookedStockWithGitHub = () => {
       return { success: true };
     } catch (error) {
       console.error('Error deleting booked stock:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   }, [bookedStock, saveToCache, syncWithGitHub]);
 

@@ -56,7 +56,6 @@ const quickStats = [
 
 export const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
-  const [selectedReport, setSelectedReport] = useState('');
   
   return (
     <div className="space-y-6">
@@ -114,7 +113,7 @@ export const Reports = () => {
             <div 
               key={report.id} 
               className="glass rounded-lg p-4 glass-hover cursor-pointer"
-              onClick={() => setSelectedReport(report.title)}
+              onClick={() => console.log('Report clicked:', report.title)}
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="p-3 glass rounded-lg">

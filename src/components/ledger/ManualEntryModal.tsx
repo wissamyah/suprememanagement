@@ -125,11 +125,6 @@ export const ManualEntryModal = ({
     }
   };
 
-  const getTransactionTypeLabel = (type: string) => {
-    return type.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
-  };
 
   return (
     <Modal
@@ -147,7 +142,7 @@ export const ManualEntryModal = ({
             value={transactionType}
             onChange={(e) => setTransactionType(e.target.value as LedgerEntry['transactionType'])}
             className="w-full px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-            disabled={isSubmitting || (editingEntry && editingEntry.transactionType === 'sale')}
+            disabled={isSubmitting || (editingEntry !== null && editingEntry !== undefined && editingEntry.transactionType === 'sale')}
           >
             {editingEntry?.transactionType === 'sale' ? (
               <option value="sale">Sale</option>
