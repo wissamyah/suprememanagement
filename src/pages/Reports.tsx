@@ -57,7 +57,6 @@ const quickStats = [
 export const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedReport, setSelectedReport] = useState('');
-  console.log(selectedReport); // Will be used for report filtering
   
   return (
     <div className="space-y-6">
@@ -127,7 +126,7 @@ export const Reports = () => {
               <h3 className="font-semibold text-lg mb-2">{report.title}</h3>
               <p className="text-sm text-muted mb-4">{report.description}</p>
               
-              <div className="flex items-center justify-between pt-3 border-t border-glass">
+              <div className="flex items-center justify-between pt-3 border-t border-gray-800/50">
                 <p className="text-xs text-muted">
                   Last generated: {report.lastGenerated}
                 </p>

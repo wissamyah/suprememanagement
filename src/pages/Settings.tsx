@@ -82,19 +82,33 @@ export const Settings = () => {
     try {
       const testData = generateTestData();
       
+      console.log('Generated test data:', {
+        products: testData.products.length,
+        customers: testData.customers.length,
+        sales: testData.sales.length,
+        ledgerEntries: testData.ledgerEntries.length,
+        bookedStock: testData.bookedStock.length
+      });
+      
       // Save test data to localStorage
       localStorage.setItem('supreme_mgmt_products', JSON.stringify(testData.products));
       localStorage.setItem('supreme_mgmt_customers', JSON.stringify(testData.customers));
       localStorage.setItem('supreme_mgmt_sales', JSON.stringify(testData.sales));
       localStorage.setItem('supreme_mgmt_inventory_movements', JSON.stringify(testData.movements));
       localStorage.setItem('supreme_mgmt_product_categories', JSON.stringify(testData.categories));
+      localStorage.setItem('supreme_mgmt_ledger_entries', JSON.stringify(testData.ledgerEntries));
+      localStorage.setItem('suprememanagement_bookedStock', JSON.stringify(testData.bookedStock));
+      
+      // Verify it was saved
+      const savedLedger = localStorage.getItem('supreme_mgmt_ledger_entries');
+      console.log('Saved ledger entries to localStorage:', savedLedger ? JSON.parse(savedLedger).length : 0);
       
       // Mark for sync if authenticated
       if (isAuthenticated) {
         globalSyncManager.markAsChanged();
       }
       
-      showSuccess(`Generated test data: ${testData.products.length} products, ${testData.customers.length} customers, ${testData.sales.length} sales`);
+      showSuccess(`Generated test data: ${testData.products.length} products, ${testData.customers.length} customers, ${testData.sales.length} sales, ${testData.ledgerEntries.length} ledger entries, ${testData.bookedStock.length} bookings`);
       
       // Reload after a short delay
       setTimeout(() => {
@@ -223,7 +237,7 @@ export const Settings = () => {
                 <div className="flex-1">
                   <h3 className="font-medium mb-1">Generate Test Data</h3>
                   <p className="text-sm text-muted mb-3">
-                    Quickly populate your database with sample data for testing. This will create products, customers, and sales with realistic Nigerian data.
+                    Quickly populate your database with sample data for testing. This will create products, customers, sales, and complete ledger entries with various transaction types (advance payments, sales, payments, credit notes, adjustments) using realistic Nigerian data.
                   </p>
                   <Button 
                     variant="primary" 

@@ -16,6 +16,7 @@ import { EditProductModal } from '../components/inventory/EditProductModal';
 import { ProductionModal } from '../components/inventory/ProductionModal';
 import { MovementModal } from '../components/inventory/MovementModal';
 import { StockAdjustmentModal } from '../components/inventory/StockAdjustmentModal';
+import { BookedStockModal } from '../components/inventory/BookedStockModal';
 import {
   exportInventoryToJSON,
   exportInventoryToCSV,
@@ -37,6 +38,7 @@ export const Inventory = () => {
   const [showProductionModal, setShowProductionModal] = useState(false);
   const [showMovementModal, setShowMovementModal] = useState(false);
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
+  const [viewingBookedStockProduct, setViewingBookedStockProduct] = useState<Product | null>(null);
   
   const {
     products,
@@ -414,6 +416,9 @@ export const Inventory = () => {
               setSelectedProduct(product);
               setShowAdjustmentModal(true);
             }}
+            onViewBookedStock={(product) => {
+              setViewingBookedStockProduct(product);
+            }}
           />
         )}
       </GlassCard>
@@ -488,6 +493,12 @@ export const Inventory = () => {
         }}
         product={selectedProduct}
         onAdjustStock={handleAdjustStock}
+      />
+      
+      <BookedStockModal
+        isOpen={!!viewingBookedStockProduct}
+        product={viewingBookedStockProduct}
+        onClose={() => setViewingBookedStockProduct(null)}
       />
       
       <ToastContainer toasts={toasts} onClose={removeToast} />

@@ -88,7 +88,7 @@ export const Modal = ({
         }`}
       >
         {/* Header with slide down animation */}
-        <div className={`flex items-center justify-between p-6 border-b border-glass transition-all duration-500 ease-out ${
+        <div className={`flex items-center justify-between p-6 border-b border-gray-800/50 transition-all duration-500 ease-out ${
           isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
         }`}>
           <h2 className="text-xl font-semibold">{title}</h2>
@@ -115,7 +115,7 @@ export const Modal = ({
         
         {/* Footer with slide up animation */}
         {footer && (
-          <div className={`flex justify-end gap-3 p-6 border-t border-glass transition-all duration-500 delay-100 ease-out ${
+          <div className={`flex justify-end gap-3 p-6 border-t border-gray-800/50 transition-all duration-500 delay-100 ease-out ${
             isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
           }`}>
             {footer}

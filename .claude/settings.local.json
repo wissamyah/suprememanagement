@@ -33,7 +33,11 @@
       "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\components\\ui/**)",
       "Read(/C:\\Users\\wissa\\Documents\\suprememanagement\\src\\components\\ui/**)",
       "Read(//c/Users/wissa/Pictures/Screenshots/**)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(sed:*)",
+      "Bash(git subtree push:*)",
+      "Bash(pkill:*)",
+      "Bash(true)"
     ],
     "deny": []
   }

@@ -19,6 +19,7 @@ import { CustomerFilters } from '../../components/customers/CustomerFilters';
 import { CustomerTable } from '../../components/customers/CustomerTable';
 import { AddCustomerModal } from '../../components/customers/AddCustomerModal';
 import { EditCustomerModal } from '../../components/customers/EditCustomerModal';
+import { CustomerBookingsModal } from '../../components/customers/CustomerBookingsModal';
 import { 
   exportCustomersToJSON, 
   exportCustomersToCSV,
@@ -33,6 +34,7 @@ export const CustomerList = () => {
   const [balanceFilter, setBalanceFilter] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [viewingBookingsCustomer, setViewingBookingsCustomer] = useState<Customer | null>(null);
   const [showImportExportMenu, setShowImportExportMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   
@@ -99,8 +101,7 @@ export const CustomerList = () => {
   };
 
   const handleViewBookings = (customer: Customer) => {
-    // Navigate to bookings page when implemented
-    showSuccess(`Bookings for ${customer.name} - Feature coming soon!`);
+    setViewingBookingsCustomer(customer);
   };
 
   const handleExportJSON = () => {
@@ -375,6 +376,12 @@ export const CustomerList = () => {
         customer={editingCustomer}
         onClose={() => setEditingCustomer(null)}
         onUpdate={handleUpdateCustomer}
+      />
+      
+      <CustomerBookingsModal
+        isOpen={!!viewingBookingsCustomer}
+        customer={viewingBookingsCustomer}
+        onClose={() => setViewingBookingsCustomer(null)}
       />
       
       {/* Toast Container */}

@@ -195,7 +195,7 @@ export const Loadings = () => {
                 </div>
               </div>
               
-              <div className="border-t border-glass pt-3">
+              <div className="border-t border-gray-800/50 pt-3">
                 <p className="text-sm text-muted mb-2">Items:</p>
                 <div className="space-y-1">
                   {loading.items.map((item, idx) => (

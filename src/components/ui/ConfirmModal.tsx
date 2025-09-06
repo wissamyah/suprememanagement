@@ -71,9 +71,9 @@ export const ConfirmModal = ({
         <div className="p-4 glass rounded-full">
           {icons[type]}
         </div>
-        <p className="text-gray-200 leading-relaxed">
+        <div className="text-gray-200 leading-relaxed">
           {message}
-        </p>
+        </div>
         {type === 'danger' && (
           <div className="w-full p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
             <p className="flex items-center gap-2">

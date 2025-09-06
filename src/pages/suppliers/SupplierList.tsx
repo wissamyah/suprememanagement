@@ -121,7 +121,7 @@ export const SupplierList = () => {
                 </div>
               </div>
               
-              <div className="mt-4 pt-4 border-t border-glass">
+              <div className="mt-4 pt-4 border-t border-gray-800/50">
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-xs text-muted">Total Business</p>

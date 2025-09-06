@@ -23,6 +23,7 @@ interface InventoryTableProps {
   onDeleteProduct: (productId: string) => void;
   onViewMovement: (product: Product) => void;
   onAdjustStock: (product: Product) => void;
+  onViewBookedStock?: (product: Product) => void;
 }
 
 type SortField = 'name' | 'category' | 'quantityOnHand' | 'quantityBooked' | 'availableQuantity';
@@ -36,7 +37,8 @@ export const InventoryTable = ({
   onEditProduct,
   onDeleteProduct,
   onViewMovement,
-  onAdjustStock
+  onAdjustStock,
+  onViewBookedStock
 }: InventoryTableProps) => {
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -273,6 +275,7 @@ export const InventoryTable = ({
                 <DropdownMenu
                   onAdjustStock={() => onAdjustStock(product)}
                   onDelete={() => setDeleteConfirm({ show: true, product })}
+                  onViewBookedStock={onViewBookedStock ? () => onViewBookedStock(product) : undefined}
                   productName={product.name}
                 />
               </div>
@@ -418,6 +421,7 @@ export const InventoryTable = ({
                   <DropdownMenu
                     onAdjustStock={() => onAdjustStock(product)}
                     onDelete={() => setDeleteConfirm({ show: true, product })}
+                    onViewBookedStock={onViewBookedStock ? () => onViewBookedStock(product) : undefined}
                     productName={product.name}
                   />
                 </div>

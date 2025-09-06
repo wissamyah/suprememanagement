@@ -19,6 +19,7 @@ import { useToast } from '../../hooks/useToast';
 import { SaleTable } from '../../components/sales/SaleTable';
 import { AddSaleModal } from '../../components/sales/AddSaleModal';
 import { EditSaleModal } from '../../components/sales/EditSaleModal';
+import { BookedStockSummary } from '../../components/sales/BookedStockSummary';
 import { 
   formatCurrency, 
   calculateSalesStats,
@@ -280,6 +281,9 @@ export const Sales = () => {
           </GlassCard>
         </div>
       )}
+      
+      {/* Booked Stock Summary */}
+      <BookedStockSummary />
       
       {/* Main Table Card */}
       <GlassCard>

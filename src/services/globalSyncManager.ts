@@ -73,7 +73,8 @@ class GlobalSyncManager {
       movements: [],
       productionEntries: [],
       customers: [],
-      sales: []
+      sales: [],
+      ledgerEntries: []
     });
   }
 
@@ -82,7 +83,7 @@ class GlobalSyncManager {
     // Only care about our data keys
     const dataKeys = ['supreme_mgmt_products', 'supreme_mgmt_product_categories', 
                      'supreme_mgmt_inventory_movements', 'supreme_mgmt_production_entries',
-                     'supreme_mgmt_customers', 'supreme_mgmt_sales'];
+                     'supreme_mgmt_customers', 'supreme_mgmt_sales', 'supreme_mgmt_ledger_entries'];
     
     if (e.key && dataKeys.includes(e.key)) {
       this.scheduleSyncDebounced();
@@ -112,10 +113,12 @@ class GlobalSyncManager {
         productionEntries: JSON.parse(localStorage.getItem('supreme_mgmt_production_entries') || '[]'),
         customers: JSON.parse(localStorage.getItem('supreme_mgmt_customers') || '[]'),
         sales: JSON.parse(localStorage.getItem('supreme_mgmt_sales') || '[]'),
+        ledgerEntries: JSON.parse(localStorage.getItem('supreme_mgmt_ledger_entries') || '[]'),
+        bookedStock: JSON.parse(localStorage.getItem('suprememanagement_bookedStock') || '[]'),
       };
     } catch (error) {
       console.error('Error reading localStorage:', error);
-      return { products: [], categories: [], movements: [], productionEntries: [], customers: [], sales: [] };
+      return { products: [], categories: [], movements: [], productionEntries: [], customers: [], sales: [], ledgerEntries: [], bookedStock: [] };
     }
   }
 
@@ -154,7 +157,8 @@ class GlobalSyncManager {
       if (dataHash !== this.lastDataHash) {
         console.log('[GlobalSync] Syncing to GitHub...', {
           hasProducts: data.products?.length || 0,
-          hasCategories: data.categories?.length || 0
+          hasCategories: data.categories?.length || 0,
+          hasLedgerEntries: data.ledgerEntries?.length || 0
         });
         await githubStorage.saveAllData(data);
         

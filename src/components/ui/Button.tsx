@@ -26,7 +26,7 @@ export const Button = ({
   
   const variants = {
     primary: 'bg-white text-gray-900 hover:bg-gray-100 hover:shadow-lg hover:shadow-white/10 disabled:bg-gray-500 disabled:text-gray-300',
-    secondary: 'glass glass-hover border border-glass text-gray-100 hover:shadow-lg hover:shadow-white/5',
+    secondary: 'glass glass-hover border border-gray-800/50 text-gray-100 hover:shadow-lg hover:shadow-white/5',
     danger: 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg hover:shadow-red-600/20 disabled:bg-red-400',
     ghost: 'text-gray-300 hover:bg-white/5 hover:text-gray-100 transition-all duration-200'
   };

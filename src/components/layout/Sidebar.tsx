@@ -14,7 +14,8 @@ import {
   List,
   Wheat,
   Settings as SettingsIcon,
-  ArrowRight
+  ArrowRight,
+  Factory
 } from 'lucide-react';
 
 interface MenuItem {
@@ -99,10 +100,13 @@ export const Sidebar = () => {
 
   const SidebarContent = () => (
     <>
-      <div className="p-6 border-b border-glass">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-          Supreme Management
-        </h1>
+      <div className="h-16 px-4 border-b border-gray-800/50 flex items-center">
+        <div className="flex items-center gap-3">
+          <Factory size={20} className="text-gray-400" />
+          <h1 className="text-lg font-semibold text-gray-200">
+            Supreme Rice Mills
+          </h1>
+        </div>
       </div>
       
       <nav className="p-4 space-y-2">
@@ -177,18 +181,18 @@ export const Sidebar = () => {
         isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10">
-          <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-              Supreme Management
+        <div className="h-16 px-4 border-b border-gray-800/50 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Factory size={20} className="text-gray-400" />
+            <h1 className="text-lg font-semibold text-gray-200">
+              Supreme Rice Mills
             </h1>
-            <p className="text-xs text-muted mt-1">Rice Mill Management System</p>
           </div>
           <button
             onClick={() => setIsMobileMenuOpen(false)}
-            className="p-2.5 glass rounded-xl hover:bg-white/10 transition-all"
+            className="p-2 glass rounded-lg hover:bg-white/10 transition-all"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
         
@@ -262,13 +266,13 @@ export const Sidebar = () => {
         </nav>
         
         {/* Footer */}
-        <div className="p-6 border-t border-white/10">
+        <div className="p-6 border-t border-gray-800/50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              <span className="text-white font-bold">S</span>
+              <Factory size={18} className="text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium">Supreme Rice Mill</p>
+              <p className="text-sm font-medium">Supreme Rice Mills</p>
               <p className="text-xs text-muted">v1.0.0</p>
             </div>
           </div>
@@ -306,7 +310,7 @@ export const Sidebar = () => {
       </button>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-64 h-screen glass border-r border-glass sticky top-0">
+      <aside className="hidden lg:block w-64 h-screen glass border-r border-gray-800/50 sticky top-0">
         <SidebarContent />
       </aside>
 

@@ -330,6 +330,7 @@ class GitHubStorage {
             suppliers: [],
             sales: [],
             loadings: [],
+            ledgerEntries: [],
             metadata: {
                 lastUpdated: new Date().toISOString(),
                 version: '2.0.0'

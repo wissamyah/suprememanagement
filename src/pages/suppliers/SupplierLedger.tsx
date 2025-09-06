@@ -155,7 +155,7 @@ export const SupplierLedger = () => {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-glass">
+              <tr className="border-b border-gray-800/50">
                 <th className="text-left py-3 px-4">Date</th>
                 <th className="text-left py-3 px-4">Supplier</th>
                 <th className="text-left py-3 px-4">Description</th>
@@ -166,7 +166,7 @@ export const SupplierLedger = () => {
             </thead>
             <tbody>
               {ledgerEntries.map((entry) => (
-                <tr key={entry.id} className="border-b border-glass/50 hover:bg-glass transition-colors">
+                <tr key={entry.id} className="border-b border-gray-800/50/50 hover:bg-glass transition-colors">
                   <td className="py-3 px-4">{entry.date}</td>
                   <td className="py-3 px-4 font-medium">{entry.supplier}</td>
                   <td className="py-3 px-4">
@@ -193,7 +193,7 @@ export const SupplierLedger = () => {
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t-2 border-glass font-bold">
+              <tr className="border-t-2 border-gray-800/50 font-bold">
                 <td colSpan={3} className="py-3 px-4">Total</td>
                 <td className="py-3 px-4 text-right text-green-400">₦{totalDebit.toLocaleString()}</td>
                 <td className="py-3 px-4 text-right text-red-400">₦{totalCredit.toLocaleString()}</td>

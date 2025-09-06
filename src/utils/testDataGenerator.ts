@@ -1,5 +1,5 @@
 import { generateId } from './storage';
-import type { Product, Customer, Sale, InventoryMovement, ProductCategory, SaleItem } from '../types';
+import type { Product, Customer, Sale, InventoryMovement, ProductCategory, SaleItem, LedgerEntry, BookedStock } from '../types';
 
 // Nigerian names for realistic test data
 const firstNames = ['Chidi', 'Amaka', 'Emeka', 'Ngozi', 'Kemi', 'Tunde', 'Folake', 'Segun', 'Bisi', 'Kunle', 'Ada', 'Obinna', 'Funke', 'Dele', 'Chioma'];
@@ -221,12 +221,238 @@ export function generateTestData() {
     });
   }
 
+  // Generate Ledger Entries
+  const ledgerEntries: LedgerEntry[] = [];
+  
+  // Generate opening balances for some customers
+  customers.forEach((customer, index) => {
+    if (index < 5) { // Give first 5 customers opening balances
+      const openingDate = new Date(customer.createdAt);
+      const openingAmount = randomBetween(50000, 200000);
+      const isCredit = Math.random() > 0.5;
+      
+      ledgerEntries.push({
+        id: generateId(),
+        customerId: customer.id,
+        customerName: customer.name,
+        date: openingDate,
+        transactionType: 'opening_balance',
+        description: 'Opening Balance',
+        debit: isCredit ? 0 : openingAmount,
+        credit: isCredit ? openingAmount : 0,
+        runningBalance: isCredit ? openingAmount : -openingAmount,
+        notes: 'Initial account setup',
+        createdAt: openingDate,
+        updatedAt: openingDate
+      });
+    }
+  });
+  
+  // Generate Booked Stock for pending/processing sales
+  const bookedStock: BookedStock[] = [];
+  
+  sales.forEach((sale) => {
+    // Create booked stock for pending and processing sales
+    if (sale.status === 'pending' || sale.status === 'processing') {
+      sale.items.forEach((item) => {
+        const bookingStatus: BookedStock['status'][] = ['pending', 'confirmed', 'partial-loaded'];
+        const status = randomFromArray(bookingStatus);
+        const quantityLoaded = status === 'partial-loaded' 
+          ? randomBetween(0, Math.floor(item.quantity * 0.5))
+          : 0;
+        
+        bookedStock.push({
+          id: `BS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          customerId: sale.customerId,
+          customerName: sale.customerName,
+          saleId: sale.id,
+          orderId: sale.orderId,
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          quantityLoaded,
+          unit: item.unit,
+          bookingDate: sale.date,
+          status,
+          notes: `Booked from sale ${sale.orderId}`,
+          createdAt: sale.createdAt,
+          updatedAt: sale.updatedAt
+        });
+      });
+    }
+  });
+  
+  // Generate ledger entries for sales
+  sales.forEach((sale) => {
+    ledgerEntries.push({
+      id: generateId(),
+      customerId: sale.customerId,
+      customerName: sale.customerName,
+      date: sale.date,
+      transactionType: 'sale',
+      referenceId: sale.id,
+      referenceNumber: sale.orderId,
+      description: `Sale Invoice #${sale.orderId}`,
+      debit: sale.totalAmount, // Customer owes us
+      credit: 0,
+      runningBalance: 0, // Will be recalculated
+      notes: `${sale.items.length} item(s) sold`,
+      createdAt: sale.createdAt,
+      updatedAt: sale.updatedAt
+    });
+    
+    // Generate payments for some sales
+    if (sale.paymentStatus === 'paid' || (sale.paymentStatus === 'partial' && Math.random() > 0.5)) {
+      const paymentDate = new Date(sale.date);
+      paymentDate.setDate(paymentDate.getDate() + randomBetween(1, 7)); // Payment 1-7 days after sale
+      
+      const paymentAmount = sale.paymentStatus === 'paid' 
+        ? sale.totalAmount 
+        : randomBetween(sale.totalAmount * 0.3, sale.totalAmount * 0.7);
+      
+      const paymentMethods: LedgerEntry['paymentMethod'][] = ['cash', 'bank_transfer', 'cheque'];
+      const paymentMethod = randomFromArray(paymentMethods);
+      
+      ledgerEntries.push({
+        id: generateId(),
+        customerId: sale.customerId,
+        customerName: sale.customerName,
+        date: paymentDate,
+        transactionType: 'payment',
+        referenceNumber: paymentMethod === 'bank_transfer' 
+          ? `TRF${randomBetween(100000, 999999)}`
+          : paymentMethod === 'cheque'
+            ? `CHQ${randomBetween(1000, 9999)}`
+            : `RCP${randomBetween(1000, 9999)}`,
+        description: `Payment received via ${paymentMethod}`,
+        debit: 0,
+        credit: paymentAmount, // Customer paid us
+        runningBalance: 0, // Will be recalculated
+        paymentMethod,
+        notes: `Payment for ${sale.orderId}`,
+        createdAt: paymentDate,
+        updatedAt: paymentDate
+      });
+    }
+  });
+  
+  // Generate some advance payments (customers paying before sales)
+  for (let i = 0; i < 10; i++) {
+    const customer = randomFromArray(customers.slice(0, 10)); // Pick from first 10 customers
+    const paymentDate = generateDate(45);
+    const paymentAmount = randomBetween(100000, 500000);
+    const paymentMethods: LedgerEntry['paymentMethod'][] = ['cash', 'bank_transfer', 'cheque'];
+    const paymentMethod = randomFromArray(paymentMethods);
+    
+    ledgerEntries.push({
+      id: generateId(),
+      customerId: customer.id,
+      customerName: customer.name,
+      date: paymentDate,
+      transactionType: 'payment',
+      referenceNumber: paymentMethod === 'bank_transfer' 
+        ? `TRF${randomBetween(100000, 999999)}`
+        : paymentMethod === 'cheque'
+          ? `CHQ${randomBetween(1000, 9999)}`
+          : `RCP${randomBetween(1000, 9999)}`,
+      description: `Advance payment via ${paymentMethod}`,
+      debit: 0,
+      credit: paymentAmount,
+      runningBalance: 0, // Will be recalculated
+      paymentMethod,
+      notes: 'Advance payment for future purchases',
+      createdAt: paymentDate,
+      updatedAt: paymentDate
+    });
+  }
+  
+  // Generate some credit notes (returns/adjustments)
+  for (let i = 0; i < 5; i++) {
+    const customer = randomFromArray(customers);
+    const creditDate = generateDate(20);
+    const creditAmount = randomBetween(10000, 50000);
+    
+    ledgerEntries.push({
+      id: generateId(),
+      customerId: customer.id,
+      customerName: customer.name,
+      date: creditDate,
+      transactionType: 'credit_note',
+      referenceNumber: `CN-2024-${(i + 1).toString().padStart(3, '0')}`,
+      description: 'Product return - quality issue',
+      debit: 0,
+      credit: creditAmount, // Credit to customer
+      runningBalance: 0, // Will be recalculated
+      notes: 'Customer returned damaged goods',
+      createdAt: creditDate,
+      updatedAt: creditDate
+    });
+  }
+  
+  // Generate some adjustments
+  for (let i = 0; i < 3; i++) {
+    const customer = randomFromArray(customers);
+    const adjustDate = generateDate(15);
+    const adjustAmount = randomBetween(5000, 25000);
+    const isDebit = Math.random() > 0.5;
+    
+    ledgerEntries.push({
+      id: generateId(),
+      customerId: customer.id,
+      customerName: customer.name,
+      date: adjustDate,
+      transactionType: 'adjustment',
+      description: isDebit ? 'Late payment fee' : 'Discount for bulk purchase',
+      debit: isDebit ? adjustAmount : 0,
+      credit: isDebit ? 0 : adjustAmount,
+      runningBalance: 0, // Will be recalculated
+      notes: isDebit ? 'Applied late payment charges' : 'Loyalty discount applied',
+      createdAt: adjustDate,
+      updatedAt: adjustDate
+    });
+  }
+  
+  // Sort ledger entries by customer and date to recalculate running balances
+  const customerLedgerMap = new Map<string, LedgerEntry[]>();
+  ledgerEntries.forEach(entry => {
+    if (!customerLedgerMap.has(entry.customerId)) {
+      customerLedgerMap.set(entry.customerId, []);
+    }
+    customerLedgerMap.get(entry.customerId)!.push(entry);
+  });
+  
+  // Recalculate running balances for each customer
+  const recalculatedEntries: LedgerEntry[] = [];
+  customerLedgerMap.forEach((entries, customerId) => {
+    // Sort by date
+    entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    let runningBalance = 0;
+    entries.forEach(entry => {
+      // Open book system: credit increases balance (customer has credit), debit decreases (customer owes)
+      runningBalance = runningBalance + entry.credit - entry.debit;
+      entry.runningBalance = runningBalance;
+      recalculatedEntries.push(entry);
+    });
+    
+    // Update customer's current balance
+    const customer = customers.find(c => c.id === customerId);
+    if (customer) {
+      customer.balance = runningBalance;
+    }
+  });
+  
+  console.log('Test data generator - Ledger entries created:', recalculatedEntries.length);
+  console.log('Test data generator - Booked stock created:', bookedStock.length);
+  
   return {
     products,
     customers,
     sales,
     movements,
-    categories: generatedCategories
+    categories: generatedCategories,
+    ledgerEntries: recalculatedEntries,
+    bookedStock
   };
 }
 
@@ -289,6 +515,8 @@ export function generateMinimalTestData() {
     customers,
     sales: [],
     movements: [],
-    categories: []
+    categories: [],
+    ledgerEntries: [],
+    bookedStock: []
   };
 }

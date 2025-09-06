@@ -139,16 +139,36 @@ export interface PaddyTruck {
 
 export interface LedgerEntry {
   id: string;
+  customerId: string;
+  customerName: string;
   date: Date;
-  entityId: string;
-  entityName: string;
-  entityType: 'customer' | 'supplier';
+  transactionType: 'payment' | 'sale' | 'credit_note' | 'opening_balance' | 'adjustment';
+  referenceId?: string; // Links to Sale ID or Payment ID
+  referenceNumber?: string; // Receipt/Invoice number
   description: string;
-  debit: number;
-  credit: number;
-  balance: number;
-  referenceType: 'sale' | 'purchase' | 'payment' | 'adjustment';
-  referenceId?: string;
+  debit: number; // Money customer owes (sales)
+  credit: number; // Money customer paid or credited
+  runningBalance: number; // Balance after this transaction
+  paymentMethod?: 'cash' | 'bank_transfer' | 'cheque'; // For payments only
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BookedStock {
+  id: string;
+  customerId: string;
+  customerName: string;
+  saleId: string;
+  orderId: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  quantityLoaded: number; // Track partial loadings
+  unit: string;
+  bookingDate: Date;
+  status: 'pending' | 'confirmed' | 'partial-loaded' | 'fully-loaded' | 'cancelled';
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }

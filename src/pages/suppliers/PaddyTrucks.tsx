@@ -179,7 +179,7 @@ export const PaddyTrucks = () => {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-glass">
+              <tr className="border-b border-gray-800/50">
                 <th className="text-left py-3 px-4">Truck No.</th>
                 <th className="text-left py-3 px-4">Supplier</th>
                 <th className="text-left py-3 px-4">Arrival</th>
@@ -195,7 +195,7 @@ export const PaddyTrucks = () => {
             </thead>
             <tbody>
               {paddyTrucksData.map((truck) => (
-                <tr key={truck.id} className="border-b border-glass/50 hover:bg-glass transition-colors">
+                <tr key={truck.id} className="border-b border-gray-800/50/50 hover:bg-glass transition-colors">
                   <td className="py-3 px-4">
                     <div>
                       <p className="font-medium">{truck.truckNo}</p>

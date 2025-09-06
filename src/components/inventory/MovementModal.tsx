@@ -211,7 +211,7 @@ export const MovementModal = ({
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-glass">
+              <tr className="border-b border-gray-800/50">
                 <th className="text-left py-2 px-3 text-sm">Date/Time</th>
                 <th className="text-left py-2 px-3 text-sm">Type</th>
                 <th className="text-right py-2 px-3 text-sm">Quantity</th>
@@ -230,7 +230,7 @@ export const MovementModal = ({
                 </tr>
               ) : (
                 paginatedMovements.map((movement) => (
-                  <tr key={movement.id} className="border-b border-glass/50">
+                  <tr key={movement.id} className="border-b border-gray-800/30">
                     <td className="py-2 px-3 text-sm">
                       <div className="flex items-center gap-2">
                         <Calendar size={14} className="text-muted" />

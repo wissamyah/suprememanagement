@@ -107,18 +107,18 @@ function App() {
         if (!authenticated) {
           // Show auth modal immediately without delay
           setShowAuthModal(true);
+          setIsLoading(false); // Stop loading immediately if not authenticated
         } else {
-          // Load initial data from GitHub
-          await loadDataFromGitHub();
+          // Set loading to false first to show the UI
+          setIsLoading(false);
+          // Then load data in the background
+          loadDataFromGitHub().catch(console.error);
         }
       }
     } catch (error) {
       console.error('Auth check failed:', error);
       if (mountedRef.current) {
         setShowAuthModal(true);
-      }
-    } finally {
-      if (mountedRef.current) {
         setIsLoading(false);
       }
     }
@@ -234,6 +234,7 @@ function App() {
             <Route path="customers/sales" element={<Sales />} />
             <Route path="customers/loadings" element={<Loadings />} />
             <Route path="customers/ledger" element={<CustomerLedger />} />
+            <Route path="customers/ledger/:customerId" element={<CustomerLedger />} />
             <Route path="suppliers" element={<SupplierList />} />
             <Route path="suppliers/paddy-trucks" element={<PaddyTrucks />} />
             <Route path="suppliers/ledger" element={<SupplierLedger />} />
