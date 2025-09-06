@@ -45,7 +45,7 @@ export const AddSaleModal = ({
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [customerId, setCustomerId] = useState('');
   const [items, setItems] = useState<SaleItem[]>([]);
-  const [status, setStatus] = useState<'pending' | 'processing' | 'completed'>('completed');
+  // Status is always 'pending' for new sales - will auto-update to 'completed' when fully delivered
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'partial' | 'paid'>('pending');
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -144,7 +144,7 @@ export const AddSaleModal = ({
       customerId,
       new Date(date),
       items,
-      status,
+      'pending', // Always create as pending
       paymentStatus
     );
     
@@ -161,7 +161,7 @@ export const AddSaleModal = ({
     setDate(new Date().toISOString().split('T')[0]);
     setCustomerId('');
     setItems([]);
-    setStatus('completed');
+    // Status is always pending for new sales
     setPaymentStatus('pending');
     setErrors([]);
     onClose();
@@ -361,40 +361,24 @@ export const AddSaleModal = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Order Status */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Order Status</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
-              className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-            >
-              <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-
-          {/* Payment Status */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Payment Status</label>
-            <select
-              value={paymentStatus}
-              onChange={(e) => setPaymentStatus(e.target.value as any)}
-              className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-            >
-              <option value="pending">Pending</option>
-              <option value="partial">Partial</option>
-              <option value="paid">Paid</option>
-            </select>
-          </div>
+        {/* Payment Status */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Payment Status</label>
+          <select
+            value={paymentStatus}
+            onChange={(e) => setPaymentStatus(e.target.value as any)}
+            className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+          >
+            <option value="pending">Pending</option>
+            <option value="partial">Partial</option>
+            <option value="paid">Paid</option>
+          </select>
         </div>
 
         {/* Info Box */}
         <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <p className="text-sm text-blue-300">
-            This sale will update inventory bookings and customer balance automatically. 
+            New sales are created as 'Pending' and will automatically update to 'Completed' when fully delivered through loadings.
             Make sure to enter the correct unit prices for each product.
           </p>
         </div>

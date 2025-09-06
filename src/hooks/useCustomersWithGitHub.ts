@@ -78,6 +78,19 @@ export const useCustomersWithGitHub = () => {
     loadData();
   }, [isAuthenticated]);
 
+  // Listen for storage events to sync across tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === `supreme_mgmt_${CUSTOMERS_KEY}`) {
+        const newData = e.newValue ? JSON.parse(e.newValue) : [];
+        setCustomers(newData);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   // Notify global sync manager when data changes
   useEffect(() => {
     // Skip initial load to avoid marking as changed on mount
@@ -90,6 +103,13 @@ export const useCustomersWithGitHub = () => {
     // Save to local state immediately (optimistic update)
     setCustomers(newCustomers);
     storage.set(CUSTOMERS_KEY, newCustomers);
+    
+    // Trigger storage event for other tabs/components
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'supreme_mgmt_customers',
+      newValue: JSON.stringify(newCustomers),
+      url: window.location.href
+    }));
     
     // Notify global sync manager
     globalSyncManager.markAsChanged();

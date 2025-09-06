@@ -1,5 +1,5 @@
 import { generateId } from './storage';
-import type { Product, Customer, Sale, InventoryMovement, ProductCategory, SaleItem, LedgerEntry, BookedStock } from '../types';
+import type { Product, Customer, Sale, InventoryMovement, ProductCategory, SaleItem, LedgerEntry, BookedStock, Loading, LoadingItem } from '../types';
 
 // Nigerian names for realistic test data
 const firstNames = ['Chidi', 'Amaka', 'Emeka', 'Ngozi', 'Kemi', 'Tunde', 'Folake', 'Segun', 'Bisi', 'Kunle', 'Ada', 'Obinna', 'Funke', 'Dele', 'Chioma'];
@@ -181,7 +181,12 @@ export function generateTestData() {
       });
     }
     
-    const statuses: Array<'pending' | 'processing' | 'completed'> = ['pending', 'processing', 'completed'];
+    // Generate mostly pending/processing sales to create booked stock
+    // Only make 20% of sales completed (already delivered)
+    const saleStatus = Math.random() < 0.8 
+      ? randomFromArray(['pending', 'processing'] as const)
+      : 'completed' as const;
+    
     const paymentStatuses: Array<'pending' | 'partial' | 'paid'> = ['pending', 'partial', 'paid'];
     
     sales.push({
@@ -192,7 +197,7 @@ export function generateTestData() {
       date: saleDate,
       items,
       totalAmount,
-      status: randomFromArray(statuses),
+      status: saleStatus,
       paymentStatus: randomFromArray(paymentStatuses),
       createdAt: saleDate,
       updatedAt: saleDate
@@ -445,6 +450,81 @@ export function generateTestData() {
   console.log('Test data generator - Ledger entries created:', recalculatedEntries.length);
   console.log('Test data generator - Booked stock created:', bookedStock.length);
   
+  // Generate loadings from booked stock
+  const loadings: Loading[] = [];
+  const truckPlateNumbers = ['LAG-123-AB', 'KAN-456-CD', 'ABJ-789-EF', 'PHC-012-GH', 'IBD-345-JK', 'KAD-678-LM'];
+  
+  // Create loadings for some of the booked stock (simulate partial loadings)
+  const bookedStockToLoad = bookedStock.filter(bs => bs.status === 'confirmed').slice(0, 15);
+  
+  bookedStockToLoad.forEach((booking, index) => {
+    const loadingDate = new Date(booking.bookingDate);
+    loadingDate.setDate(loadingDate.getDate() + randomBetween(1, 3)); // Loading 1-3 days after booking
+    
+    const sale = sales.find(s => s.id === booking.saleId);
+    const saleItem = sale?.items.find(item => item.productId === booking.productId);
+    const unitPrice = saleItem?.price || randomBetween(5000, 20000);
+    
+    // Create loading for partial quantity
+    const loadingQuantity = Math.min(booking.quantity, randomBetween(booking.quantity * 0.5, booking.quantity));
+    
+    const loadingItem: LoadingItem = {
+      productId: booking.productId,
+      productName: booking.productName,
+      quantity: loadingQuantity,
+      unit: booking.unit,
+      unitPrice: unitPrice,
+      bookedStockId: booking.id
+    };
+    
+    const loading: Loading = {
+      id: generateId(),
+      loadingId: `LD-2024-${String(index + 1).padStart(3, '0')}`,
+      date: loadingDate.toISOString().split('T')[0],
+      customerId: booking.customerId,
+      customerName: booking.customerName,
+      truckPlateNumber: randomFromArray(truckPlateNumbers),
+      wayBillNumber: Math.random() > 0.5 ? `WB-2024-${String(index + 1).padStart(3, '0')}` : undefined,
+      items: [loadingItem],
+      totalValue: loadingQuantity * unitPrice,
+      createdAt: loadingDate.toISOString(),
+      updatedAt: loadingDate.toISOString()
+    };
+    
+    loadings.push(loading);
+    
+    // Update the booked stock to reflect loading
+    booking.quantityLoaded = loadingQuantity;
+    booking.status = loadingQuantity >= booking.quantity ? 'fully-loaded' : 'partial-loaded';
+    
+    // Update product quantities
+    const product = products.find(p => p.id === booking.productId);
+    if (product) {
+      product.quantityOnHand -= loadingQuantity;
+      product.quantityBooked -= loadingQuantity;
+      product.availableQuantity = product.quantityOnHand - product.quantityBooked;
+    }
+    
+    // Add inventory movement for loading
+    movements.push({
+      id: generateId(),
+      productId: booking.productId,
+      productName: booking.productName,
+      movementType: 'loading',
+      quantity: -loadingQuantity,
+      previousQuantity: product?.quantityOnHand || 0,
+      newQuantity: (product?.quantityOnHand || 0) - loadingQuantity,
+      reference: `Loading ${loading.loadingId}`,
+      referenceId: loading.id,
+      notes: `Loading for customer: ${booking.customerName}`,
+      date: loadingDate,
+      createdAt: loadingDate,
+      updatedAt: loadingDate
+    });
+  });
+  
+  console.log('Test data generator - Loadings created:', loadings.length);
+  
   return {
     products,
     customers,
@@ -452,7 +532,8 @@ export function generateTestData() {
     movements,
     categories: generatedCategories,
     ledgerEntries: recalculatedEntries,
-    bookedStock
+    bookedStock,
+    loadings
   };
 }
 

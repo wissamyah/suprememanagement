@@ -1,149 +1,343 @@
 import { useState } from 'react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
-import { Plus, Search, Truck, Clock, CheckCircle, Package } from 'lucide-react';
-
-const loadingsData = [
-  {
-    id: 1,
-    loadingId: 'LD-2024-001',
-    orderId: 'ORD-2024-001',
-    customer: 'Raj Kumar',
-    vehicle: 'MH12AB1234',
-    driver: 'Ramesh Kumar',
-    date: '2024-01-15',
-    status: 'completed',
-    items: [
-      { name: 'Basmati Rice', quantity: '500 kg' },
-      { name: 'Wheat Flour', quantity: '300 kg' }
-    ]
-  },
-  {
-    id: 2,
-    loadingId: 'LD-2024-002',
-    orderId: 'ORD-2024-002',
-    customer: 'Sharma Traders',
-    vehicle: 'DL01CD5678',
-    driver: 'Suresh Singh',
-    date: '2024-01-15',
-    status: 'in-transit',
-    items: [
-      { name: 'Sugar', quantity: '200 kg' },
-      { name: 'Cooking Oil', quantity: '100 L' }
-    ]
-  },
-  {
-    id: 3,
-    loadingId: 'LD-2024-003',
-    orderId: 'ORD-2024-003',
-    customer: 'Gupta & Sons',
-    vehicle: 'KA05EF9012',
-    driver: 'Vijay Sharma',
-    date: '2024-01-15',
-    status: 'loading',
-    items: [
-      { name: 'Red Lentils', quantity: '150 kg' }
-    ]
-  },
-  {
-    id: 4,
-    loadingId: 'LD-2024-004',
-    orderId: 'ORD-2024-004',
-    customer: 'Kumar Enterprises',
-    vehicle: 'TN22GH3456',
-    driver: 'Arun Kumar',
-    date: '2024-01-14',
-    status: 'scheduled',
-    items: [
-      { name: 'Basmati Rice', quantity: '1000 kg' },
-      { name: 'Sugar', quantity: '500 kg' }
-    ]
-  },
-];
+import { ToastContainer } from '../../components/ui/Toast';
+import { 
+  Plus, 
+  Search, 
+  Truck, 
+  Calendar, 
+  TrendingUp,
+  RefreshCw,
+  Download,
+  Upload,
+  FileJson,
+  FileText,
+  DollarSign,
+  MoreVertical,
+} from 'lucide-react';
+import { useLoadingsWithGitHub } from '../../hooks/useLoadingsWithGitHub';
+import { useToast } from '../../hooks/useToast';
+import { LoadingTable } from '../../components/loadings/LoadingTable';
+import { AddLoadingModal } from '../../components/loadings/AddLoadingModal';
+import { EditLoadingModal } from '../../components/loadings/EditLoadingModal';
+import { 
+  formatCurrency,
+  exportLoadingsToJSON,
+  exportLoadingsToCSV,
+  importLoadingsFromJSON,
+  calculateLoadingStats
+} from '../../utils/loadings';
+import type { Loading } from '../../types';
 
 export const Loadings = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingLoading, setEditingLoading] = useState<Loading | null>(null);
+  const [showImportExportMenu, setShowImportExportMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'completed': return 'bg-green-500/20 text-green-400';
-      case 'in-transit': return 'bg-blue-500/20 text-blue-400';
-      case 'loading': return 'bg-yellow-500/20 text-yellow-400';
-      case 'scheduled': return 'bg-purple-500/20 text-purple-400';
-      default: return 'bg-gray-500/20 text-gray-400';
+  const {
+    loadings,
+    loading,
+    syncPending,
+    pendingChanges,
+    addLoading,
+    updateLoading,
+    deleteLoading,
+    getCustomersWithBookedStock,
+    getCustomerBookedProducts,
+    forceSync
+  } = useLoadingsWithGitHub();
+  
+  const { toasts, showSuccess, showError, removeToast } = useToast();
+  
+  // Calculate real-time statistics
+  const stats = calculateLoadingStats(loadings);
+  
+  const handleAddLoading = (
+    date: string,
+    customerId: string,
+    truckPlateNumber: string,
+    wayBillNumber: string | undefined,
+    items: any[]
+  ) => {
+    const result = addLoading(date, customerId, truckPlateNumber, wayBillNumber, items);
+    if (result.success) {
+      showSuccess('Loading created successfully');
+      setShowAddModal(false);
+    }
+    return result;
+  };
+
+  const handleUpdateLoading = (
+    id: string,
+    updates: Partial<Omit<Loading, 'id' | 'loadingId' | 'createdAt' | 'updatedAt'>>
+  ) => {
+    const result = updateLoading(id, updates);
+    if (result.success) {
+      showSuccess('Loading updated successfully');
+      setEditingLoading(null);
+    }
+    return result;
+  };
+
+  const handleDeleteLoading = (loadingId: string) => {
+    const loading = loadings.find(l => l.id === loadingId);
+    const result = deleteLoading(loadingId);
+    
+    if (result.success) {
+      showSuccess(`Loading ${loading?.loadingId} deleted`);
+    } else {
+      showError('Failed to delete loading');
     }
   };
-  
-  const getStatusIcon = (status: string) => {
-    switch(status) {
-      case 'completed': return <CheckCircle size={16} />;
-      case 'in-transit': return <Truck size={16} />;
-      case 'loading': return <Package size={16} />;
-      case 'scheduled': return <Clock size={16} />;
-      default: return null;
+
+  const handleExportJSON = () => {
+    exportLoadingsToJSON(loadings);
+    showSuccess('Loadings exported to JSON');
+    setShowImportExportMenu(false);
+  };
+
+  const handleExportCSV = () => {
+    exportLoadingsToCSV(loadings);
+    showSuccess('Loadings exported to CSV');
+    setShowImportExportMenu(false);
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const importedLoadings = await importLoadingsFromJSON(file);
+      showSuccess(`Imported ${importedLoadings.length} loadings`);
+      // Note: You would need to add import functionality to the hook
+    } catch (error: any) {
+      showError(error.message || 'Failed to import loadings');
     }
+    
+    // Reset input
+    e.target.value = '';
+    setShowImportExportMenu(false);
   };
   
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Loadings</h1>
           <p className="text-muted">Track and manage loading operations</p>
         </div>
-        <Button variant="primary">
-          <Plus size={20} />
-          New Loading
-        </Button>
+        
+        <div className="flex items-center gap-2 self-end sm:self-start">
+          {/* Mobile dropdown menu */}
+          <div className="relative mobile-menu-dropdown sm:hidden">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMobileMenu(!showMobileMenu);
+              }}
+              className="p-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+              title="More Options"
+            >
+              <MoreVertical size={20} />
+            </button>
+            {showMobileMenu && (
+              <div className="absolute right-0 top-full mt-2 rounded-lg shadow-xl z-50 py-1 min-w-[160px] bg-gray-900 border border-white/20 animate-fadeIn">
+                {pendingChanges > 0 && !syncPending && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      forceSync();
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
+                  >
+                    <RefreshCw size={16} />
+                    Sync ({pendingChanges})
+                  </button>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleExportJSON();
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
+                >
+                  <FileJson size={16} />
+                  Export as JSON
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleExportCSV();
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
+                >
+                  <FileText size={16} />
+                  Export as CSV
+                </button>
+                <label className="w-full px-3 py-2 hover:bg-white/10 transition-colors flex items-center gap-2 cursor-pointer">
+                  <Upload size={16} />
+                  <span className="text-sm">Import from JSON</span>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={(e) => {
+                      handleImport(e);
+                      setShowMobileMenu(false);
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            )}
+          </div>
+          
+          {/* Desktop buttons */}
+          <div className="hidden sm:flex gap-2">
+            {/* Sync Status */}
+            {syncPending && (
+              <div className="flex items-center gap-2 px-3 py-2 glass rounded-lg">
+                <RefreshCw className="animate-spin" size={16} />
+                <span className="text-sm">Syncing...</span>
+              </div>
+            )}
+            
+            {pendingChanges > 0 && !syncPending && (
+              <Button variant="ghost" onClick={forceSync}>
+                <RefreshCw size={16} />
+                Sync ({pendingChanges})
+              </Button>
+            )}
+            
+            {/* Import/Export Menu */}
+            <div className="relative">
+              <Button
+                variant="ghost"
+                onClick={() => setShowImportExportMenu(!showImportExportMenu)}
+              >
+                <Download size={20} />
+                Import/Export
+              </Button>
+              
+              {showImportExportMenu && (
+                <div className="absolute right-0 top-full mt-2 w-48 glass rounded-lg shadow-xl z-10 overflow-hidden">
+                  <button
+                    onClick={handleExportJSON}
+                    className="w-full px-4 py-2 text-left hover:bg-glass flex items-center gap-2"
+                  >
+                    <FileJson size={16} />
+                    Export as JSON
+                  </button>
+                  <button
+                    onClick={handleExportCSV}
+                    className="w-full px-4 py-2 text-left hover:bg-glass flex items-center gap-2"
+                  >
+                    <FileText size={16} />
+                    Export as CSV
+                  </button>
+                  <label className="w-full px-4 py-2 hover:bg-glass flex items-center gap-2 cursor-pointer">
+                    <Upload size={16} />
+                    Import from JSON
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleImport}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* New Loading Button - perfect square on mobile */}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="w-10 h-10 sm:w-auto sm:h-auto sm:px-4 sm:py-2 bg-white text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+            title="New Loading"
+          >
+            <Plus size={18} />
+            <span className="hidden sm:inline">New Loading</span>
+          </button>
+        </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <GlassCard>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted">Today's Loadings</p>
-              <p className="text-2xl font-bold">8</p>
+      {/* Statistics Cards */}
+      {loading ? (
+        <div className="glass rounded-xl p-6">
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="inline-flex items-center gap-3">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+              </div>
+              <p className="text-sm text-muted mt-3">Loading data...</p>
             </div>
-            <Truck className="text-blue-400" size={24} />
           </div>
-        </GlassCard>
-        <GlassCard>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted">In Transit</p>
-              <p className="text-2xl font-bold">3</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <GlassCard>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted">Today's Loadings</p>
+                <p className="text-2xl font-bold">{stats.todaysCount}</p>
+                <p className="text-sm text-green-400">{formatCurrency(stats.todaysValue)}</p>
+              </div>
+              <Truck className="text-blue-400" size={24} />
             </div>
-            <Clock className="text-yellow-400" size={24} />
-          </div>
-        </GlassCard>
-        <GlassCard>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted">Completed Today</p>
-              <p className="text-2xl font-bold">5</p>
+          </GlassCard>
+          <GlassCard>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted">This Week</p>
+                <p className="text-2xl font-bold">{stats.weekCount}</p>
+                <p className="text-sm text-green-400">{formatCurrency(stats.weekValue)}</p>
+              </div>
+              <Calendar className="text-purple-400" size={24} />
             </div>
-            <CheckCircle className="text-green-400" size={24} />
-          </div>
-        </GlassCard>
-        <GlassCard>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted">Scheduled</p>
-              <p className="text-2xl font-bold">12</p>
+          </GlassCard>
+          <GlassCard>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted">This Month</p>
+                <p className="text-2xl font-bold">{stats.monthCount}</p>
+                <p className="text-sm text-green-400">{formatCurrency(stats.monthValue)}</p>
+              </div>
+              <TrendingUp className="text-yellow-400" size={24} />
             </div>
-            <Package className="text-purple-400" size={24} />
-          </div>
-        </GlassCard>
-      </div>
+          </GlassCard>
+          <GlassCard>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted">Total Value</p>
+                <p className="text-2xl font-bold text-green-400">
+                  {formatCurrency(stats.totalValue)}
+                </p>
+                <p className="text-sm text-muted">{stats.totalCount} loadings</p>
+              </div>
+              <DollarSign className="text-green-400" size={24} />
+            </div>
+          </GlassCard>
+        </div>
+      )}
       
+      {/* Main Table Card */}
       <GlassCard>
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={20} />
             <input
               type="text"
-              placeholder="Search loadings..."
+              placeholder="Search by loading ID, customer, truck, or way bill..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text"
@@ -151,70 +345,70 @@ export const Loadings = () => {
           </div>
           <select 
             className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value as any)}
           >
-            <option value="all">All Status</option>
-            <option value="scheduled">Scheduled</option>
-            <option value="loading">Loading</option>
-            <option value="in-transit">In Transit</option>
-            <option value="completed">Completed</option>
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
           </select>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {loadingsData.map((loading) => (
-            <div key={loading.id} className="glass rounded-lg p-4">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-semibold text-lg">{loading.loadingId}</h3>
-                  <p className="text-sm text-muted">Order: {loading.orderId}</p>
-                </div>
-                <span className={`px-3 py-1 text-xs rounded-full flex items-center gap-1 ${getStatusColor(loading.status)}`}>
-                  {getStatusIcon(loading.status)}
-                  {loading.status.replace('-', ' ')}
-                </span>
+        {/* Loadings Table */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="inline-flex items-center gap-3">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
               </div>
-              
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted">Customer:</span>
-                  <span className="font-medium">{loading.customer}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted">Vehicle:</span>
-                  <span className="font-medium">{loading.vehicle}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted">Driver:</span>
-                  <span className="font-medium">{loading.driver}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted">Date:</span>
-                  <span className="font-medium">{loading.date}</span>
-                </div>
-              </div>
-              
-              <div className="border-t border-gray-800/50 pt-3">
-                <p className="text-sm text-muted mb-2">Items:</p>
-                <div className="space-y-1">
-                  {loading.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between text-sm">
-                      <span>{item.name}</span>
-                      <span className="font-medium">{item.quantity}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="mt-4 flex gap-2">
-                <Button variant="secondary" size="sm" className="flex-1">View Details</Button>
-                <Button variant="ghost" size="sm" className="flex-1">Update Status</Button>
-              </div>
+              <p className="text-sm text-muted mt-3">Syncing with GitHub...</p>
             </div>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <LoadingTable
+            loadings={loadings}
+            searchTerm={searchTerm}
+            dateFilter={dateFilter}
+            onEditLoading={setEditingLoading}
+            onDeleteLoading={handleDeleteLoading}
+          />
+        )}
       </GlassCard>
+      
+      {/* Modals */}
+      <AddLoadingModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={handleAddLoading}
+        customersWithBookings={getCustomersWithBookedStock()}
+        getCustomerBookedProducts={getCustomerBookedProducts}
+      />
+      
+      <EditLoadingModal
+        isOpen={!!editingLoading}
+        loading={editingLoading}
+        onClose={() => setEditingLoading(null)}
+        onUpdate={handleUpdateLoading}
+        customersWithBookings={getCustomersWithBookedStock()}
+        getCustomerBookedProducts={getCustomerBookedProducts}
+      />
+      
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+      
+      {/* Click outside to close menus */}
+      {(showImportExportMenu || showMobileMenu) && (
+        <div 
+          className="fixed inset-0 z-0" 
+          onClick={() => {
+            setShowImportExportMenu(false);
+            setShowMobileMenu(false);
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -45,11 +45,11 @@ export const Settings = () => {
         }
       }
       
-      // Clear all localStorage keys that start with 'supreme_mgmt_'
+      // Clear all localStorage keys that start with 'supreme_mgmt_' or 'suprememanagement_'
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('supreme_mgmt_')) {
+        if (key && (key.startsWith('supreme_mgmt_') || key.startsWith('suprememanagement_'))) {
           keysToRemove.push(key);
         }
       }
@@ -87,7 +87,8 @@ export const Settings = () => {
         customers: testData.customers.length,
         sales: testData.sales.length,
         ledgerEntries: testData.ledgerEntries.length,
-        bookedStock: testData.bookedStock.length
+        bookedStock: testData.bookedStock.length,
+        loadings: testData.loadings?.length || 0
       });
       
       // Save test data to localStorage
@@ -98,6 +99,7 @@ export const Settings = () => {
       localStorage.setItem('supreme_mgmt_product_categories', JSON.stringify(testData.categories));
       localStorage.setItem('supreme_mgmt_ledger_entries', JSON.stringify(testData.ledgerEntries));
       localStorage.setItem('suprememanagement_bookedStock', JSON.stringify(testData.bookedStock));
+      localStorage.setItem('supreme_mgmt_loadings', JSON.stringify(testData.loadings || []));
       
       // Verify it was saved
       const savedLedger = localStorage.getItem('supreme_mgmt_ledger_entries');
@@ -108,12 +110,15 @@ export const Settings = () => {
         globalSyncManager.markAsChanged();
       }
       
-      showSuccess(`Generated test data: ${testData.products.length} products, ${testData.customers.length} customers, ${testData.sales.length} sales, ${testData.ledgerEntries.length} ledger entries, ${testData.bookedStock.length} bookings`);
+      showSuccess(`Generated test data: ${testData.products.length} products, ${testData.customers.length} customers, ${testData.sales.length} sales, ${testData.ledgerEntries.length} ledger entries, ${testData.bookedStock.length} bookings, ${testData.loadings?.length || 0} loadings`);
       
-      // Reload after a short delay
+      // Set generating to false first
+      setIsGenerating(false);
+      
+      // Reload after a longer delay to ensure all operations complete
       setTimeout(() => {
         window.location.reload();
-      }, 2000);
+      }, 6000);
       
     } catch (error) {
       console.error('Error generating test data:', error);
@@ -131,8 +136,8 @@ export const Settings = () => {
       // Collect all data from localStorage
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('supreme_mgmt_')) {
-          const cleanKey = key.replace('supreme_mgmt_', '');
+        if (key && (key.startsWith('supreme_mgmt_') || key.startsWith('suprememanagement_'))) {
+          const cleanKey = key.replace('supreme_mgmt_', '').replace('suprememanagement_', '');
           const value = localStorage.getItem(key);
           if (value) {
             try {
@@ -200,7 +205,7 @@ export const Settings = () => {
               <div className="flex-1">
                 <h3 className="font-medium mb-1 text-red-400">Reset All Data</h3>
                 <p className="text-sm text-muted mb-3">
-                  This will permanently delete all your local data including products, customers, sales, and inventory movements.
+                  This will permanently delete all your local data including products, customers, sales, inventory movements, booked stock, and loadings.
                   {isAuthenticated && " GitHub data will remain unchanged until next sync."}
                 </p>
                 <Button 
@@ -237,7 +242,7 @@ export const Settings = () => {
                 <div className="flex-1">
                   <h3 className="font-medium mb-1">Generate Test Data</h3>
                   <p className="text-sm text-muted mb-3">
-                    Quickly populate your database with sample data for testing. This will create products, customers, sales, and complete ledger entries with various transaction types (advance payments, sales, payments, credit notes, adjustments) using realistic Nigerian data.
+                    Quickly populate your database with sample data for testing. This will create products, customers, sales, complete ledger entries with various transaction types (advance payments, sales, payments, credit notes, adjustments), booked stock, and loadings using realistic Nigerian data.
                   </p>
                   <Button 
                     variant="primary" 

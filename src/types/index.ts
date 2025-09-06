@@ -99,16 +99,15 @@ export interface SaleItem {
 export interface Loading {
   id: string;
   loadingId: string;
-  orderId: string;
+  date: string;
   customerId: string;
   customerName: string;
-  vehicle: string;
-  driver: string;
-  date: Date;
-  status: 'scheduled' | 'loading' | 'in-transit' | 'completed';
+  truckPlateNumber: string;
+  wayBillNumber?: string;
   items: LoadingItem[];
-  createdAt: Date;
-  updatedAt: Date;
+  totalValue: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LoadingItem {
@@ -116,6 +115,8 @@ export interface LoadingItem {
   productName: string;
   quantity: number;
   unit: string;
+  unitPrice: number;
+  bookedStockId: string;
 }
 
 export interface PaddyTruck {

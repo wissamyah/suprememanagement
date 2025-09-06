@@ -121,6 +121,57 @@ export const useSalesWithGitHub = () => {
     loadData();
   }, [isAuthenticated]);
 
+  // Listen for storage events to sync across tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (!mountedRef.current) return;
+      
+      if (e.key === `supreme_mgmt_${SALES_KEY}` && e.newValue) {
+        try {
+          const newData = JSON.parse(e.newValue);
+          setSales(newData);
+        } catch (error) {
+          console.error('Error parsing sales from storage event:', error);
+        }
+      }
+      if (e.key === `supreme_mgmt_${CUSTOMERS_KEY}` && e.newValue) {
+        try {
+          const newData = JSON.parse(e.newValue);
+          setCustomers(newData);
+        } catch (error) {
+          console.error('Error parsing customers from storage event:', error);
+        }
+      }
+      if (e.key === `supreme_mgmt_${PRODUCTS_KEY}` && e.newValue) {
+        try {
+          const newData = JSON.parse(e.newValue);
+          setProducts(newData);
+        } catch (error) {
+          console.error('Error parsing products from storage event:', error);
+        }
+      }
+      if (e.key === `supreme_mgmt_${MOVEMENTS_KEY}` && e.newValue) {
+        try {
+          const newData = JSON.parse(e.newValue);
+          setMovements(newData);
+        } catch (error) {
+          console.error('Error parsing movements from storage event:', error);
+        }
+      }
+      if (e.key === `supreme_mgmt_${LEDGER_KEY}` && e.newValue) {
+        try {
+          const newData = JSON.parse(e.newValue);
+          setLedgerEntries(newData);
+        } catch (error) {
+          console.error('Error parsing ledger from storage event:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   // Notify global sync manager when data changes
   useEffect(() => {
     // Skip initial load to avoid marking as changed on mount
@@ -145,6 +196,12 @@ export const useSalesWithGitHub = () => {
     storage.set(LEDGER_KEY, newLedgerEntries);
     
     // Trigger storage events for other components to react
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'supreme_mgmt_sales',
+      newValue: JSON.stringify(newSales),
+      url: window.location.href
+    }));
+    
     window.dispatchEvent(new StorageEvent('storage', {
       key: 'supreme_mgmt_products',
       newValue: JSON.stringify(newProducts),
@@ -185,7 +242,7 @@ export const useSalesWithGitHub = () => {
       price: number;
       total: number;
     }>,
-    status: 'pending' | 'processing' | 'completed' = 'completed',
+    status: 'pending' | 'processing' | 'completed' = 'pending', // Default to pending
     paymentStatus: 'pending' | 'partial' | 'paid' = 'pending'
   ): { success: boolean; errors?: string[]; saleId?: string } => {
     try {
@@ -215,13 +272,26 @@ export const useSalesWithGitHub = () => {
           continue;
         }
 
-        // Update product booked quantity
-        updatedProducts[productIndex] = {
-          ...product,
-          quantityBooked: (product.quantityBooked || 0) + item.quantity,
-          availableQuantity: product.quantityOnHand - ((product.quantityBooked || 0) + item.quantity),
-          updatedAt: new Date()
-        };
+        // Update product based on sale status
+        if (status === 'completed') {
+          // For completed sales, directly reduce on-hand quantity (no booking)
+          updatedProducts[productIndex] = {
+            ...product,
+            quantityOnHand: product.quantityOnHand - item.quantity,
+            availableQuantity: product.quantityOnHand - item.quantity - (product.quantityBooked || 0),
+            status: (product.quantityOnHand - item.quantity) <= 0 ? 'out-of-stock' : 
+                   (product.quantityOnHand - item.quantity) <= product.reorderLevel ? 'low-stock' : 'in-stock',
+            updatedAt: new Date()
+          };
+        } else {
+          // For pending/processing sales, update booked quantity (reserve stock)
+          updatedProducts[productIndex] = {
+            ...product,
+            quantityBooked: (product.quantityBooked || 0) + item.quantity,
+            availableQuantity: product.quantityOnHand - ((product.quantityBooked || 0) + item.quantity),
+            updatedAt: new Date()
+          };
+        }
       }
 
       if (errors.length > 0) {
@@ -262,19 +332,22 @@ export const useSalesWithGitHub = () => {
       // Create inventory movements for each item
       const newMovements: InventoryMovement[] = [];
       for (const item of items) {
-        const product = updatedProducts.find(p => p.id === item.productId);
-        if (product) {
+        const originalProduct = products.find(p => p.id === item.productId);
+        const updatedProduct = updatedProducts.find(p => p.id === item.productId);
+        if (originalProduct && updatedProduct) {
           const movement: InventoryMovement = {
             id: generateId(),
             productId: item.productId,
             productName: item.productName,
             movementType: 'sales',
             quantity: -item.quantity, // Negative for sales (stock reduction)
-            previousQuantity: product.quantityOnHand,
-            newQuantity: product.quantityOnHand, // Quantity on hand doesn't change, only booked changes
+            previousQuantity: originalProduct.quantityOnHand,
+            newQuantity: status === 'completed' 
+              ? originalProduct.quantityOnHand - item.quantity // For completed sales, show actual reduction
+              : originalProduct.quantityOnHand, // For pending/processing, on-hand doesn't change yet
             reference: `Sale: ${newSale.orderId}`,
             referenceId: newSale.id,
-            notes: `Sold to ${customer.name}`,
+            notes: `${status === 'completed' ? 'Delivered to' : 'Booked for'} ${customer.name}`,
             date: date,
             createdAt: now,
             updatedAt: now
@@ -401,22 +474,35 @@ export const useSalesWithGitHub = () => {
 
       // If items are being updated, handle inventory changes
       if (updates.items) {
-        // Reverse old sale's inventory bookings
+        // Reverse old sale's inventory effects based on old status
         for (const oldItem of oldSale.items) {
           const productIndex = updatedProducts.findIndex(p => p.id === oldItem.productId);
           if (productIndex !== -1) {
             const product = updatedProducts[productIndex];
-            updatedProducts[productIndex] = {
-              ...product,
-              quantityBooked: Math.max(0, (product.quantityBooked || 0) - oldItem.quantity),
-              availableQuantity: product.quantityOnHand - Math.max(0, (product.quantityBooked || 0) - oldItem.quantity),
-              updatedAt: new Date()
-            };
+            if (oldSale.status === 'completed') {
+              // For completed sales, restore on-hand quantity
+              updatedProducts[productIndex] = {
+                ...product,
+                quantityOnHand: product.quantityOnHand + oldItem.quantity,
+                availableQuantity: (product.quantityOnHand + oldItem.quantity) - (product.quantityBooked || 0),
+                updatedAt: new Date()
+              };
+            } else {
+              // For pending/processing sales, reverse booking
+              updatedProducts[productIndex] = {
+                ...product,
+                quantityBooked: Math.max(0, (product.quantityBooked || 0) - oldItem.quantity),
+                availableQuantity: product.quantityOnHand - Math.max(0, (product.quantityBooked || 0) - oldItem.quantity),
+                updatedAt: new Date()
+              };
+            }
           }
         }
 
-        // Apply new items' bookings
+        // Apply new items' effects based on new/current status
         const errors: string[] = [];
+        const newStatus = updates.status || oldSale.status;
+        
         for (const newItem of updates.items) {
           const productIndex = updatedProducts.findIndex(p => p.id === newItem.productId);
           if (productIndex === -1) {
@@ -432,12 +518,25 @@ export const useSalesWithGitHub = () => {
             continue;
           }
 
-          updatedProducts[productIndex] = {
-            ...product,
-            quantityBooked: (product.quantityBooked || 0) + newItem.quantity,
-            availableQuantity: product.quantityOnHand - ((product.quantityBooked || 0) + newItem.quantity),
-            updatedAt: new Date()
-          };
+          if (newStatus === 'completed') {
+            // For completed sales, directly reduce on-hand quantity
+            updatedProducts[productIndex] = {
+              ...product,
+              quantityOnHand: product.quantityOnHand - newItem.quantity,
+              availableQuantity: (product.quantityOnHand - newItem.quantity) - (product.quantityBooked || 0),
+              status: (product.quantityOnHand - newItem.quantity) <= 0 ? 'out-of-stock' : 
+                     (product.quantityOnHand - newItem.quantity) <= product.reorderLevel ? 'low-stock' : 'in-stock',
+              updatedAt: new Date()
+            };
+          } else {
+            // For pending/processing sales, update booking
+            updatedProducts[productIndex] = {
+              ...product,
+              quantityBooked: (product.quantityBooked || 0) + newItem.quantity,
+              availableQuantity: product.quantityOnHand - ((product.quantityBooked || 0) + newItem.quantity),
+              updatedAt: new Date()
+            };
+          }
         }
 
         if (errors.length > 0) {
@@ -547,8 +646,47 @@ export const useSalesWithGitHub = () => {
         }
       }
 
-      // For now, keep the same movements (TODO: could add update movements in future)
-      saveAllData(updatedSales, updatedProducts, updatedCustomers, movements, updatedLedger);
+      // Update inventory movements if items or status changed
+      let updatedMovements = [...movements];
+      if (updates.items || updates.status) {
+        // Remove old movements for this sale
+        updatedMovements = updatedMovements.filter(m => m.referenceId !== id);
+        
+        // Create new movements for updated items
+        const now = new Date();
+        const finalStatus = updates.status || oldSale.status;
+        const finalItems = updates.items || oldSale.items;
+        
+        for (const item of finalItems) {
+          const product = updatedProducts.find(p => p.id === item.productId);
+          if (product) {
+            // Find the original quantity for this product before this update
+            const originalProduct = products.find(p => p.id === item.productId);
+            const previousQty = originalProduct ? originalProduct.quantityOnHand : product.quantityOnHand;
+            
+            const movement: InventoryMovement = {
+              id: generateId(),
+              productId: item.productId,
+              productName: item.productName,
+              movementType: 'sales',
+              quantity: -item.quantity, // Negative for sales
+              previousQuantity: previousQty,
+              newQuantity: finalStatus === 'completed' 
+                ? previousQty - item.quantity  // For completed sales, show actual reduction
+                : previousQty, // For pending/processing, on-hand doesn't change
+              reference: `Sale: ${oldSale.orderId}${updates.items || updates.status ? ' (Updated)' : ''}`,
+              referenceId: id,
+              notes: `${finalStatus === 'completed' ? 'Delivered to' : 'Booked for'} ${oldSale.customerName}`,
+              date: oldSale.date,
+              createdAt: now,
+              updatedAt: now
+            };
+            updatedMovements.push(movement);
+          }
+        }
+      }
+
+      saveAllData(updatedSales, updatedProducts, updatedCustomers, updatedMovements, updatedLedger);
       return { success: true };
     } catch (error) {
       console.error('Error updating sale:', error);
@@ -564,16 +702,28 @@ export const useSalesWithGitHub = () => {
         return { success: false };
       }
 
-      // Reverse inventory bookings
+      // Reverse inventory changes based on sale status
       const updatedProducts = products.map(product => {
         const saleItem = sale.items.find(item => item.productId === product.id);
         if (saleItem) {
-          return {
-            ...product,
-            quantityBooked: Math.max(0, (product.quantityBooked || 0) - saleItem.quantity),
-            availableQuantity: product.quantityOnHand - Math.max(0, (product.quantityBooked || 0) - saleItem.quantity),
-            updatedAt: new Date()
-          };
+          if (sale.status === 'completed') {
+            // For completed sales, restore the on-hand quantity
+            return {
+              ...product,
+              quantityOnHand: product.quantityOnHand + saleItem.quantity,
+              availableQuantity: (product.quantityOnHand + saleItem.quantity) - (product.quantityBooked || 0),
+              status: (product.quantityOnHand + saleItem.quantity) > product.reorderLevel ? 'in-stock' : 'low-stock',
+              updatedAt: new Date()
+            };
+          } else {
+            // For pending/processing sales, only reverse the booking
+            return {
+              ...product,
+              quantityBooked: Math.max(0, (product.quantityBooked || 0) - saleItem.quantity),
+              availableQuantity: product.quantityOnHand - Math.max(0, (product.quantityBooked || 0) - saleItem.quantity),
+              updatedAt: new Date()
+            };
+          }
         }
         return product;
       });
@@ -603,11 +753,13 @@ export const useSalesWithGitHub = () => {
       // Recalculate balances for this customer
       updatedLedger = recalculateBalances(updatedLedger, sale.customerId);
       
-      // Delete booked stock records for this sale
-      const saleBookings = getBookedStockBySale(id);
-      saleBookings.forEach(booking => {
-        deleteBookedStock(booking.id);
-      });
+      // Delete booked stock records for this sale (if any)
+      if (sale.status === 'pending' || sale.status === 'processing') {
+        const saleBookings = getBookedStockBySale(id);
+        saleBookings.forEach(booking => {
+          deleteBookedStock(booking.id);
+        });
+      }
       
       saveAllData(updatedSales, updatedProducts, updatedCustomers, updatedMovements, updatedLedger);
       

@@ -41,7 +41,7 @@ export const EditSaleModal = ({
 }: EditSaleModalProps) => {
   const [date, setDate] = useState('');
   const [items, setItems] = useState<SaleItem[]>([]);
-  const [status, setStatus] = useState<'pending' | 'processing' | 'completed'>('completed');
+  // Status is read-only - automatically managed based on delivery
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'partial' | 'paid'>('pending');
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,7 +51,7 @@ export const EditSaleModal = ({
     if (isOpen && sale) {
       setDate(new Date(sale.date).toISOString().split('T')[0]);
       setItems(sale.items.map(item => ({ ...item })));
-      setStatus(sale.status);
+      // Status is automatically managed
       setPaymentStatus(sale.paymentStatus);
     }
   }, [isOpen, sale]);
@@ -143,7 +143,7 @@ export const EditSaleModal = ({
     const result = onUpdate(sale.id, {
       date: new Date(date),
       items,
-      status,
+      status: sale?.status || 'pending', // Keep existing status
       paymentStatus,
       totalAmount: calculateGrandTotal()
     });
@@ -160,7 +160,7 @@ export const EditSaleModal = ({
   const handleClose = () => {
     setDate('');
     setItems([]);
-    setStatus('completed');
+    // Status is automatically managed
     setPaymentStatus('pending');
     setErrors([]);
     onClose();
@@ -356,34 +356,18 @@ export const EditSaleModal = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Order Status */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Order Status</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
-              className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-            >
-              <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-
-          {/* Payment Status */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Payment Status</label>
-            <select
-              value={paymentStatus}
-              onChange={(e) => setPaymentStatus(e.target.value as any)}
-              className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-            >
-              <option value="pending">Pending</option>
-              <option value="partial">Partial</option>
-              <option value="paid">Paid</option>
-            </select>
-          </div>
+        {/* Payment Status */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Payment Status</label>
+          <select
+            value={paymentStatus}
+            onChange={(e) => setPaymentStatus(e.target.value as any)}
+            className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+          >
+            <option value="pending">Pending</option>
+            <option value="partial">Partial</option>
+            <option value="paid">Paid</option>
+          </select>
         </div>
 
         {/* Warning Box */}
