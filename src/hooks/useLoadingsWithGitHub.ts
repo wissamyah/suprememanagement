@@ -162,6 +162,16 @@ export const useLoadingsWithGitHub = () => {
           console.error('Error parsing sales from storage event:', error);
         }
       }
+      // Listen for booked stock changes
+      if (e.key === 'suprememanagement_bookedStock' && e.newValue) {
+        try {
+          // Trigger a refresh of the booked stock data
+          // The useBookedStockWithGitHub hook handles its own state, we just need to trigger re-render
+          window.dispatchEvent(new Event('bookedStockUpdated'));
+        } catch (error) {
+          console.error('Error handling booked stock storage event:', error);
+        }
+      }
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -313,10 +323,24 @@ export const useLoadingsWithGitHub = () => {
       for (const item of items) {
         // Update booked stock
         const booking = bookedStock.find(b => b.id === item.bookedStockId);
-        const status = booking && item.quantity >= booking.quantity ? 'fully-loaded' : 'partial-loaded';
+        const remainingToLoad = booking ? booking.quantity - booking.quantityLoaded : 0;
+        const loadedQuantity = Math.min(item.quantity, remainingToLoad);
+        const totalLoaded = booking ? booking.quantityLoaded + loadedQuantity : loadedQuantity;
+        const status = booking && totalLoaded >= booking.quantity ? 'fully-loaded' : 'partial-loaded';
+        
+        console.log('[AddLoading] Updating booked stock:', {
+          bookedStockId: item.bookedStockId,
+          productName: item.productName,
+          bookingQuantity: booking?.quantity,
+          previouslyLoaded: booking?.quantityLoaded,
+          nowLoading: loadedQuantity,
+          totalLoaded,
+          status
+        });
+        
         const bookingResult = updateLoadingStatus(
           item.bookedStockId,
-          item.quantity,
+          totalLoaded,
           status
         );
         
@@ -324,31 +348,39 @@ export const useLoadingsWithGitHub = () => {
           console.error('Failed to update booked stock:', bookingResult.error);
         }
 
-        // Update product inventory
+        // Update product inventory - IMPORTANT: Use loadedQuantity, not item.quantity
         const productIndex = updatedProducts.findIndex(p => p.id === item.productId);
         if (productIndex !== -1) {
           const product = updatedProducts[productIndex];
           const previousQuantity = product.quantityOnHand;
-          const newQuantity = previousQuantity - item.quantity;
+          // FIX: Use loadedQuantity instead of item.quantity for partial loading
+          const newQuantity = previousQuantity - loadedQuantity;
+          
+          console.log('[AddLoading] Updating product inventory:', {
+            productId: item.productId,
+            productName: item.productName,
+            previousOnHand: previousQuantity,
+            actualLoadedQuantity: loadedQuantity,  // Changed from item.quantity
+            newOnHand: newQuantity
+          });
           
           // Update product quantities
+          // Note: Don't update quantityBooked or availableQuantity here as they are calculated from booked stock records
           updatedProducts[productIndex] = {
             ...product,
             quantityOnHand: newQuantity,
-            quantityBooked: Math.max(0, product.quantityBooked - item.quantity),
-            availableQuantity: newQuantity - Math.max(0, product.quantityBooked - item.quantity),
             status: newQuantity <= 0 ? 'out-of-stock' : 
                    newQuantity <= product.reorderLevel ? 'low-stock' : 'in-stock',
             updatedAt: new Date()
           };
 
-          // Create inventory movement record
+          // Create inventory movement record - FIX: Use loadedQuantity
           const movement: InventoryMovement = {
             id: generateId(),
             productId: item.productId,
             productName: item.productName,
             movementType: 'loading',
-            quantity: -item.quantity,
+            quantity: -loadedQuantity,  // FIX: Use loadedQuantity instead of item.quantity
             previousQuantity,
             newQuantity,
             reference: `Loading ${newLoading.loadingId}`,
@@ -412,13 +444,12 @@ export const useLoadingsWithGitHub = () => {
         const productIndex = updatedProducts.findIndex(p => p.id === item.productId);
         if (productIndex !== -1) {
           const product = updatedProducts[productIndex];
+          const revertedQuantity = product.quantityOnHand + item.quantity;
           updatedProducts[productIndex] = {
             ...product,
-            quantityOnHand: product.quantityOnHand + item.quantity,
-            quantityBooked: product.quantityBooked + item.quantity,
-            availableQuantity: product.availableQuantity,
-            status: product.quantityOnHand + item.quantity > product.reorderLevel ? 'in-stock' :
-                   product.quantityOnHand + item.quantity > 0 ? 'low-stock' : 'out-of-stock',
+            quantityOnHand: revertedQuantity,
+            status: revertedQuantity > product.reorderLevel ? 'in-stock' :
+                   revertedQuantity > 0 ? 'low-stock' : 'out-of-stock',
             updatedAt: new Date()
           };
         }
@@ -429,37 +460,42 @@ export const useLoadingsWithGitHub = () => {
         for (const item of updates.items) {
           // Update booked stock
           const booking = bookedStock.find(b => b.id === item.bookedStockId);
-          const status = booking && item.quantity >= booking.quantity ? 'fully-loaded' : 'partial-loaded';
+          const previousBookingLoaded = booking ? booking.quantityLoaded : 0;
+          const remainingToLoad = booking ? booking.quantity - previousBookingLoaded : 0;
+          const loadedQuantity = Math.min(item.quantity, remainingToLoad);
+          const totalLoaded = previousBookingLoaded + loadedQuantity;
+          const status = booking && totalLoaded >= booking.quantity ? 'fully-loaded' : 'partial-loaded';
+          
           updateLoadingStatus(
             item.bookedStockId,
-            item.quantity,
+            totalLoaded,
             status
           );
           
-          // Update product inventory
+          // Update product inventory - FIX: Use actual loaded quantity
           const productIndex = updatedProducts.findIndex(p => p.id === item.productId);
           if (productIndex !== -1) {
             const product = updatedProducts[productIndex];
             const previousQuantity = product.quantityOnHand;
-            const newQuantity = previousQuantity - item.quantity;
+            // FIX: Use loadedQuantity instead of item.quantity
+            const newQuantity = previousQuantity - loadedQuantity;
             
+            // Note: Don't update quantityBooked or availableQuantity here as they are calculated from booked stock records
             updatedProducts[productIndex] = {
               ...product,
               quantityOnHand: newQuantity,
-              quantityBooked: Math.max(0, product.quantityBooked - item.quantity),
-              availableQuantity: newQuantity - Math.max(0, product.quantityBooked - item.quantity),
               status: newQuantity <= 0 ? 'out-of-stock' : 
                      newQuantity <= product.reorderLevel ? 'low-stock' : 'in-stock',
               updatedAt: new Date()
             };
 
-            // Create inventory movement record
+            // Create inventory movement record - FIX: Use loadedQuantity
             const movement: InventoryMovement = {
               id: generateId(),
               productId: item.productId,
               productName: item.productName,
               movementType: 'adjustment',
-              quantity: -item.quantity,
+              quantity: -loadedQuantity,  // FIX: Use loadedQuantity instead of item.quantity
               previousQuantity,
               newQuantity,
               reference: `Loading Update ${existingLoading.loadingId}`,
@@ -540,11 +576,10 @@ export const useLoadingsWithGitHub = () => {
           const previousQuantity = product.quantityOnHand;
           const newQuantity = previousQuantity + item.quantity;
           
+          // Note: Don't update quantityBooked or availableQuantity here as they are calculated from booked stock records
           updatedProducts[productIndex] = {
             ...product,
             quantityOnHand: newQuantity,
-            quantityBooked: product.quantityBooked + item.quantity,
-            availableQuantity: product.availableQuantity,
             status: newQuantity > product.reorderLevel ? 'in-stock' :
                    newQuantity > 0 ? 'low-stock' : 'out-of-stock',
             updatedAt: new Date()

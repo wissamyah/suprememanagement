@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import type { Loading } from '../../types';
 import { Button } from '../ui/Button';
 import { ConfirmModal } from '../ui/ConfirmModal';
+import { Tooltip, ProductTooltip } from '../ui/Tooltip';
 import { 
   Edit2,
   Trash2,
@@ -173,7 +174,23 @@ export const LoadingTable = ({
               )}
               <div className="flex items-center gap-2 text-sm">
                 <Package size={14} className="text-muted" />
-                <span>{loading.items.length} items</span>
+                <Tooltip
+                  content={
+                    <ProductTooltip
+                      items={loading.items.map(item => ({
+                        productName: item.productName,
+                        quantity: item.quantity,
+                        price: item.unitPrice,
+                        total: item.quantity * item.unitPrice
+                      }))}
+                    />
+                  }
+                  placement="top"
+                >
+                  <span className="cursor-help underline decoration-dotted">
+                    {loading.items.length} {loading.items.length === 1 ? 'item' : 'items'}
+                  </span>
+                </Tooltip>
               </div>
             </div>
 
@@ -289,29 +306,23 @@ export const LoadingTable = ({
                   {loading.wayBillNumber || '-'}
                 </td>
                 <td className="py-3 px-4">
-                  <div className="relative group">
-                    <div className="flex items-center gap-2 cursor-help">
-                      <Package size={16} className="text-muted" />
-                      <span>{loading.items.length} items</span>
-                    </div>
-                    
-                    {/* Tooltip */}
-                    <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-10 w-64">
-                      <div className="glass rounded-lg p-3 shadow-xl">
-                        <p className="text-xs font-semibold mb-2">Loaded Products:</p>
-                        <div className="space-y-1">
-                          {loading.items.map((item, idx) => (
-                            <div key={idx} className="text-xs flex justify-between">
-                              <span>{item.productName}</span>
-                              <span className="text-muted">
-                                {item.quantity} {item.unit} @ {formatCurrency(item.unitPrice)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <Tooltip
+                    content={
+                      <ProductTooltip
+                        items={loading.items.map(item => ({
+                          productName: item.productName,
+                          quantity: item.quantity,
+                          price: item.unitPrice,
+                          total: item.quantity * item.unitPrice
+                        }))}
+                      />
+                    }
+                    placement="top"
+                  >
+                    <span className="cursor-help underline decoration-dotted">
+                      {loading.items.length} {loading.items.length === 1 ? 'item' : 'items'}
+                    </span>
+                  </Tooltip>
                 </td>
                 <td className="py-3 px-4 text-right">
                   <span className="font-semibold text-green-400">
