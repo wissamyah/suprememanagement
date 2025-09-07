@@ -1,43 +1,26 @@
-const STORAGE_PREFIX = 'supreme_mgmt_';
+// Storage utility - GitHub Direct mode only
+// This is maintained for backward compatibility but no longer uses localStorage
 
 export const storage = {
-  get: <T>(key: string): T | null => {
-    try {
-      const item = localStorage.getItem(STORAGE_PREFIX + key);
-      return item ? JSON.parse(item) : null;
-    } catch (error) {
-      console.error(`Error reading from localStorage for key ${key}:`, error);
-      return null;
-    }
+  get: <T>(_key: string): T | null => {
+    // In GitHub Direct mode, we don't use localStorage
+    console.warn(`storage.get() called - GitHub Direct mode doesn't use localStorage`);
+    return null;
   },
 
-  set: <T>(key: string, value: T): void => {
-    try {
-      localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
-    } catch (error) {
-      console.error(`Error writing to localStorage for key ${key}:`, error);
-    }
+  set: <T>(_key: string, _value: T): void => {
+    // In GitHub Direct mode, we don't use localStorage
+    console.warn(`storage.set() called - GitHub Direct mode doesn't use localStorage`);
   },
 
-  remove: (key: string): void => {
-    try {
-      localStorage.removeItem(STORAGE_PREFIX + key);
-    } catch (error) {
-      console.error(`Error removing from localStorage for key ${key}:`, error);
-    }
+  remove: (_key: string): void => {
+    // In GitHub Direct mode, we don't use localStorage
+    console.warn(`storage.remove() called - GitHub Direct mode doesn't use localStorage`);
   },
 
   clear: (): void => {
-    try {
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.startsWith(STORAGE_PREFIX)) {
-          localStorage.removeItem(key);
-        }
-      });
-    } catch (error) {
-      console.error('Error clearing localStorage:', error);
-    }
+    // In GitHub Direct mode, clearing means clearing GitHub data
+    console.warn('storage.clear() called - Use githubDataManager.clearAllData() instead');
   }
 };
 

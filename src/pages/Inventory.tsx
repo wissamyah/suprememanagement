@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button';
 import { ToastContainer } from '../components/ui/Toast';
 import { Plus, Tags, Factory, Upload, Download, FileJson, Settings, MoreVertical } from 'lucide-react';
 import type { Product } from '../types';
-import { useInventoryWithGitHub } from '../hooks/useInventoryWithGitHub';
+import { useInventory } from '../hooks/useInventory';
 import { useToast } from '../hooks/useToast';
 import { storage } from '../utils/storage';
 import { InventoryStats } from '../components/inventory/InventoryStats';
@@ -54,7 +54,7 @@ export const Inventory = () => {
     addBatchProductionEntries,
     adjustStock,
     refreshData: refresh
-  } = useInventoryWithGitHub();
+  } = useInventory();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
   
@@ -90,8 +90,8 @@ export const Inventory = () => {
   
   const handleDeleteProduct = (productId: string) => {
     const product = products.find(p => p.id === productId);
-    const success = deleteProduct(productId);
-    if (success) {
+    const result = deleteProduct(productId);
+    if (result.success) {
       showSuccess(`Product "${product?.name}" deleted`);
     } else {
       showError('Failed to delete product');
@@ -116,6 +116,8 @@ export const Inventory = () => {
     const result = adjustStock(productId, newQuantity, reason, notes);
     if (result.success) {
       showSuccess('Stock adjusted successfully');
+      // Force refresh to ensure UI updates with new quantity
+      refresh();
     } else {
       showError('Failed to adjust stock');
     }

@@ -169,12 +169,8 @@ export class ErrorHandler {
       this.errors = this.errors.slice(0, this.maxErrors);
     }
     
-    // Store in localStorage for debugging
-    try {
-      localStorage.setItem('app_errors', JSON.stringify(this.errors.slice(0, 10)));
-    } catch {
-      // Ignore localStorage errors
-    }
+    // In GitHub Direct mode, we don't store errors in localStorage
+    // Errors are kept in memory only
   }
   
   static getRecentErrors(count: number = 10): AppError[] {
@@ -183,11 +179,7 @@ export class ErrorHandler {
   
   static clearErrors(): void {
     this.errors = [];
-    try {
-      localStorage.removeItem('app_errors');
-    } catch {
-      // Ignore localStorage errors
-    }
+    // In GitHub Direct mode, we don't use localStorage
   }
   
   static getErrorsByType(type: ErrorType): AppError[] {

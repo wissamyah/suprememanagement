@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { GlassCard } from '../ui/GlassCard';
 import { Package, Users, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
-import { useBookedStockWithGitHub } from '../../hooks/useBookedStockWithGitHub';
+import { useBookedStock } from '../../hooks/useBookedStock';
 import type { BookedStock } from '../../types';
 
 export const BookedStockSummary = () => {
-  const { bookedStock } = useBookedStockWithGitHub();
+  const { bookedStock } = useBookedStock();
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
 
   // Filter only active bookings

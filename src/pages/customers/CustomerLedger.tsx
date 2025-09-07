@@ -5,8 +5,8 @@ import { Button } from '../../components/ui/Button';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { ToastContainer } from '../../components/ui/Toast';
 import { useToast } from '../../hooks/useToast';
-import { useLedgerWithGitHub } from '../../hooks/useLedgerWithGitHub';
-import { useSalesWithGitHub } from '../../hooks/useSalesWithGitHub';
+import { useCustomers } from '../../hooks/useCustomers';
+import { useSales } from '../../hooks/useSales';
 import { Tooltip, ProductTooltip } from '../../components/ui/Tooltip';
 import { 
   Search, 
@@ -46,7 +46,7 @@ export const CustomerLedger = () => {
   const itemsPerPage = 15; // 15 items per page for ledger
   
   // Get sales data for tooltip
-  const { sales } = useSalesWithGitHub();
+  const { sales } = useSales();
   
   const {
     ledgerEntries,
@@ -54,12 +54,11 @@ export const CustomerLedger = () => {
     loading,
     syncInProgress,
     pendingChanges,
-    addEntry,
-    updateEntry,
-    deleteEntry,
+    addLedgerEntry,
+    deleteLedgerEntry,
     getCustomerLedger,
     forceSync
-  } = useLedgerWithGitHub();
+  } = useCustomers();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
   
@@ -178,7 +177,7 @@ export const CustomerLedger = () => {
     amount: number,
     paymentMethod: LedgerEntry['paymentMethod'],
     referenceNumber: string,
-    notes: string,
+    _notes: string,
     date: Date
   ) => {
     if (!customerId || !currentCustomer) {
@@ -186,18 +185,15 @@ export const CustomerLedger = () => {
       return { success: false };
     }
     
-    const result = addEntry(
+    const result = addLedgerEntry(
       customerId,
       'payment',
+      `Payment received via ${paymentMethod}`,
       0, // No debit for payments
       amount, // Credit amount
-      `Payment received via ${paymentMethod}`,
-      {
-        date,
-        referenceNumber,
-        paymentMethod,
-        notes
-      }
+      undefined,
+      referenceNumber,
+      date
     );
     
     if (result.success) {
@@ -215,7 +211,7 @@ export const CustomerLedger = () => {
     debit: number,
     credit: number,
     description: string,
-    notes: string,
+    _notes: string,
     date: Date
   ) => {
     if (!customerId || !currentCustomer) {
@@ -223,16 +219,15 @@ export const CustomerLedger = () => {
       return { success: false };
     }
     
-    const result = addEntry(
+    const result = addLedgerEntry(
       customerId,
-      transactionType,
+      transactionType as any,
+      description,
       debit,
       credit,
-      description,
-      {
-        date,
-        notes
-      }
+      undefined,
+      undefined,
+      date
     );
     
     if (result.success) {
@@ -246,10 +241,11 @@ export const CustomerLedger = () => {
   };
   
   const handleUpdateEntry = (
-    entryId: string,
-    updates: Partial<Omit<LedgerEntry, 'id' | 'customerId' | 'customerName' | 'createdAt' | 'runningBalance'>>
+    _entryId: string,
+    _updates: Partial<Omit<LedgerEntry, 'id' | 'customerId' | 'customerName' | 'createdAt' | 'runningBalance'>>
   ) => {
-    const result = updateEntry(entryId, updates);
+    // Update not supported - would need to implement in hook
+    const result = { success: false, error: 'Entry updates are not supported. Please delete and recreate.' };
     
     if (result.success) {
       showSuccess('Entry updated successfully');
@@ -267,7 +263,7 @@ export const CustomerLedger = () => {
   const handleDeleteEntry = async (entry: LedgerEntry) => {
     setIsDeletingId(entry.id);
     
-    const result = deleteEntry(entry.id);
+    const result = deleteLedgerEntry(entry.id);
     
     if (result.success) {
       showSuccess('Entry deleted successfully');
@@ -500,22 +496,22 @@ export const CustomerLedger = () => {
                 {customerId ? 'Current Balance' : 'Net Outstanding'}
               </p>
               <p className={`text-2xl font-bold ${
-                totals.balance > 0 ? 'text-green-400' : 
                 totals.balance < 0 ? 'text-red-400' : 
+                totals.balance > 0 ? 'text-green-400' : 
                 'text-yellow-400'
               }`}>
-                {formatCurrency(totals.balance)}
+                {formatCurrency(Math.abs(totals.balance))}
               </p>
-              {totals.balance > 0 && (
-                <p className="text-xs text-green-400 mt-1">Customer has credit</p>
-              )}
               {totals.balance < 0 && (
                 <p className="text-xs text-red-400 mt-1">Customer owes</p>
               )}
+              {totals.balance > 0 && (
+                <p className="text-xs text-green-400 mt-1">Customer has credit</p>
+              )}
             </div>
             <DollarSign className={
-              totals.balance > 0 ? 'text-green-400' : 
               totals.balance < 0 ? 'text-red-400' : 
+              totals.balance > 0 ? 'text-green-400' : 
               'text-yellow-400'
             } size={24} />
           </div>
@@ -837,18 +833,18 @@ export const CustomerLedger = () => {
                         {entry.credit > 0 ? formatCurrency(entry.credit) : '-'}
                       </td>
                       <td className={`py-3 px-4 text-right font-bold ${
-                        entry.runningBalance > 0 
-                          ? 'text-green-400' 
-                          : entry.runningBalance < 0 
-                            ? 'text-red-400' 
+                        entry.runningBalance < 0 
+                          ? 'text-red-400' 
+                          : entry.runningBalance > 0 
+                            ? 'text-green-400' 
                             : 'text-yellow-400'
                       }`}>
-                        {formatCurrency(entry.runningBalance)}
-                        {entry.runningBalance > 0 && (
-                          <span className="text-xs block text-green-400">Credit</span>
-                        )}
+                        {formatCurrency(Math.abs(entry.runningBalance))}
                         {entry.runningBalance < 0 && (
                           <span className="text-xs block text-red-400">Owes</span>
+                        )}
+                        {entry.runningBalance > 0 && (
+                          <span className="text-xs block text-green-400">Credit</span>
                         )}
                       </td>
                       {customerId && (

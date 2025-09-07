@@ -15,8 +15,7 @@ import {
 import { useToast } from '../hooks/useToast';
 import { GitHubContext } from '../App';
 import { generateTestData } from '../utils/testDataGenerator';
-import { globalSyncManager } from '../services/globalSyncManager';
-import githubStorage from '../services/githubStorage';
+import { githubDataManager } from '../services/githubDataManager';
 
 export const Settings = () => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -35,33 +34,14 @@ export const Settings = () => {
     setIsResetting(true);
     
     try {
-      // If authenticated, clear GitHub data first
+      // Clear all data in GitHub
       if (isAuthenticated) {
-        showWarning('Clearing GitHub data...');
-        const githubCleared = await githubStorage.clearAllData();
-        
-        if (!githubCleared) {
-          showError('Failed to clear GitHub data, but will continue with local reset');
-        }
+        showWarning('Clearing all data...');
+        await githubDataManager.clearAllData();
+        showSuccess('All data has been reset successfully');
+      } else {
+        showError('You must be authenticated to reset data');
       }
-      
-      // Clear all localStorage keys that start with 'supreme_mgmt_' or 'suprememanagement_'
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith('supreme_mgmt_') || key.startsWith('suprememanagement_'))) {
-          keysToRemove.push(key);
-        }
-      }
-      
-      // Remove all data keys
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      
-      // Reset the sync manager to clear any pending changes
-      globalSyncManager.resetPendingChanges();
-      
-      showSuccess('All data has been reset successfully');
-      
     } catch (error) {
       console.error('Error resetting data:', error);
       showError('Failed to reset data');
@@ -75,6 +55,13 @@ export const Settings = () => {
     setIsGenerating(true);
     
     try {
+      if (!isAuthenticated) {
+        showError('You must be authenticated to generate test data');
+        setIsGenerating(false);
+        setShowGenerateConfirm(false);
+        return;
+      }
+      
       const testData = generateTestData();
       
       console.log('Generated test data:', {
@@ -86,24 +73,15 @@ export const Settings = () => {
         loadings: testData.loadings?.length || 0
       });
       
-      // Save test data to localStorage
-      localStorage.setItem('supreme_mgmt_products', JSON.stringify(testData.products));
-      localStorage.setItem('supreme_mgmt_customers', JSON.stringify(testData.customers));
-      localStorage.setItem('supreme_mgmt_sales', JSON.stringify(testData.sales));
-      localStorage.setItem('supreme_mgmt_inventory_movements', JSON.stringify(testData.movements));
-      localStorage.setItem('supreme_mgmt_product_categories', JSON.stringify(testData.categories));
-      localStorage.setItem('supreme_mgmt_ledger_entries', JSON.stringify(testData.ledgerEntries));
-      localStorage.setItem('suprememanagement_bookedStock', JSON.stringify(testData.bookedStock));
-      localStorage.setItem('supreme_mgmt_loadings', JSON.stringify(testData.loadings || []));
-      
-      // Verify it was saved
-      const savedLedger = localStorage.getItem('supreme_mgmt_ledger_entries');
-      console.log('Saved ledger entries to localStorage:', savedLedger ? JSON.parse(savedLedger).length : 0);
-      
-      // Mark for sync if authenticated
-      if (isAuthenticated) {
-        globalSyncManager.markAsChanged();
-      }
+      // Save test data directly to GitHub
+      await githubDataManager.updateData('products', testData.products, true);
+      await githubDataManager.updateData('customers', testData.customers, true);
+      await githubDataManager.updateData('sales', testData.sales, true);
+      await githubDataManager.updateData('movements', testData.movements, true);
+      await githubDataManager.updateData('categories', testData.categories, true);
+      await githubDataManager.updateData('ledgerEntries', testData.ledgerEntries, true);
+      await githubDataManager.updateData('bookedStock', testData.bookedStock, true);
+      await githubDataManager.updateData('loadings', testData.loadings || [], true);
       
       showSuccess(`Generated test data: ${testData.products.length} products, ${testData.customers.length} customers, ${testData.sales.length} sales, ${testData.ledgerEntries.length} ledger entries, ${testData.bookedStock.length} bookings, ${testData.loadings?.length || 0} loadings`);
       
@@ -118,25 +96,20 @@ export const Settings = () => {
     setShowGenerateConfirm(false);
   };
 
-  const handleExportAllData = () => {
+  const handleExportAllData = async () => {
     try {
-      const allData: any = {};
-      
-      // Collect all data from localStorage
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith('supreme_mgmt_') || key.startsWith('suprememanagement_'))) {
-          const cleanKey = key.replace('supreme_mgmt_', '').replace('suprememanagement_', '');
-          const value = localStorage.getItem(key);
-          if (value) {
-            try {
-              allData[cleanKey] = JSON.parse(value);
-            } catch {
-              allData[cleanKey] = value;
-            }
-          }
-        }
-      }
+      // Get all data from GitHub
+      const allData = {
+        products: githubDataManager.getData('products'),
+        categories: githubDataManager.getData('categories'),
+        movements: githubDataManager.getData('movements'),
+        productionEntries: githubDataManager.getData('productionEntries'),
+        customers: githubDataManager.getData('customers'),
+        sales: githubDataManager.getData('sales'),
+        ledgerEntries: githubDataManager.getData('ledgerEntries'),
+        bookedStock: githubDataManager.getData('bookedStock'),
+        loadings: githubDataManager.getData('loadings')
+      };
       
       // Create and download JSON file
       const dataStr = JSON.stringify(allData, null, 2);
@@ -179,7 +152,7 @@ export const Settings = () => {
                 <p className="text-sm text-muted mb-3">
                   Export all your data to a JSON file for backup purposes
                 </p>
-                <Button variant="secondary" onClick={handleExportAllData}>
+                <Button variant="secondary" onClick={() => handleExportAllData()}>
                   <Download size={16} />
                   Export All Data
                 </Button>
@@ -206,6 +179,40 @@ export const Settings = () => {
                   <Trash2 size={16} />
                   Reset All Data
                 </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* GitHub Direct Mode Status */}
+      <GlassCard>
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Database className="text-green-400" size={24} />
+            <h2 className="text-xl font-semibold">Data Storage Mode</h2>
+            <span className="px-2 py-1 text-xs bg-green-500/20 text-green-400 rounded-full">
+              GitHub Direct
+            </span>
+          </div>
+
+          <div className="p-4 glass rounded-lg">
+            <div className="flex items-start gap-3">
+              <Shield className="text-blue-400 mt-1" size={20} />
+              <div className="flex-1">
+                <h3 className="font-medium mb-1">GitHub Direct Mode</h3>
+                <p className="text-sm text-muted mb-3">
+                  Your app now uses GitHub as the primary data store. This eliminates multi-device sync issues
+                  and ensures all your devices always have the same data.
+                </p>
+                
+                <div className="mt-3 p-2 bg-green-500/10 rounded text-xs text-green-400">
+                  ✓ GitHub Direct mode is permanently active. All data operations go directly to GitHub.
+                </div>
+                
+                <div className="mt-3 p-2 bg-blue-500/10 rounded text-xs text-blue-400">
+                  ℹ️ Requires internet connection for write operations. Data is cached for fast reads.
+                </div>
               </div>
             </div>
           </div>
@@ -253,15 +260,15 @@ export const Settings = () => {
               <div className="space-y-2 font-mono text-xs">
                 <div className="p-2 bg-black/30 rounded">
                   <span className="text-green-400">// Clear all data</span><br/>
-                  localStorage.clear();
+                  githubDataManager.clearAllData()
                 </div>
                 <div className="p-2 bg-black/30 rounded">
-                  <span className="text-green-400">// View all stored keys</span><br/>
-                  {"Object.keys(localStorage).filter(k => k.startsWith('supreme_mgmt_'))"}
+                  <span className="text-green-400">// Get all data</span><br/>
+                  githubDataManager.getAllData()
                 </div>
                 <div className="p-2 bg-black/30 rounded">
                   <span className="text-green-400">// Force sync</span><br/>
-                  globalSyncManager.forceSync()
+                  githubDataManager.forceSync()
                 </div>
               </div>
             </div>

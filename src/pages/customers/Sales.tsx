@@ -14,7 +14,7 @@ import {
   DollarSign,
   MoreVertical
 } from 'lucide-react';
-import { useSalesWithGitHub } from '../../hooks/useSalesWithGitHub';
+import { useSales } from '../../hooks/useSales';
 import { useToast } from '../../hooks/useToast';
 import { SaleTable } from '../../components/sales/SaleTable';
 import { AddSaleModal } from '../../components/sales/AddSaleModal';
@@ -47,7 +47,7 @@ export const Sales = () => {
     getProducts,
     getCustomers,
     forceSync
-  } = useSalesWithGitHub();
+  } = useSales();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
   
@@ -58,9 +58,19 @@ export const Sales = () => {
     customerId: string,
     date: Date,
     items: any[],
-    paymentStatus: 'pending' | 'partial' | 'paid'
+    _paymentStatus: 'pending' | 'partial' | 'paid'
   ) => {
-    const result = addSale(customerId, date, items, paymentStatus);
+    // Map items to the required format
+    const mappedItems = items.map(item => ({
+      productId: item.productId,
+      productName: item.productName,
+      quantity: item.quantity,
+      unit: item.unit || 'unit',
+      price: item.price || item.unitPrice || 0,
+      total: item.total || (item.quantity * (item.price || item.unitPrice || 0))
+    }));
+    
+    const result = addSale(customerId, mappedItems, date);
     if (result.success) {
       showSuccess('Sale created successfully');
       setShowAddModal(false);

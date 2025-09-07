@@ -15,6 +15,7 @@ import { Settings } from './pages/Settings';
 import GitHubAuthModal from './components/GitHubAuthModal';
 import githubStorage from './services/githubStorage';
 import { globalSyncManager } from './services/globalSyncManager';
+import { githubDataManager } from './services/githubDataManager';
 
 // Context for GitHub storage
 interface GitHubContextType {
@@ -91,9 +92,9 @@ function App() {
   useEffect(() => {
     checkAuth();
     
-    // Cleanup global sync on unmount
+    // Cleanup on unmount
     return () => {
-      globalSyncManager.destroy();
+      githubDataManager.destroy();
     };
   }, []);
 
@@ -104,8 +105,18 @@ function App() {
       const authenticated = await githubStorage.checkAuthentication();
       if (mountedRef.current) {
         setIsAuthenticated(authenticated);
-        // Initialize global sync manager
-        globalSyncManager.initialize(authenticated);
+        
+        if (authenticated) {
+          // Always initialize GitHub data manager (direct mode only)
+          const token = sessionStorage.getItem('gh_token');
+          if (token) {
+            const decryptedToken = await githubStorage.decryptToken(token);
+            if (decryptedToken) {
+              await githubDataManager.initialize(decryptedToken);
+              console.log('[App] GitHub Direct mode initialized');
+            }
+          }
+        }
         
         if (!authenticated) {
           // Show auth modal immediately without delay
@@ -114,8 +125,7 @@ function App() {
         } else {
           // Set loading to false first to show the UI
           setIsLoading(false);
-          // Then load data in the background
-          loadDataFromGitHub().catch(console.error);
+          // Data is loaded automatically by githubDataManager
         }
       }
     } catch (error) {
@@ -132,13 +142,10 @@ function App() {
     
     try {
       setSyncStatus('syncing');
-      const allData = await githubStorage.loadAllData();
+      await githubStorage.loadAllData();
       
-      // Update local storage with all data types
-      if (allData.products) localStorage.setItem('products', JSON.stringify(allData.products));
-      if (allData.categories) localStorage.setItem('product_categories', JSON.stringify(allData.categories));
-      if (allData.movements) localStorage.setItem('inventory_movements', JSON.stringify(allData.movements));
-      if (allData.productionEntries) localStorage.setItem('production_entries', JSON.stringify(allData.productionEntries));
+      // In GitHub Direct mode, data is loaded directly into githubDataManager
+      // No need to update localStorage anymore
       
       if (mountedRef.current) {
         setLastSync(new Date().toISOString());

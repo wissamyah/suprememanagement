@@ -37,7 +37,8 @@
       "Bash(sed:*)",
       "Bash(git subtree push:*)",
       "Bash(pkill:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

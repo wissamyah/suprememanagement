@@ -12,7 +12,7 @@ import {
   RefreshCw,
   MoreVertical
 } from 'lucide-react';
-import { useCustomersWithGitHub } from '../../hooks/useCustomersWithGitHub';
+import { useCustomers } from '../../hooks/useCustomers';
 import { useToast } from '../../hooks/useToast';
 import { CustomerStats } from '../../components/customers/CustomerStats';
 import { CustomerFilters } from '../../components/customers/CustomerFilters';
@@ -40,7 +40,6 @@ export const CustomerList = () => {
   
   const {
     customers,
-    customersWithLedgerBalances,
     loading,
     syncInProgress,
     pendingChanges,
@@ -50,7 +49,7 @@ export const CustomerList = () => {
     getStatistics,
     forceSync,
     refreshData
-  } = useCustomersWithGitHub();
+  } = useCustomers();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
   
@@ -60,9 +59,9 @@ export const CustomerList = () => {
     name: string,
     phone: string,
     state: string,
-    initialBalance: number
+    _initialBalance: number
   ) => {
-    const result = addCustomer(name, phone, state, initialBalance);
+    const result = addCustomer(name, phone, state);
     if (result.success) {
       showSuccess(`Customer "${name}" added successfully`);
       setShowAddModal(false);
@@ -87,8 +86,8 @@ export const CustomerList = () => {
     const result = deleteCustomer(customerId);
     
     if (result.success) {
-      if (result.warning) {
-        showError(result.warning);
+      if (result.error) {
+        showError(result.error);
       } else {
         showSuccess(`Customer "${customer?.name}" deleted`);
       }
@@ -106,13 +105,13 @@ export const CustomerList = () => {
   };
 
   const handleExportJSON = () => {
-    exportCustomersToJSON(customersWithLedgerBalances);
+    exportCustomersToJSON(customers);
     showSuccess('Customers exported to JSON');
     setShowImportExportMenu(false);
   };
 
   const handleExportCSV = () => {
-    exportCustomersToCSV(customersWithLedgerBalances);
+    exportCustomersToCSV(customers);
     showSuccess('Customers exported to CSV');
     setShowImportExportMenu(false);
   };
@@ -132,8 +131,7 @@ export const CustomerList = () => {
         const result = addCustomer(
           customer.name,
           customer.phone,
-          customer.state,
-          customer.balance
+          customer.state
         );
         
         if (result.success) {
@@ -351,7 +349,7 @@ export const CustomerList = () => {
           </div>
         ) : (
           <CustomerTable
-            customers={customersWithLedgerBalances}
+            customers={customers}
             searchTerm={searchTerm}
             stateFilter={stateFilter}
             balanceFilter={balanceFilter}

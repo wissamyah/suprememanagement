@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Package, AlertCircle, TrendingUp } from 'lucide-react';
-import { useBookedStockWithGitHub } from '../../hooks/useBookedStockWithGitHub';
+import { useBookedStock } from '../../hooks/useBookedStock';
 import type { Customer, BookedStock } from '../../types';
 
 interface CustomerBookingsModalProps {
@@ -13,7 +13,7 @@ interface CustomerBookingsModalProps {
 
 export const CustomerBookingsModal = ({ isOpen, customer, onClose }: CustomerBookingsModalProps) => {
   const [bookings, setBookings] = useState<BookedStock[]>([]);
-  const { getBookedStockByCustomer } = useBookedStockWithGitHub();
+  const { getBookedStockByCustomer } = useBookedStock();
 
   useEffect(() => {
     if (customer) {

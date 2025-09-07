@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import githubStorage from '../services/githubStorage';
+import { githubDataManager } from '../services/githubDataManager';
 
 interface GitHubAuthModalProps {
     isOpen: boolean;
@@ -24,7 +25,11 @@ const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({ isOpen, onSuccess }) 
         setError('');
 
         try {
+            // Initialize both githubStorage (for token management) and githubDataManager (for data)
             await githubStorage.initialize(token);
+            await githubDataManager.initialize(token);
+            console.log('[Auth] Initialized GitHub Direct mode');
+            
             onSuccess();
         } catch (err) {
             setError('Invalid token. Please check and try again.');

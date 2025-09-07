@@ -2,13 +2,11 @@ import type { Sale, SaleItem } from '../types';
 
 /**
  * Generate a unique order ID in the format ORD-YYYY-XXX
+ * Now accepts existing sales as parameter for GitHub Direct mode
  */
-export const generateOrderId = (): string => {
+export const generateOrderId = (existingSales: Sale[] = []): string => {
   const now = new Date();
   const year = now.getFullYear();
-  
-  // Get existing sales from localStorage to determine next number
-  const existingSales = JSON.parse(localStorage.getItem('supreme_mgmt_sales') || '[]') as Sale[];
   
   // Filter sales from current year
   const currentYearSales = existingSales.filter(sale => {

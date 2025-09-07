@@ -459,14 +459,8 @@ class GitHubStorage {
             const result = await this.saveFileContent(fullData, 'Update data');
             console.log('GitHub save successful', result?.commit?.sha);
             
-            // Keep localStorage as backup for each data type
-            if (data.products) localStorage.setItem('products', JSON.stringify(data.products));
-            if (data.categories) localStorage.setItem('product_categories', JSON.stringify(data.categories));
-            if (data.movements) localStorage.setItem('inventory_movements', JSON.stringify(data.movements));
-            if (data.productionEntries) localStorage.setItem('production_entries', JSON.stringify(data.productionEntries));
-            if (data.customers) localStorage.setItem('customers', JSON.stringify(data.customers));
-            
-            localStorage.setItem('lastSync', new Date().toISOString());
+            // No longer backing up to localStorage - GitHub is the single source of truth
+            // This prevents multi-device sync conflicts
             
             return true;
         } catch (error) {

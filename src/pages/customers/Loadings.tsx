@@ -16,7 +16,7 @@ import {
   DollarSign,
   MoreVertical,
 } from 'lucide-react';
-import { useLoadingsWithGitHub } from '../../hooks/useLoadingsWithGitHub';
+import { useLoadings } from '../../hooks/useLoadings';
 import { useToast } from '../../hooks/useToast';
 import { LoadingTable } from '../../components/loadings/LoadingTable';
 import { AddLoadingModal } from '../../components/loadings/AddLoadingModal';
@@ -41,7 +41,7 @@ export const Loadings = () => {
   const {
     loadings,
     loading,
-    syncPending,
+    syncInProgress: syncPending,
     pendingChanges,
     addLoading,
     updateLoading,
@@ -49,7 +49,7 @@ export const Loadings = () => {
     getCustomersWithBookedStock,
     getCustomerBookedProducts,
     forceSync
-  } = useLoadingsWithGitHub();
+  } = useLoadings();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
   
@@ -63,7 +63,26 @@ export const Loadings = () => {
     wayBillNumber: string | undefined,
     items: any[]
   ) => {
-    const result = addLoading(date, customerId, truckPlateNumber, wayBillNumber, items);
+    // Map items to the required format
+    const mappedItems = items.map(item => ({
+      productId: item.productId,
+      productName: item.productName,
+      quantity: item.quantity,
+      unit: item.unit || 'unit',
+      unitPrice: item.unitPrice || 0,
+      bookedStockId: item.bookedStockId || '',
+      saleId: item.saleId,
+      orderId: item.orderId
+    }));
+    
+    const result = addLoading(
+      customerId,
+      mappedItems,
+      truckPlateNumber,
+      '', // driverName
+      wayBillNumber,
+      date
+    );
     if (result.success) {
       showSuccess('Loading created successfully');
       setShowAddModal(false);
