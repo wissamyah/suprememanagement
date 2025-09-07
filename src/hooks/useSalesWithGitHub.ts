@@ -365,23 +365,45 @@ export const useSalesWithGitHub = () => {
         updatedAt: now
       };
 
-      // Create inventory movements for each item
+      // Create inventory movements - consolidate by product to avoid duplicates
       const newMovements: InventoryMovement[] = [];
+      
+      // Group items by productId and sum quantities
+      const productQuantities = new Map<string, { 
+        productName: string; 
+        totalQuantity: number;
+        itemCount: number;
+      }>();
+      
       for (const item of items) {
-        const originalProduct = products.find(p => p.id === item.productId);
-        const updatedProduct = updatedProducts.find(p => p.id === item.productId);
-        if (originalProduct && updatedProduct) {
+        const existing = productQuantities.get(item.productId);
+        if (existing) {
+          existing.totalQuantity += item.quantity;
+          existing.itemCount += 1;
+        } else {
+          productQuantities.set(item.productId, {
+            productName: item.productName,
+            totalQuantity: item.quantity,
+            itemCount: 1
+          });
+        }
+      }
+      
+      // Create one movement per product with consolidated quantity
+      for (const [productId, data] of productQuantities) {
+        const originalProduct = products.find(p => p.id === productId);
+        if (originalProduct) {
           const movement: InventoryMovement = {
             id: generateId(),
-            productId: item.productId,
-            productName: item.productName,
+            productId: productId,
+            productName: data.productName,
             movementType: 'sales',
-            quantity: -item.quantity, // Negative for sales (stock reduction)
+            quantity: -data.totalQuantity, // Negative for sales (stock reduction)
             previousQuantity: originalProduct.quantityOnHand,
             newQuantity: originalProduct.quantityOnHand, // On-hand doesn't change until loading
             reference: `Sale: ${newSale.orderId}`,
             referenceId: newSale.id,
-            notes: `Booked for ${customer.name}`,
+            notes: `Booked for ${customer.name}${data.itemCount > 1 ? ` (${data.itemCount} line items)` : ''}`,
             date: date,
             createdAt: now,
             updatedAt: now
@@ -607,28 +629,50 @@ export const useSalesWithGitHub = () => {
         // Remove old movements for this sale
         updatedMovements = updatedMovements.filter(m => m.referenceId !== id);
         
-        // Create new movements for updated items
+        // Create new movements for updated items - consolidate by product
         const now = new Date();
         const finalItems = updates.items || oldSale.items;
         
+        // Group items by productId and sum quantities
+        const productQuantities = new Map<string, { 
+          productName: string; 
+          totalQuantity: number;
+          itemCount: number;
+        }>();
+        
         for (const item of finalItems) {
-          const product = updatedProducts.find(p => p.id === item.productId);
+          const existing = productQuantities.get(item.productId);
+          if (existing) {
+            existing.totalQuantity += item.quantity;
+            existing.itemCount += 1;
+          } else {
+            productQuantities.set(item.productId, {
+              productName: item.productName,
+              totalQuantity: item.quantity,
+              itemCount: 1
+            });
+          }
+        }
+        
+        // Create one movement per product with consolidated quantity
+        for (const [productId, data] of productQuantities) {
+          const product = updatedProducts.find(p => p.id === productId);
           if (product) {
             // Find the original quantity for this product before this update
-            const originalProduct = products.find(p => p.id === item.productId);
+            const originalProduct = products.find(p => p.id === productId);
             const previousQty = originalProduct ? originalProduct.quantityOnHand : product.quantityOnHand;
             
             const movement: InventoryMovement = {
               id: generateId(),
-              productId: item.productId,
-              productName: item.productName,
+              productId: productId,
+              productName: data.productName,
               movementType: 'sales',
-              quantity: -item.quantity, // Negative for sales
+              quantity: -data.totalQuantity, // Negative for sales
               previousQuantity: previousQty,
               newQuantity: previousQty, // On-hand doesn't change until loading
               reference: `Sale: ${oldSale.orderId}${updates.items ? ' (Updated)' : ''}`,
               referenceId: id,
-              notes: `Booked for ${oldSale.customerName}`,
+              notes: `Booked for ${oldSale.customerName}${data.itemCount > 1 ? ` (${data.itemCount} line items)` : ''}`,
               date: oldSale.date,
               createdAt: now,
               updatedAt: now
