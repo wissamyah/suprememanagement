@@ -3,7 +3,7 @@ import { GitHubContext } from '../App';
 import { Settings, LogOut, RefreshCw, Check, AlertCircle, Github } from 'lucide-react';
 
 export const SyncStatus: React.FC = () => {
-    const { isAuthenticated, syncStatus, lastSync, syncData, logout, pendingChanges, syncError } = useContext(GitHubContext);
+    const { isAuthenticated, syncStatus, lastSync, syncData, logout, pendingChanges, pendingDetails, syncError } = useContext(GitHubContext);
     const [showMenu, setShowMenu] = useState(false);
     const [showMobileDropdown, setShowMobileDropdown] = useState(false);
 
@@ -18,6 +18,25 @@ export const SyncStatus: React.FC = () => {
         if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
         if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
         return date.toLocaleDateString();
+    };
+
+    const getPendingDetailsTooltip = () => {
+        if (!pendingDetails || Object.keys(pendingDetails).length === 0) {
+            return 'Changes pending sync';
+        }
+        
+        const items = [];
+        if (pendingDetails.products) items.push('Products');
+        if (pendingDetails.categories) items.push('Categories');
+        if (pendingDetails.movements) items.push('Inventory movements');
+        if (pendingDetails.productionEntries) items.push('Production entries');
+        if (pendingDetails.customers) items.push('Customers');
+        if (pendingDetails.sales) items.push('Sales');
+        if (pendingDetails.ledgerEntries) items.push('Ledger entries');
+        if (pendingDetails.bookedStock) items.push('Booked stock');
+        if (pendingDetails.loadings) items.push('Loadings');
+        
+        return `Pending: ${items.join(', ')}`;
     };
 
     const getSyncIcon = () => {
@@ -80,7 +99,22 @@ export const SyncStatus: React.FC = () => {
                                     <p className="text-xs text-red-400 mt-1">{syncError}</p>
                                 )}
                                 {pendingChanges !== undefined && pendingChanges !== null && Number(pendingChanges) > 0 && (
-                                    <p className="text-xs text-yellow-400 mt-1">{pendingChanges} pending changes</p>
+                                    <div className="mt-1">
+                                        <p className="text-xs text-yellow-400">{pendingChanges} pending changes</p>
+                                        {pendingDetails && Object.keys(pendingDetails).length > 0 && (
+                                            <div className="text-xs text-gray-400 mt-1">
+                                                {pendingDetails.products && <div>• Products</div>}
+                                                {pendingDetails.categories && <div>• Categories</div>}
+                                                {pendingDetails.movements && <div>• Inventory</div>}
+                                                {pendingDetails.productionEntries && <div>• Production</div>}
+                                                {pendingDetails.customers && <div>• Customers</div>}
+                                                {pendingDetails.sales && <div>• Sales</div>}
+                                                {pendingDetails.ledgerEntries && <div>• Ledger</div>}
+                                                {pendingDetails.bookedStock && <div>• Booked stock</div>}
+                                                {pendingDetails.loadings && <div>• Loadings</div>}
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                             
@@ -124,8 +158,25 @@ export const SyncStatus: React.FC = () => {
                             {syncStatus === 'idle' && `Last sync: ${formatLastSync(lastSync)}`}
                         </span>
                         {pendingChanges !== undefined && pendingChanges !== null && Number(pendingChanges) > 0 ? (
-                            <span className="text-xs text-yellow-400">
+                            <span 
+                                className="text-xs text-yellow-400 cursor-help relative group"
+                                title={getPendingDetailsTooltip()}
+                            >
                                 ({pendingChanges} pending)
+                                {pendingDetails && Object.keys(pendingDetails).length > 0 && (
+                                    <div className="absolute left-0 top-full mt-1 w-48 p-2 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                        <div className="font-semibold mb-1">Pending changes:</div>
+                                        {pendingDetails.products && <div>• Products</div>}
+                                        {pendingDetails.categories && <div>• Categories</div>}
+                                        {pendingDetails.movements && <div>• Inventory movements</div>}
+                                        {pendingDetails.productionEntries && <div>• Production entries</div>}
+                                        {pendingDetails.customers && <div>• Customers</div>}
+                                        {pendingDetails.sales && <div>• Sales</div>}
+                                        {pendingDetails.ledgerEntries && <div>• Ledger entries</div>}
+                                        {pendingDetails.bookedStock && <div>• Booked stock</div>}
+                                        {pendingDetails.loadings && <div>• Loadings</div>}
+                                    </div>
+                                )}
                             </span>
                         ) : null}
                     </div>

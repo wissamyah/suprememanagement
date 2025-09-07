@@ -182,7 +182,7 @@ export const exportSalesToJSON = (sales: Sale[]) => {
  * Export sales to CSV
  */
 export const exportSalesToCSV = (sales: Sale[]) => {
-  const headers = ['Order ID', 'Date', 'Customer', 'Total Items', 'Total Amount', 'Status', 'Payment Status'];
+  const headers = ['Order ID', 'Date', 'Customer', 'Total Items', 'Total Amount', 'Payment Status'];
   
   const rows = sales.map(sale => [
     sale.orderId,
@@ -190,7 +190,6 @@ export const exportSalesToCSV = (sales: Sale[]) => {
     sale.customerName,
     sale.items.reduce((sum, item) => sum + item.quantity, 0),
     formatCurrency(sale.totalAmount),
-    sale.status,
     sale.paymentStatus
   ]);
   

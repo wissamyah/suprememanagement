@@ -236,37 +236,6 @@ export const useLoadingsWithGitHub = () => {
     }
   };
 
-  // Check if a sale is fully loaded and update its status
-  const checkAndUpdateSaleStatus = useCallback((saleId: string): Sale[] => {
-    const sale = sales.find(s => s.id === saleId);
-    if (!sale || sale.status === 'completed') {
-      return sales; // No update needed
-    }
-    
-    // Get all booked stock for this sale
-    const saleBookings = bookedStock.filter(b => b.saleId === saleId);
-    
-    // Check if all bookings are fully loaded
-    const allFullyLoaded = saleBookings.length > 0 && 
-      saleBookings.every(b => b.status === 'fully-loaded' && b.quantityLoaded >= b.quantity);
-    
-    if (allFullyLoaded) {
-      // Update sale status to completed
-      const updatedSales = sales.map(s => {
-        if (s.id === saleId) {
-          return {
-            ...s,
-            status: 'completed' as const,
-            updatedAt: new Date()
-          };
-        }
-        return s;
-      });
-      return updatedSales;
-    }
-    
-    return sales;
-  }, [sales, bookedStock]);
   
   // Generate loading ID
   const generateLoadingId = (): string => {
@@ -403,18 +372,14 @@ export const useLoadingsWithGitHub = () => {
         }
       }
       
-      let updatedSales = sales;
-      for (const saleId of salesToCheck) {
-        updatedSales = checkAndUpdateSaleStatus(saleId);
-      }
-      
-      saveAllData(updatedLoadings, updatedProducts, updatedMovements, updatedSales !== sales ? updatedSales : undefined);
+      // No need to update sale status - it's managed through bookings and loadings
+      saveAllData(updatedLoadings, updatedProducts, updatedMovements);
       return { success: true, data: newLoading };
     } catch (error: any) {
       console.error('Error adding loading:', error);
       return { success: false, error: error.message };
     }
-  }, [loadings, customers, products, movements, bookedStock, updateLoadingStatus, checkAndUpdateSaleStatus, sales]);
+  }, [loadings, customers, products, movements, bookedStock, updateLoadingStatus]);
 
   // Update loading
   const updateLoading = useCallback((
@@ -535,18 +500,14 @@ export const useLoadingsWithGitHub = () => {
         }
       }
       
-      let updatedSales = sales;
-      for (const saleId of salesToCheck) {
-        updatedSales = checkAndUpdateSaleStatus(saleId);
-      }
-      
-      saveAllData(updatedLoadings, updatedProducts, updatedMovements, updatedSales !== sales ? updatedSales : undefined);
+      // No need to update sale status - it's managed through bookings and loadings
+      saveAllData(updatedLoadings, updatedProducts, updatedMovements);
       return { success: true };
     } catch (error: any) {
       console.error('Error updating loading:', error);
       return { success: false, error: error.message };
     }
-  }, [loadings, products, movements, bookedStock, updateLoadingStatus, checkAndUpdateSaleStatus, sales]);
+  }, [loadings, products, movements, bookedStock, updateLoadingStatus]);
 
   // Delete loading
   const deleteLoading = useCallback((loadingId: string) => {

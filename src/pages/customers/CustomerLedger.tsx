@@ -6,6 +6,8 @@ import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { ToastContainer } from '../../components/ui/Toast';
 import { useToast } from '../../hooks/useToast';
 import { useLedgerWithGitHub } from '../../hooks/useLedgerWithGitHub';
+import { useSalesWithGitHub } from '../../hooks/useSalesWithGitHub';
+import { Tooltip, ProductTooltip } from '../../components/ui/Tooltip';
 import { 
   Search, 
   Download, 
@@ -18,7 +20,9 @@ import {
   RefreshCw,
   ArrowLeft,
   FileText,
-  MoreVertical
+  MoreVertical,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import type { LedgerEntry } from '../../types';
 import { PaymentModal } from '../../components/ledger/PaymentModal';
@@ -38,6 +42,11 @@ export const CustomerLedger = () => {
   const [deletingEntry, setDeletingEntry] = useState<LedgerEntry | null>(null);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15; // 15 items per page for ledger
+  
+  // Get sales data for tooltip
+  const { sales } = useSalesWithGitHub();
   
   const {
     ledgerEntries,
@@ -114,9 +123,25 @@ export const CustomerLedger = () => {
     return filtered;
   }, [ledgerData, searchTerm, transactionFilter, dateFrom, dateTo]);
   
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
+  const paginatedEntries = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredEntries.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredEntries, currentPage]);
+  
+  // Reset to page 1 when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchTerm, transactionFilter, dateFrom, dateTo, customerId]);
+  
   // Calculate totals
   const totals = useMemo(() => {
-    // Calculate totals from filtered entries for display
+    // Calculate totals from paginated entries for display (visible page only)
+    const pageTotalDebit = paginatedEntries.reduce((sum, entry) => sum + entry.debit, 0);
+    const pageTotalCredit = paginatedEntries.reduce((sum, entry) => sum + entry.credit, 0);
+    
+    // Calculate totals from ALL filtered entries for overall totals
     const totalDebit = filteredEntries.reduce((sum, entry) => sum + entry.debit, 0);
     const totalCredit = filteredEntries.reduce((sum, entry) => sum + entry.credit, 0);
     
@@ -146,8 +171,8 @@ export const CustomerLedger = () => {
       balance = totalCredit - totalDebit;
     }
     
-    return { totalDebit, totalCredit, balance };
-  }, [filteredEntries, customerId, ledgerEntries, currentCustomer]);
+    return { totalDebit, totalCredit, balance, pageTotalDebit, pageTotalCredit };
+  }, [filteredEntries, paginatedEntries, customerId, ledgerEntries, currentCustomer]);
   
   const handleAddPayment = (
     amount: number,
@@ -567,7 +592,7 @@ export const CustomerLedger = () => {
           <>
             {/* Mobile Cards View */}
             <div className="sm:hidden space-y-3">
-              {filteredEntries.map((entry) => (
+              {paginatedEntries.map((entry) => (
                 <div 
                   key={entry.id}
                   className={`glass rounded-lg p-4 ${
@@ -600,7 +625,45 @@ export const CustomerLedger = () => {
                     </span>
                   </div>
                   
-                  <p className="text-sm mb-3">{entry.description}</p>
+                  {entry.transactionType === 'sale' ? (
+                    (() => {
+                      // Extract order ID from description (formats: "Sale Invoice #ORD-XXXX" or "Sale - ORD-XXXX")
+                      const orderMatch = entry.description.match(/#?(ORD-\d+-\d+)/i);
+                      const orderId = orderMatch ? orderMatch[1] : null;
+                      const sale = orderId ? sales.find(s => s.orderId === orderId) : null;
+                      
+                      if (sale && sale.items && sale.items.length > 0 && orderId) {
+                        // Split the description to separately style the order number
+                        const parts = entry.description.split(orderId);
+                        return (
+                          <p className="text-sm mb-3">
+                            {parts[0]}
+                            <Tooltip
+                              content={
+                                <ProductTooltip
+                                  items={sale.items.map(item => ({
+                                    productName: item.productName,
+                                    quantity: item.quantity,
+                                    price: item.price,
+                                    total: item.total
+                                  }))}
+                                />
+                              }
+                              placement="top"
+                            >
+                              <span className="cursor-help underline decoration-dotted decoration-gray-400">
+                                {orderId}
+                              </span>
+                            </Tooltip>
+                            {parts[1]}
+                          </p>
+                        );
+                      }
+                      return <p className="text-sm mb-3">{entry.description}</p>;
+                    })()
+                  ) : (
+                    <p className="text-sm mb-3">{entry.description}</p>
+                  )}
                   
                   <div className="grid grid-cols-3 gap-2 text-sm mb-3">
                     {entry.debit > 0 && (
@@ -689,7 +752,7 @@ export const CustomerLedger = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEntries.map((entry) => (
+                  {paginatedEntries.map((entry) => (
                     <tr 
                       key={entry.id} 
                       className={`border-b border-gray-800/30 hover:bg-glass transition-colors ${
@@ -708,7 +771,45 @@ export const CustomerLedger = () => {
                       )}
                       <td className="py-3 px-4">
                         <div>
-                          <p>{entry.description}</p>
+                          {entry.transactionType === 'sale' ? (
+                            (() => {
+                              // Extract order ID from description (formats: "Sale Invoice #ORD-XXXX" or "Sale - ORD-XXXX")
+                              const orderMatch = entry.description.match(/#?(ORD-\d+-\d+)/i);
+                              const orderId = orderMatch ? orderMatch[1] : null;
+                              const sale = orderId ? sales.find(s => s.orderId === orderId) : null;
+                              
+                              if (sale && sale.items && sale.items.length > 0 && orderId) {
+                                // Split the description to separately style the order number
+                                const parts = entry.description.split(orderId);
+                                return (
+                                  <p>
+                                    {parts[0]}
+                                    <Tooltip
+                                      content={
+                                        <ProductTooltip
+                                          items={sale.items.map(item => ({
+                                            productName: item.productName,
+                                            quantity: item.quantity,
+                                            price: item.price,
+                                            total: item.total
+                                          }))}
+                                        />
+                                      }
+                                      placement="top"
+                                    >
+                                      <span className="cursor-help underline decoration-dotted decoration-gray-400">
+                                        {orderId}
+                                      </span>
+                                    </Tooltip>
+                                    {parts[1]}
+                                  </p>
+                                );
+                              }
+                              return <p>{entry.description}</p>;
+                            })()
+                          ) : (
+                            <p>{entry.description}</p>
+                          )}
                           {entry.notes && (
                             <p className="text-xs text-muted">{entry.notes}</p>
                           )}
@@ -793,8 +894,19 @@ export const CustomerLedger = () => {
                   ))}
                 </tbody>
                 <tfoot>
+                  <tr className="border-t border-gray-800/30">
+                    <td colSpan={customerId ? 3 : 4} className="py-3 px-4 text-sm text-muted">Page Total</td>
+                    <td className="py-3 px-4 text-right text-sm text-red-400">
+                      {formatCurrency(totals.pageTotalDebit)}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm text-green-400">
+                      {formatCurrency(totals.pageTotalCredit)}
+                    </td>
+                    <td></td>
+                    {customerId && <td></td>}
+                  </tr>
                   <tr className="border-t-2 border-gray-800/50 font-bold">
-                    <td colSpan={customerId ? 3 : 4} className="py-3 px-4">Total</td>
+                    <td colSpan={customerId ? 3 : 4} className="py-3 px-4">Overall Total</td>
                     <td className="py-3 px-4 text-right text-red-400">
                       {formatCurrency(totals.totalDebit)}
                     </td>
@@ -815,6 +927,105 @@ export const CustomerLedger = () => {
                 </tfoot>
               </table>
             </div>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
+                <div className="text-sm text-muted">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
+                  {Math.min(currentPage * itemsPerPage, filteredEntries.length)} of{' '}
+                  {filteredEntries.length} entries
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft size={16} />
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {/* Show page numbers */}
+                    {(() => {
+                      const pages = [];
+                      const showPages = 5;
+                      let start = Math.max(1, currentPage - Math.floor(showPages / 2));
+                      let end = Math.min(totalPages, start + showPages - 1);
+                      
+                      if (end - start < showPages - 1) {
+                        start = Math.max(1, end - showPages + 1);
+                      }
+                      
+                      if (start > 1) {
+                        pages.push(
+                          <button
+                            key={1}
+                            onClick={() => setCurrentPage(1)}
+                            className="px-3 py-1 rounded-lg text-sm hover:bg-glass"
+                          >
+                            1
+                          </button>
+                        );
+                        if (start > 2) {
+                          pages.push(
+                            <span key="start-ellipsis" className="px-2 text-muted">...</span>
+                          );
+                        }
+                      }
+                      
+                      for (let i = start; i <= end; i++) {
+                        pages.push(
+                          <button
+                            key={i}
+                            onClick={() => setCurrentPage(i)}
+                            className={`px-3 py-1 rounded-lg text-sm ${
+                              i === currentPage 
+                                ? 'bg-white/20 text-white font-medium' 
+                                : 'hover:bg-glass'
+                            }`}
+                          >
+                            {i}
+                          </button>
+                        );
+                      }
+                      
+                      if (end < totalPages) {
+                        if (end < totalPages - 1) {
+                          pages.push(
+                            <span key="end-ellipsis" className="px-2 text-muted">...</span>
+                          );
+                        }
+                        pages.push(
+                          <button
+                            key={totalPages}
+                            onClick={() => setCurrentPage(totalPages)}
+                            className="px-3 py-1 rounded-lg text-sm hover:bg-glass"
+                          >
+                            {totalPages}
+                          </button>
+                        );
+                      }
+                      
+                      return pages;
+                    })()}
+                  </div>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight size={16} />
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </GlassCard>

@@ -8,6 +8,17 @@ interface SyncState {
   lastSync: Date | null;
   error: string | null;
   pendingChanges: number;
+  pendingDetails?: {
+    products?: boolean;
+    categories?: boolean;
+    movements?: boolean;
+    productionEntries?: boolean;
+    customers?: boolean;
+    sales?: boolean;
+    ledgerEntries?: boolean;
+    bookedStock?: boolean;
+    loadings?: boolean;
+  };
 }
 
 type SyncListener = (state: SyncState) => void;
@@ -22,9 +33,11 @@ class GlobalSyncManager {
     lastSync: null,
     error: null,
     pendingChanges: 0,
+    pendingDetails: {},
   };
   private isAuthenticated = false;
   private lastDataHash = '';
+  private lastDataObject: any = null;
 
   // Initialize the sync manager
   initialize(isAuthenticated: boolean) {
@@ -40,6 +53,7 @@ class GlobalSyncManager {
       // Load initial hash to establish baseline
       const currentData = this.getAllData();
       this.lastDataHash = JSON.stringify(currentData);
+      this.lastDataObject = currentData;
       
       // Start with no pending changes
       this.updateState({ isPending: false, pendingChanges: 0 });
@@ -67,11 +81,12 @@ class GlobalSyncManager {
     this.updateState({ 
       isPending: false, 
       pendingChanges: 0,
+      pendingDetails: {},
       error: null 
     });
     
     // Reset the data hash to reflect empty state
-    this.lastDataHash = JSON.stringify({
+    const emptyData = {
       products: [],
       categories: [],
       movements: [],
@@ -81,7 +96,9 @@ class GlobalSyncManager {
       ledgerEntries: [],
       bookedStock: [],
       loadings: []
-    });
+    };
+    this.lastDataHash = JSON.stringify(emptyData);
+    this.lastDataObject = emptyData;
   }
 
   // Handle storage changes from any component
@@ -120,11 +137,54 @@ class GlobalSyncManager {
     const currentHash = JSON.stringify(currentData);
     
     if (currentHash !== this.lastDataHash) {
-      this.updateState({ isPending: true, pendingChanges: 1 }); // Just indicate there are changes
+      const lastData = this.lastDataObject || currentData;
+      const pendingDetails = this.detectChangedDataTypes(lastData, currentData);
+      const changeCount = Object.values(pendingDetails).filter(v => v).length;
+      
+      this.updateState({ 
+        isPending: true, 
+        pendingChanges: changeCount,
+        pendingDetails 
+      });
       this.scheduleSyncDebounced();
     } else {
-      this.updateState({ isPending: false, pendingChanges: 0 });
+      this.updateState({ isPending: false, pendingChanges: 0, pendingDetails: {} });
     }
+  }
+
+  // Detect which data types have changes
+  private detectChangedDataTypes(oldData: any, newData: any) {
+    const details: any = {};
+    
+    if (JSON.stringify(oldData.products) !== JSON.stringify(newData.products)) {
+      details.products = true;
+    }
+    if (JSON.stringify(oldData.categories) !== JSON.stringify(newData.categories)) {
+      details.categories = true;
+    }
+    if (JSON.stringify(oldData.movements) !== JSON.stringify(newData.movements)) {
+      details.movements = true;
+    }
+    if (JSON.stringify(oldData.productionEntries) !== JSON.stringify(newData.productionEntries)) {
+      details.productionEntries = true;
+    }
+    if (JSON.stringify(oldData.customers) !== JSON.stringify(newData.customers)) {
+      details.customers = true;
+    }
+    if (JSON.stringify(oldData.sales) !== JSON.stringify(newData.sales)) {
+      details.sales = true;
+    }
+    if (JSON.stringify(oldData.ledgerEntries) !== JSON.stringify(newData.ledgerEntries)) {
+      details.ledgerEntries = true;
+    }
+    if (JSON.stringify(oldData.bookedStock) !== JSON.stringify(newData.bookedStock)) {
+      details.bookedStock = true;
+    }
+    if (JSON.stringify(oldData.loadings) !== JSON.stringify(newData.loadings)) {
+      details.loadings = true;
+    }
+    
+    return details;
   }
 
   // Get all data from localStorage
@@ -158,8 +218,17 @@ class GlobalSyncManager {
       clearTimeout(this.syncTimer);
     }
 
-    // Update state to show pending
-    this.updateState({ isPending: true });
+    // Update state to show pending and check what changed
+    const currentData = this.getAllData();
+    const lastData = this.lastDataObject || currentData;
+    const pendingDetails = this.detectChangedDataTypes(lastData, currentData);
+    const changeCount = Object.values(pendingDetails).filter(v => v).length;
+    
+    this.updateState({ 
+      isPending: true,
+      pendingChanges: changeCount,
+      pendingDetails
+    });
 
     // Schedule new sync
     this.syncTimer = setTimeout(() => {
@@ -188,18 +257,20 @@ class GlobalSyncManager {
         await githubStorage.saveAllData(data);
         
         this.lastDataHash = dataHash;
+        this.lastDataObject = data;
         this.updateState({
           isPending: false,
           isInProgress: false,
           lastSync: new Date(),
           error: null,
           pendingChanges: 0,
+          pendingDetails: {},
         });
         
         console.log('[GlobalSync] Sync completed successfully');
       } else {
         console.log('[GlobalSync] No changes to sync');
-        this.updateState({ isPending: false, isInProgress: false });
+        this.updateState({ isPending: false, isInProgress: false, pendingDetails: {} });
       }
     } catch (error: any) {
       console.error('[GlobalSync] Sync failed:', error);
@@ -267,9 +338,16 @@ class GlobalSyncManager {
 
   // Mark data as changed (call this when data changes)
   markAsChanged(immediate: boolean = false) {
+    // Check what actually changed
+    const currentData = this.getAllData();
+    const lastData = this.lastDataObject || currentData;
+    const pendingDetails = this.detectChangedDataTypes(lastData, currentData);
+    const changeCount = Object.values(pendingDetails).filter(v => v).length;
+    
     this.updateState({ 
       isPending: true, 
-      pendingChanges: 1  // Just indicate there are pending changes
+      pendingChanges: changeCount,
+      pendingDetails
     });
     
     if (immediate) {
@@ -300,6 +378,7 @@ class GlobalSyncManager {
         isInProgress: false,
         error: null,
         pendingChanges: 0,
+        pendingDetails: {},
       });
     }
   }

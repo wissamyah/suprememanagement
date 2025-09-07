@@ -23,6 +23,7 @@ interface GitHubContextType {
   syncStatus: 'idle' | 'syncing' | 'success' | 'error';
   lastSync: string | null;
   pendingChanges?: number;
+  pendingDetails?: any;
   syncError?: string | null;
   syncInProgress?: boolean;
   syncData: () => Promise<void>;
@@ -45,6 +46,7 @@ function App() {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [pendingChanges, setPendingChanges] = useState<number>(0);
+  const [pendingDetails, setPendingDetails] = useState<any>({});
   const [syncError, setSyncError] = useState<string | null>(null);
   const [syncInProgress, setSyncInProgress] = useState(false);
   const mountedRef = useRef(true);
@@ -57,6 +59,7 @@ function App() {
     const unsubscribe = globalSyncManager.subscribe((syncState) => {
       if (mountedRef.current) {
         setPendingChanges(syncState.pendingChanges);
+        setPendingDetails(syncState.pendingDetails || {});
         setSyncError(syncState.error);
         setSyncInProgress(syncState.isInProgress);
         
@@ -195,6 +198,7 @@ function App() {
       setSyncStatus('idle');
       setSyncError(null);
       setPendingChanges(0);
+      setPendingDetails({});
       // Immediately show the auth modal after logout
       setShowAuthModal(true);
     }
@@ -206,6 +210,7 @@ function App() {
     syncStatus,
     lastSync,
     pendingChanges,
+    pendingDetails,
     syncError,
     syncInProgress,
     syncData,

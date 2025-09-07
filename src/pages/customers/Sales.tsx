@@ -58,10 +58,9 @@ export const Sales = () => {
     customerId: string,
     date: Date,
     items: any[],
-    status: 'pending' | 'processing' | 'completed',
     paymentStatus: 'pending' | 'partial' | 'paid'
   ) => {
-    const result = addSale(customerId, date, items, status, paymentStatus);
+    const result = addSale(customerId, date, items, paymentStatus);
     if (result.success) {
       showSuccess('Sale created successfully');
       setShowAddModal(false);

@@ -28,7 +28,6 @@ interface AddSaleModalProps {
     customerId: string,
     date: Date,
     items: SaleItem[],
-    status: 'pending' | 'processing' | 'completed',
     paymentStatus: 'pending' | 'partial' | 'paid'
   ) => { success: boolean; errors?: string[] };
   products: Product[];
@@ -45,7 +44,6 @@ export const AddSaleModal = ({
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [customerId, setCustomerId] = useState('');
   const [items, setItems] = useState<SaleItem[]>([]);
-  // Status is always 'pending' for new sales - will auto-update to 'completed' when fully delivered
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'partial' | 'paid'>('pending');
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -144,7 +142,6 @@ export const AddSaleModal = ({
       customerId,
       new Date(date),
       items,
-      'pending', // Always create as pending
       paymentStatus
     );
     
@@ -161,7 +158,6 @@ export const AddSaleModal = ({
     setDate(new Date().toISOString().split('T')[0]);
     setCustomerId('');
     setItems([]);
-    // Status is always pending for new sales
     setPaymentStatus('pending');
     setErrors([]);
     onClose();

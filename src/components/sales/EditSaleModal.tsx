@@ -143,7 +143,6 @@ export const EditSaleModal = ({
     const result = onUpdate(sale.id, {
       date: new Date(date),
       items,
-      status: sale?.status || 'pending', // Keep existing status
       paymentStatus,
       totalAmount: calculateGrandTotal()
     });

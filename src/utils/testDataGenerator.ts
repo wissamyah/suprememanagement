@@ -181,12 +181,6 @@ export function generateTestData() {
       });
     }
     
-    // Generate mostly pending/processing sales to create booked stock
-    // Only make 20% of sales completed (already delivered)
-    const saleStatus = Math.random() < 0.8 
-      ? randomFromArray(['pending', 'processing'] as const)
-      : 'completed' as const;
-    
     const paymentStatuses: Array<'pending' | 'partial' | 'paid'> = ['pending', 'partial', 'paid'];
     
     sales.push({
@@ -197,7 +191,6 @@ export function generateTestData() {
       date: saleDate,
       items,
       totalAmount,
-      status: saleStatus,
       paymentStatus: randomFromArray(paymentStatuses),
       createdAt: saleDate,
       updatedAt: saleDate
@@ -257,9 +250,8 @@ export function generateTestData() {
   const bookedStock: BookedStock[] = [];
   
   sales.forEach((sale) => {
-    // Create booked stock for pending and processing sales
-    if (sale.status === 'pending' || sale.status === 'processing') {
-      sale.items.forEach((item) => {
+    // Create booked stock for all sales
+    sale.items.forEach((item) => {
         const bookingStatus: BookedStock['status'][] = ['pending', 'confirmed', 'partial-loaded'];
         const status = randomFromArray(bookingStatus);
         const quantityLoaded = status === 'partial-loaded' 
@@ -283,8 +275,7 @@ export function generateTestData() {
           createdAt: sale.createdAt,
           updatedAt: sale.updatedAt
         });
-      });
-    }
+    });
   });
   
   // Generate ledger entries for sales

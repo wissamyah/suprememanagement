@@ -178,7 +178,6 @@ export const CustomerTable = ({
                     </button>
                     <div className="flex-1">
                       <p className="font-medium text-base">{customer.name}</p>
-                      <p className="text-xs text-muted mt-1">ID: {customer.id.slice(0, 8)}</p>
                     </div>
                   </div>
                   <span className={`font-bold text-lg ${getBalanceColor(customer.balance)}`}>
@@ -318,9 +317,6 @@ export const CustomerTable = ({
                       </div>
                       <div>
                         <p className="font-medium">{customer.name}</p>
-                        <p className="text-xs text-muted">
-                          ID: {customer.id.slice(0, 8)}
-                        </p>
                       </div>
                     </div>
                   </td>

@@ -79,19 +79,6 @@ export const SaleTable = ({
     setDeletingSaleId(null);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-500/20 text-green-400';
-      case 'processing':
-        return 'bg-yellow-500/20 text-yellow-400';
-      case 'pending':
-        return 'bg-gray-500/20 text-gray-400';
-      default:
-        return 'bg-gray-500/20 text-gray-400';
-    }
-  };
-
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
       case 'paid':
@@ -155,7 +142,7 @@ export const SaleTable = ({
                   </div>
                 </div>
 
-                {/* Items and Status */}
+                {/* Items and Payment Status */}
                 <div className="flex items-center justify-between mb-3">
                   <Tooltip
                     content={
@@ -175,14 +162,9 @@ export const SaleTable = ({
                     </span>
                   </Tooltip>
                   
-                  <div className="flex gap-2">
-                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(sale.status)}`}>
-                      {sale.status}
-                    </span>
-                    <span className={`px-2 py-1 text-xs rounded-full ${getPaymentStatusColor(sale.paymentStatus)}`}>
-                      {sale.paymentStatus}
-                    </span>
-                  </div>
+                  <span className={`px-2 py-1 text-xs rounded-full ${getPaymentStatusColor(sale.paymentStatus)}`}>
+                    {sale.paymentStatus}
+                  </span>
                 </div>
 
                 {/* Actions */}
@@ -236,8 +218,7 @@ export const SaleTable = ({
               <th className="text-left py-3 px-4">Date</th>
               <th className="text-left py-3 px-4">Items</th>
               <th className="text-left py-3 px-4">Amount</th>
-              <th className="text-left py-3 px-4">Status</th>
-              <th className="text-left py-3 px-4">Payment</th>
+              <th className="text-left py-3 px-4">Payment Status</th>
               <th className="text-left py-3 px-4">Actions</th>
             </tr>
           </thead>
@@ -276,11 +257,6 @@ export const SaleTable = ({
                   </td>
                   <td className="py-3 px-4 font-semibold">
                     {formatCurrency(sale.totalAmount)}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(sale.status)}`}>
-                      {sale.status}
-                    </span>
                   </td>
                   <td className="py-3 px-4">
                     <span className={`px-2 py-1 text-xs rounded-full ${getPaymentStatusColor(sale.paymentStatus)}`}>
