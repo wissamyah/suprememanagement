@@ -70,6 +70,7 @@ const menuItems: MenuItem[] = [
 export const Sidebar = () => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [justExpandedItem, setJustExpandedItem] = useState<string | null>(null);
   const location = useLocation();
 
   // Close mobile menu on route change
@@ -90,12 +91,26 @@ export const Sidebar = () => {
     };
   }, [isMobileMenuOpen]);
 
+  // Clear animation trigger after animation completes
+  useEffect(() => {
+    if (justExpandedItem) {
+      const timer = setTimeout(() => {
+        setJustExpandedItem(null);
+      }, 500); // Clear after animation duration
+      return () => clearTimeout(timer);
+    }
+  }, [justExpandedItem]);
+
   const toggleExpanded = (title: string) => {
-    setExpandedItems(prev =>
-      prev.includes(title)
+    setExpandedItems(prev => {
+      const isExpanding = !prev.includes(title);
+      if (isExpanding) {
+        setJustExpandedItem(title);
+      }
+      return prev.includes(title)
         ? prev.filter(item => item !== title)
-        : [...prev, title]
-    );
+        : [...prev, title];
+    });
   };
 
   const SidebarContent = () => (
@@ -138,147 +153,39 @@ export const Sidebar = () => {
                     <ChevronRight size={18} />
                   )}
                 </div>
-                {expandedItems.includes(item.title) && item.subItems && (
-                  <div className="ml-4 mt-2 space-y-1">
-                    {item.subItems.map((subItem) => (
-                      <NavLink
-                        key={subItem.path}
-                        to={subItem.path}
-                        end
-                        className={({ isActive }) =>
-                          `sidebar-item text-sm ${isActive ? 'sidebar-item-active' : 'glass-hover'}`
-                        }
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        {subItem.icon}
-                        <span>{subItem.title}</span>
-                      </NavLink>
-                    ))}
-                  </div>
-                )}
+                <div className={`overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.4,0.0,0.2,1)] ${
+                  expandedItems.includes(item.title) ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                }`}>
+                  {item.subItems && (
+                    <div className="ml-4 mt-2 space-y-1 pb-2">
+                      {item.subItems.map((subItem, index) => (
+                        <NavLink
+                          key={subItem.path}
+                          to={subItem.path}
+                          end
+                          className={({ isActive }) =>
+                            `sidebar-item text-sm transition-all duration-300 ${isActive ? 'sidebar-item-active' : 'glass-hover'}`
+                          }
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          style={{
+                            animation: justExpandedItem === item.title
+                              ? `slideInFromLeft 0.3s ease-out ${index * 0.05}s both`
+                              : 'none'
+                          }}
+                        >
+                          {subItem.icon}
+                          <span>{subItem.title}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
         ))}
       </nav>
     </>
-  );
-
-  const MobileMenu = () => (
-    <div className={`lg:hidden fixed inset-0 z-50 pointer-events-none`}>
-      {/* Backdrop */}
-      <div 
-        className={`absolute inset-0 bg-black transition-all duration-500 ease-out ${
-          isMobileMenuOpen 
-            ? 'bg-opacity-80 backdrop-blur-sm pointer-events-auto' 
-            : 'bg-opacity-0 pointer-events-none'
-        }`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      />
-      
-      {/* Menu Content - Sliding from left */}
-      <div className={`absolute inset-y-0 left-0 w-full max-w-sm flex flex-col bg-gradient-to-br from-gray-900/95 via-gray-900/98 to-black/95 backdrop-blur-2xl shadow-2xl transform transition-transform duration-300 ease-[cubic-bezier(0.4,0.0,0.2,1)] pointer-events-auto ${
-        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        {/* Header */}
-        <div className="h-16 px-4 border-b border-gray-800/50 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Factory size={20} className="text-gray-400" />
-            <h1 className="text-lg font-semibold text-gray-200">
-              Supreme Rice Mills
-            </h1>
-          </div>
-          <button
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="p-2 glass rounded-lg hover:bg-white/10 transition-all"
-          >
-            <X size={18} />
-          </button>
-        </div>
-        
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-2">
-            {menuItems.map((item) => (
-              <div key={item.title}>
-                {item.path ? (
-                  <NavLink
-                    to={item.path}
-                    end={item.path === '/'}
-                    className={({ isActive }) =>
-                      `flex items-center gap-4 p-4 rounded-xl transition-all ${
-                        isActive 
-                          ? 'bg-white/10 text-white shadow-lg' 
-                          : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                      }`
-                    }
-                  >
-                    <div className="p-2 glass rounded-lg">
-                      {item.icon}
-                    </div>
-                    <span className="font-medium text-base">{item.title}</span>
-                    {item.path && (
-                      <ArrowRight size={16} className="ml-auto opacity-50" />
-                    )}
-                  </NavLink>
-                ) : (
-                  <>
-                    <button
-                      className="w-full flex items-center gap-4 p-4 rounded-xl text-gray-300 hover:bg-white/5 hover:text-white transition-all"
-                      onClick={() => toggleExpanded(item.title)}
-                    >
-                      <div className="p-2 glass rounded-lg">
-                        {item.icon}
-                      </div>
-                      <span className="font-medium text-base flex-1 text-left">{item.title}</span>
-                      {expandedItems.includes(item.title) ? (
-                        <ChevronDown size={18} />
-                      ) : (
-                        <ChevronRight size={18} />
-                      )}
-                    </button>
-                    {expandedItems.includes(item.title) && item.subItems && (
-                      <div className="mt-2 ml-4 space-y-1">
-                        {item.subItems.map((subItem) => (
-                          <NavLink
-                            key={subItem.path}
-                            to={subItem.path}
-                            end
-                            className={({ isActive }) =>
-                              `flex items-center gap-3 p-3 pl-8 rounded-lg transition-all ${
-                                isActive 
-                                  ? 'bg-white/10 text-white' 
-                                  : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
-                              }`
-                            }
-                          >
-                            {subItem.icon || <div className="w-4" />}
-                            <span className="text-sm">{subItem.title}</span>
-                          </NavLink>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        </nav>
-        
-        {/* Footer */}
-        <div className="p-6 border-t border-gray-800/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              <Factory size={18} className="text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">Supreme Rice Mills</p>
-              <p className="text-xs text-muted">v1.0.0</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 
   return (
@@ -314,8 +221,134 @@ export const Sidebar = () => {
         <SidebarContent />
       </aside>
 
-      {/* Mobile Menu */}
-      <MobileMenu />
+      {/* Mobile Menu - Directly in return statement, not as a nested component */}
+      <div className={`lg:hidden fixed inset-0 z-50 ${isMobileMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+        {/* Backdrop */}
+        <div 
+          className={`absolute inset-0 bg-black transition-opacity duration-500 ease-out ${
+            isMobileMenuOpen 
+              ? 'opacity-80 backdrop-blur-sm' 
+              : 'opacity-0'
+          }`}
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+        
+        {/* Menu Content - Sliding from left */}
+        <div 
+          className={`absolute inset-y-0 left-0 w-full max-w-sm flex flex-col bg-gradient-to-br from-gray-900/95 via-gray-900/98 to-black/95 backdrop-blur-2xl shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+            isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          {/* Header */}
+          <div className="h-16 px-4 border-b border-gray-800/50 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Factory size={20} className="text-gray-400" />
+              <h1 className="text-lg font-semibold text-gray-200">
+                Supreme Rice Mills
+              </h1>
+            </div>
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-2 glass rounded-lg hover:bg-white/10 transition-all"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto p-4">
+            <div className="space-y-2">
+              {menuItems.map((item) => (
+                <div key={item.title}>
+                  {item.path ? (
+                    <NavLink
+                      to={item.path}
+                      end={item.path === '/'}
+                      className={({ isActive }) =>
+                        `flex items-center gap-4 p-4 rounded-xl transition-all ${
+                          isActive 
+                            ? 'bg-white/10 text-white shadow-lg' 
+                            : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                        }`
+                      }
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <div className="p-2 glass rounded-lg">
+                        {item.icon}
+                      </div>
+                      <span className="font-medium text-base">{item.title}</span>
+                      {item.path && (
+                        <ArrowRight size={16} className="ml-auto opacity-50" />
+                      )}
+                    </NavLink>
+                  ) : (
+                    <>
+                      <button
+                        className="w-full flex items-center gap-4 p-4 rounded-xl text-gray-300 hover:bg-white/5 hover:text-white transition-all"
+                        onClick={() => toggleExpanded(item.title)}
+                      >
+                        <div className="p-2 glass rounded-lg">
+                          {item.icon}
+                        </div>
+                        <span className="font-medium text-base flex-1 text-left">{item.title}</span>
+                        {expandedItems.includes(item.title) ? (
+                          <ChevronDown size={18} />
+                        ) : (
+                          <ChevronRight size={18} />
+                        )}
+                      </button>
+                      <div className={`overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.4,0.0,0.2,1)] ${
+                        expandedItems.includes(item.title) ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                      }`}>
+                        {item.subItems && (
+                          <div className="mt-2 ml-4 space-y-1 pb-2">
+                            {item.subItems.map((subItem, index) => (
+                              <NavLink
+                                key={subItem.path}
+                                to={subItem.path}
+                                end
+                                className={({ isActive }) =>
+                                  `flex items-center gap-3 p-3 pl-8 rounded-lg transition-all duration-300 ${
+                                    isActive 
+                                      ? 'bg-white/10 text-white' 
+                                      : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                                  }`
+                                }
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                style={{
+                                  animation: justExpandedItem === item.title 
+                                    ? `slideInFromLeft 0.3s ease-out ${index * 0.05}s both`
+                                    : 'none'
+                                }}
+                              >
+                                {subItem.icon || <div className="w-4" />}
+                                <span className="text-sm">{subItem.title}</span>
+                              </NavLink>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </nav>
+          
+          {/* Footer */}
+          <div className="p-6 border-t border-gray-800/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <Factory size={18} className="text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Supreme Rice Mills</p>
+                <p className="text-xs text-muted">v1.0.0</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </>
   );
 };
