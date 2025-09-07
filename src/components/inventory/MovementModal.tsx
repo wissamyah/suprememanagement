@@ -57,7 +57,7 @@ export const MovementModal = ({
   }, [isOpen]);
 
   const filteredMovements = useMemo(() => {
-    return filterMovements(movements, {
+    const filtered = filterMovements(movements, {
       productId: product?.id,
       movementType: filters.movementType as InventoryMovement['movementType'] | undefined,
       dateFrom: filters.dateFrom ? new Date(filters.dateFrom) : undefined,
@@ -65,6 +65,13 @@ export const MovementModal = ({
       minQuantity: filters.minQuantity ? Number(filters.minQuantity) : undefined,
       maxQuantity: filters.maxQuantity ? Number(filters.maxQuantity) : undefined,
       searchTerm: filters.searchTerm
+    });
+    
+    // Sort by date, newest first
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateB - dateA;
     });
   }, [movements, product, filters]);
 

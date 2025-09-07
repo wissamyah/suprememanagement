@@ -654,6 +654,7 @@ export const useSalesWithGitHub = () => {
         return { success: false };
       }
 
+
       // Update product timestamps (actual inventory is managed through bookings and loadings)
       const updatedProducts = products.map(product => {
         const saleItem = sale.items.find(item => item.productId === product.id);
