@@ -464,8 +464,26 @@ class GitHubDataManager {
   // Check connection status
   private async checkConnection(): Promise<void> {
     try {
-      const response = await fetch(`${this.apiBase}/zen`, {
+      // If we don't have a token, just check navigator.onLine
+      if (!this.token) {
+        const wasOffline = !this.isOnline;
+        this.isOnline = navigator.onLine;
+        
+        if (wasOffline && this.isOnline) {
+          this.handleOnline();
+        } else if (!wasOffline && !this.isOnline) {
+          this.handleOffline();
+        }
+        return;
+      }
+      
+      // Use authenticated request to check connection
+      const response = await fetch(`${this.apiBase}/user`, {
         method: 'HEAD',
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        },
         cache: 'no-cache'
       });
       

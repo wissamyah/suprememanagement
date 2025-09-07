@@ -4,6 +4,7 @@ import { useGitHubData } from './useGitHubData';
 import type { Product, ProductCategory, InventoryMovement, ProductionEntry } from '../types';
 import { generateId } from '../utils/storage';
 import { getStockStatus, validateProduct } from '../utils/inventory';
+import { githubDataManager } from '../services/githubDataManager';
 
 export const useInventoryDirect = () => {
   // Use the base hook for each data type
@@ -218,16 +219,23 @@ export const useInventoryDirect = () => {
       console.log(`Deleting product: ${productToDelete.name} (${id})`);
       
       const updatedProducts = products.filter(product => product.id !== id);
-      
-      // Update immediately to reflect in UI
-      updateProducts(updatedProducts).catch(error => {
-        console.error('Failed to sync product deletion to GitHub:', error);
-      });
-      
-      // Also remove related movements for this product
       const updatedMovements = movements.filter(m => m.productId !== id);
-      updateMovements(updatedMovements).catch(error => {
-        console.error('Failed to sync movement deletion to GitHub:', error);
+      
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+      
+      // Fire and forget - update all in background
+      const updates = Promise.all([
+        updateProducts(updatedProducts),
+        updateMovements(updatedMovements)
+      ]);
+      
+      // End batch and save once
+      updates.then(() => {
+        githubDataManager.endBatchUpdate();
+      }).catch(error => {
+        console.error('Error in batch update:', error);
+        githubDataManager.endBatchUpdate();
       });
       
       return { success: true };
