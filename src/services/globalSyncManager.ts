@@ -34,6 +34,9 @@ class GlobalSyncManager {
       // Listen for storage changes
       window.addEventListener('storage', this.handleStorageChange);
       
+      // Listen for visibility changes (tab switching)
+      document.addEventListener('visibilitychange', this.handleVisibilityChange);
+      
       // Load initial hash to establish baseline
       const currentData = this.getAllData();
       this.lastDataHash = JSON.stringify(currentData);
@@ -46,6 +49,7 @@ class GlobalSyncManager {
   // Cleanup
   destroy() {
     window.removeEventListener('storage', this.handleStorageChange);
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     if (this.syncTimer) {
       clearTimeout(this.syncTimer);
     }
@@ -86,10 +90,27 @@ class GlobalSyncManager {
     const dataKeys = ['supreme_mgmt_products', 'supreme_mgmt_product_categories', 
                      'supreme_mgmt_inventory_movements', 'supreme_mgmt_production_entries',
                      'supreme_mgmt_customers', 'supreme_mgmt_sales', 'supreme_mgmt_ledger_entries',
-                     'supreme_mgmt_loadings'];
+                     'supreme_mgmt_loadings', 'suprememanagement_bookedStock'];
     
     if (e.key && dataKeys.includes(e.key)) {
       this.scheduleSyncDebounced();
+    }
+  };
+
+  // Handle visibility changes (tab switching)
+  private handleVisibilityChange = () => {
+    // When the tab becomes hidden (user switches away), sync immediately if there are pending changes
+    if (document.hidden && this.state.isPending && !this.syncInProgress) {
+      console.log('[GlobalSync] Tab hidden - syncing pending changes immediately');
+      
+      // Cancel pending timer
+      if (this.syncTimer) {
+        clearTimeout(this.syncTimer);
+        this.syncTimer = null;
+      }
+      
+      // Perform sync immediately
+      this.performSync();
     }
   };
 
@@ -245,12 +266,22 @@ class GlobalSyncManager {
   }
 
   // Mark data as changed (call this when data changes)
-  markAsChanged() {
+  markAsChanged(immediate: boolean = false) {
     this.updateState({ 
       isPending: true, 
       pendingChanges: 1  // Just indicate there are pending changes
     });
-    this.scheduleSyncDebounced();
+    
+    if (immediate) {
+      // Cancel pending timer and sync immediately
+      if (this.syncTimer) {
+        clearTimeout(this.syncTimer);
+        this.syncTimer = null;
+      }
+      this.performSync();
+    } else {
+      this.scheduleSyncDebounced();
+    }
   }
 
   // Update authentication status

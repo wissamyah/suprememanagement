@@ -62,18 +62,13 @@ export const Settings = () => {
       
       showSuccess('All data has been reset successfully');
       
-      // Reload after a short delay to show the message
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-      
     } catch (error) {
       console.error('Error resetting data:', error);
       showError('Failed to reset data');
+    } finally {
       setIsResetting(false);
+      setShowResetConfirm(false);
     }
-    
-    setShowResetConfirm(false);
   };
 
   const handleGenerateTestData = async () => {
@@ -112,13 +107,7 @@ export const Settings = () => {
       
       showSuccess(`Generated test data: ${testData.products.length} products, ${testData.customers.length} customers, ${testData.sales.length} sales, ${testData.ledgerEntries.length} ledger entries, ${testData.bookedStock.length} bookings, ${testData.loadings?.length || 0} loadings`);
       
-      // Set generating to false first
       setIsGenerating(false);
-      
-      // Reload after a longer delay to ensure all operations complete
-      setTimeout(() => {
-        window.location.reload();
-      }, 6000);
       
     } catch (error) {
       console.error('Error generating test data:', error);
@@ -264,7 +253,7 @@ export const Settings = () => {
               <div className="space-y-2 font-mono text-xs">
                 <div className="p-2 bg-black/30 rounded">
                   <span className="text-green-400">// Clear all data</span><br/>
-                  localStorage.clear(); location.reload();
+                  localStorage.clear();
                 </div>
                 <div className="p-2 bg-black/30 rounded">
                   <span className="text-green-400">// View all stored keys</span><br/>

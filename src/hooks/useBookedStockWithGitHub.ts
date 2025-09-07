@@ -35,6 +35,21 @@ export const useBookedStockWithGitHub = () => {
   const saveToCache = useCallback((data: BookedStock[]) => {
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+      console.log('[SaveToCache] Saved', data.length, 'booked stock entries to cache');
+      
+      // Verify the save
+      const saved = localStorage.getItem(CACHE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        console.log('[SaveToCache] Verified cache contains', parsed.length, 'entries');
+      }
+      
+      // Dispatch storage event for cross-tab synchronization
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: CACHE_KEY,
+        newValue: JSON.stringify(data),
+        url: window.location.href
+      }));
     } catch (error) {
       console.error('Error saving booked stock to cache:', error);
     }
@@ -105,6 +120,29 @@ export const useBookedStockWithGitHub = () => {
     initData();
   }, [loadFromCache, loadFromGitHub]);
 
+  // Listen for storage events to sync across tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === CACHE_KEY && e.newValue) {
+        try {
+          const parsedData = JSON.parse(e.newValue);
+          const bookedStockData = parsedData.map((item: any) => ({
+            ...item,
+            bookingDate: new Date(item.bookingDate),
+            createdAt: new Date(item.createdAt),
+            updatedAt: new Date(item.updatedAt)
+          }));
+          setBookedStock(bookedStockData);
+        } catch (error) {
+          console.error('Error parsing booked stock from storage event:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   // Auto-sync when there are pending changes
   useEffect(() => {
     const syncTimer = setTimeout(() => {
@@ -142,26 +180,105 @@ export const useBookedStockWithGitHub = () => {
         quantityLoaded: 0,
         unit,
         bookingDate,
-        status: 'pending',
+        status: 'confirmed',
         notes,
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      const updatedBookedStock = [...bookedStock, newBooking];
-      setBookedStock(updatedBookedStock);
-      saveToCache(updatedBookedStock);
-      setPendingChanges(prev => prev + 1);
+      // Use functional setState to ensure we have the latest state
+      setBookedStock(prevBookedStock => {
+        const updatedBookedStock = [...prevBookedStock, newBooking];
+        
+        // Save to cache with the updated data
+        saveToCache(updatedBookedStock);
+        
+        // Sync in background
+        syncWithGitHub(updatedBookedStock);
+        
+        return updatedBookedStock;
+      });
       
-      // Sync in background
-      syncWithGitHub(updatedBookedStock);
+      setPendingChanges(prev => prev + 1);
       
       return { success: true, data: newBooking };
     } catch (error) {
       console.error('Error adding booked stock:', error);
       return { success: false, error: (error as Error).message };
     }
-  }, [bookedStock, saveToCache, syncWithGitHub]);
+  }, [saveToCache, syncWithGitHub]);
+
+  // Add multiple booked stock entries at once (batch operation)
+  const addBatchBookedStock = useCallback((
+    bookings: Array<{
+      customerId: string;
+      customerName: string;
+      saleId: string;
+      orderId: string;
+      productId: string;
+      productName: string;
+      quantity: number;
+      unit: string;
+      bookingDate: Date;
+      notes?: string;
+    }>
+  ) => {
+    try {
+      console.log('[AddBatchBookedStock] Adding bookings:', bookings.length);
+      console.log('[AddBatchBookedStock] Bookings details:', bookings.map(b => ({
+        product: b.productName,
+        qty: b.quantity,
+        orderId: b.orderId
+      })));
+      
+      const timestamp = Date.now();
+      const newBookings: BookedStock[] = bookings.map((booking, index) => ({
+        id: `BS-${timestamp}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+        customerId: booking.customerId,
+        customerName: booking.customerName,
+        saleId: booking.saleId,
+        orderId: booking.orderId,
+        productId: booking.productId,
+        productName: booking.productName,
+        quantity: booking.quantity,
+        quantityLoaded: 0,
+        unit: booking.unit,
+        bookingDate: booking.bookingDate,
+        status: 'confirmed' as const,
+        notes: booking.notes,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }));
+
+      console.log('[AddBatchBookedStock] Created new bookings:', newBookings.map(b => ({
+        id: b.id,
+        productName: b.productName,
+        quantity: b.quantity
+      })));
+
+      // Use functional setState to ensure we have the latest state
+      setBookedStock(prevBookedStock => {
+        const updatedBookedStock = [...prevBookedStock, ...newBookings];
+        
+        // Save to cache with the updated data
+        saveToCache(updatedBookedStock);
+        
+        // Immediate sync for reliability
+        syncWithGitHub(updatedBookedStock).then(result => {
+          console.log('[AddBatchBookedStock] Sync result:', result);
+        });
+        
+        return updatedBookedStock;
+      });
+      
+      setPendingChanges(prev => prev + 1);
+      
+      return { success: true, data: newBookings };
+    } catch (error) {
+      console.error('Error adding batch booked stock:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  }, [saveToCache, syncWithGitHub]);
 
   // Update booked stock entry
   const updateBookedStock = useCallback((
@@ -169,43 +286,48 @@ export const useBookedStockWithGitHub = () => {
     updates: Partial<Omit<BookedStock, 'id' | 'createdAt' | 'updatedAt'>>
   ) => {
     try {
-      const updatedBookedStock = bookedStock.map(item =>
-        item.id === id
-          ? { ...item, ...updates, updatedAt: new Date() }
-          : item
-      );
+      setBookedStock(prevBookedStock => {
+        const updatedBookedStock = prevBookedStock.map(item =>
+          item.id === id
+            ? { ...item, ...updates, updatedAt: new Date() }
+            : item
+        );
+        
+        saveToCache(updatedBookedStock);
+        syncWithGitHub(updatedBookedStock);
+        
+        return updatedBookedStock;
+      });
       
-      setBookedStock(updatedBookedStock);
-      saveToCache(updatedBookedStock);
       setPendingChanges(prev => prev + 1);
-      
-      // Sync in background
-      syncWithGitHub(updatedBookedStock);
       
       return { success: true };
     } catch (error) {
       console.error('Error updating booked stock:', error);
       return { success: false, error: (error as Error).message };
     }
-  }, [bookedStock, saveToCache, syncWithGitHub]);
+  }, [saveToCache, syncWithGitHub]);
 
   // Delete booked stock entry
   const deleteBookedStock = useCallback((id: string) => {
     try {
-      const updatedBookedStock = bookedStock.filter(item => item.id !== id);
-      setBookedStock(updatedBookedStock);
-      saveToCache(updatedBookedStock);
-      setPendingChanges(prev => prev + 1);
+      setBookedStock(prevBookedStock => {
+        const updatedBookedStock = prevBookedStock.filter(item => item.id !== id);
+        
+        saveToCache(updatedBookedStock);
+        syncWithGitHub(updatedBookedStock);
+        
+        return updatedBookedStock;
+      });
       
-      // Sync in background
-      syncWithGitHub(updatedBookedStock);
+      setPendingChanges(prev => prev + 1);
       
       return { success: true };
     } catch (error) {
       console.error('Error deleting booked stock:', error);
       return { success: false, error: (error as Error).message };
     }
-  }, [bookedStock, saveToCache, syncWithGitHub]);
+  }, [saveToCache, syncWithGitHub]);
 
   // Get booked stock by customer
   const getBookedStockByCustomer = useCallback((customerId: string) => {
@@ -230,12 +352,18 @@ export const useBookedStockWithGitHub = () => {
 
   // Calculate total booked quantity for a product
   const getTotalBookedQuantity = useCallback((productId: string) => {
-    return bookedStock
-      .filter(item => 
-        item.productId === productId && 
-        ['pending', 'confirmed', 'partial-loaded'].includes(item.status)
-      )
-      .reduce((total, item) => total + (item.quantity - item.quantityLoaded), 0);
+    const activeBookings = bookedStock.filter(item => 
+      item.productId === productId && 
+      ['pending', 'confirmed', 'partial-loaded'].includes(item.status)
+    );
+    
+    const total = activeBookings.reduce((sum, item) => sum + (item.quantity - item.quantityLoaded), 0);
+    
+    if (activeBookings.length > 0) {
+      console.log(`[GetTotalBookedQuantity] Product ${productId}: ${activeBookings.length} bookings, total: ${total}`);
+    }
+    
+    return total;
   }, [bookedStock]);
 
   // Update loading status (for future loading implementation)
@@ -246,6 +374,7 @@ export const useBookedStockWithGitHub = () => {
   ) => {
     const booking = bookedStock.find(item => item.id === id);
     if (!booking) {
+      console.error('[UpdateLoadingStatus] Booking not found:', id);
       return { success: false, error: 'Booking not found' };
     }
 
@@ -255,6 +384,16 @@ export const useBookedStockWithGitHub = () => {
       newQuantityLoaded < booking.quantity ? 'partial-loaded' :
       'fully-loaded'
     );
+    
+    console.log('[UpdateLoadingStatus] Updating booked stock:', {
+      bookingId: id,
+      productName: booking.productName,
+      totalBooked: booking.quantity,
+      previousLoaded: booking.quantityLoaded,
+      newLoaded: newQuantityLoaded,
+      remainingBooked: booking.quantity - newQuantityLoaded,
+      status: newStatus
+    });
 
     return updateBookedStock(id, {
       quantityLoaded: newQuantityLoaded,
@@ -280,6 +419,7 @@ export const useBookedStockWithGitHub = () => {
     syncInProgress,
     pendingChanges,
     addBookedStock,
+    addBatchBookedStock,
     updateBookedStock,
     deleteBookedStock,
     getBookedStockByCustomer,

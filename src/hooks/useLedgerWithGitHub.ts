@@ -152,8 +152,8 @@ export const useLedgerWithGitHub = () => {
       }));
     }
     
-    // Notify global sync manager
-    globalSyncManager.markAsChanged();
+    // Notify global sync manager - immediate sync for ledger operations
+    globalSyncManager.markAsChanged(true);
   };
 
   // Recalculate running balances for a customer

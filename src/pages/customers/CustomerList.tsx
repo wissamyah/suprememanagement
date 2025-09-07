@@ -40,6 +40,7 @@ export const CustomerList = () => {
   
   const {
     customers,
+    customersWithLedgerBalances,
     loading,
     syncInProgress,
     pendingChanges,
@@ -105,13 +106,13 @@ export const CustomerList = () => {
   };
 
   const handleExportJSON = () => {
-    exportCustomersToJSON(customers);
+    exportCustomersToJSON(customersWithLedgerBalances);
     showSuccess('Customers exported to JSON');
     setShowImportExportMenu(false);
   };
 
   const handleExportCSV = () => {
-    exportCustomersToCSV(customers);
+    exportCustomersToCSV(customersWithLedgerBalances);
     showSuccess('Customers exported to CSV');
     setShowImportExportMenu(false);
   };
@@ -350,7 +351,7 @@ export const CustomerList = () => {
           </div>
         ) : (
           <CustomerTable
-            customers={customers}
+            customers={customersWithLedgerBalances}
             searchTerm={searchTerm}
             stateFilter={stateFilter}
             balanceFilter={balanceFilter}

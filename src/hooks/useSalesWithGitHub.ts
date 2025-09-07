@@ -30,7 +30,7 @@ export const useSalesWithGitHub = () => {
   
   // Integrate booked stock management
   const {
-    addBookedStock,
+    addBatchBookedStock,
     updateBookedStock,
     deleteBookedStock,
     getBookedStockBySale,
@@ -180,7 +180,59 @@ export const useSalesWithGitHub = () => {
     }
   }, [sales, isAuthenticated, loading]);
 
-  const saveAllData = (newSales: Sale[], newProducts: Product[], newCustomers: Customer[], newMovements: InventoryMovement[], newLedgerEntries: LedgerEntry[]) => {
+  // Helper function to recalculate running balances for a customer
+  const recalculateBalances = useCallback((entries: LedgerEntry[], customerId?: string): LedgerEntry[] => {
+    
+    // Group by customer
+    const customerGroups = new Map<string, LedgerEntry[]>();
+    entries.forEach(entry => {
+      if (!customerGroups.has(entry.customerId)) {
+        customerGroups.set(entry.customerId, []);
+      }
+      customerGroups.get(entry.customerId)!.push(entry);
+    });
+    
+    // Recalculate balances for each customer
+    const updatedEntries: LedgerEntry[] = [];
+    
+    customerGroups.forEach((customerEntries, custId) => {
+      // Only recalculate for the specified customer or all if not specified
+      if (!customerId || custId === customerId) {
+        // Sort by date and then by creation time
+        const sorted = [...customerEntries].sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          if (dateA !== dateB) return dateA - dateB;
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+        
+        let balance = 0;
+        sorted.forEach(entry => {
+          // For open book: credit increases balance (customer has credit), debit decreases (customer owes)
+          balance = balance + entry.credit - entry.debit;
+          updatedEntries.push({
+            ...entry,
+            runningBalance: balance
+          });
+        });
+      } else {
+        // Keep other customers' entries unchanged
+        updatedEntries.push(...customerEntries);
+      }
+    });
+    
+    return updatedEntries;
+  }, []);
+
+  const saveAllData = useCallback((newSales: Sale[], newProducts: Product[], newCustomers: Customer[], newMovements: InventoryMovement[], newLedgerEntries: LedgerEntry[]) => {
+    console.log('[SaveAllData] Saving data:', {
+      salesCount: newSales.length,
+      productsCount: newProducts.length,
+      customersCount: newCustomers.length,
+      movementsCount: newMovements.length,
+      ledgerCount: newLedgerEntries.length
+    });
+    
     // Save to local state immediately (optimistic update)
     setSales(newSales);
     setProducts(newProducts);
@@ -226,9 +278,9 @@ export const useSalesWithGitHub = () => {
       url: window.location.href
     }));
     
-    // Notify global sync manager
-    globalSyncManager.markAsChanged();
-  };
+    // Notify global sync manager - immediate sync for sales operations
+    globalSyncManager.markAsChanged(true);
+  }, []);
 
   // Add a new sale
   const addSale = useCallback((
@@ -278,17 +330,15 @@ export const useSalesWithGitHub = () => {
           updatedProducts[productIndex] = {
             ...product,
             quantityOnHand: product.quantityOnHand - item.quantity,
-            availableQuantity: product.quantityOnHand - item.quantity - (product.quantityBooked || 0),
             status: ((product.quantityOnHand - item.quantity) <= 0 ? 'out-of-stock' : 
                    (product.quantityOnHand - item.quantity) <= product.reorderLevel ? 'low-stock' : 'in-stock') as Product['status'],
             updatedAt: new Date()
           };
         } else {
-          // For pending/processing sales, update booked quantity (reserve stock)
+          // For pending/processing sales, don't update booked quantity here
+          // It will be calculated from actual booked stock records
           updatedProducts[productIndex] = {
             ...product,
-            quantityBooked: (product.quantityBooked || 0) + item.quantity,
-            availableQuantity: product.quantityOnHand - ((product.quantityBooked || 0) + item.quantity),
             updatedAt: new Date()
           };
         }
@@ -374,24 +424,6 @@ export const useSalesWithGitHub = () => {
         updatedAt: now
       };
 
-      // Create booked stock records for pending/processing sales
-      if (status === 'pending' || status === 'processing') {
-        for (const item of items) {
-          addBookedStock(
-            customerId,
-            customer.name,
-            newSale.id,
-            newSale.orderId,
-            item.productId,
-            item.productName,
-            item.quantity,
-            item.unit,
-            date,
-            `Booked from sale ${newSale.orderId}`
-          );
-        }
-      }
-
       // Add ledger entry and recalculate balances
       const allLedgerEntries = [...ledgerEntries, newLedgerEntry];
       const recalculatedLedger = recalculateBalances(allLedgerEntries, customerId);
@@ -399,59 +431,60 @@ export const useSalesWithGitHub = () => {
       const updatedSales = [...sales, newSale];
       const updatedMovements = [...movements, ...newMovements];
       
+      console.log('[AddSale] Creating new sale:', {
+        saleId: newSale.id,
+        orderId: newSale.orderId,
+        customerId,
+        items: items.length,
+        totalAmount: newSale.totalAmount,
+        status,
+        existingSalesCount: sales.length,
+        updatedSalesCount: updatedSales.length
+      });
+      
       // Save all changes atomically
       saveAllData(updatedSales, updatedProducts, updatedCustomers, updatedMovements, recalculatedLedger);
+      
+      // Create booked stock records for pending/processing sales
+      if (status === 'pending' || status === 'processing') {
+        console.log('[AddSale] Creating booked stock for items:', items.length);
+        console.log('[AddSale] Items to book:', items.map(item => ({
+          product: item.productName,
+          qty: item.quantity,
+          id: item.productId
+        })));
+        
+        const bookingsToAdd = items.map(item => ({
+          customerId,
+          customerName: customer.name,
+          saleId: newSale.id,
+          orderId: newSale.orderId,
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          unit: item.unit,
+          bookingDate: date,
+          notes: `Booked from sale ${newSale.orderId}`
+        }));
+        
+        console.log('[AddSale] Bookings to add:', bookingsToAdd.length, 'items');
+        
+        const bookingResult = addBatchBookedStock(bookingsToAdd);
+        console.log('[AddSale] Booked stock result:', bookingResult);
+        
+        if (!bookingResult.success) {
+          console.error('[AddSale] Failed to create booked stock entries');
+        } else {
+          console.log('[AddSale] Successfully created', bookingResult.data?.length, 'booked stock entries');
+        }
+      }
       
       return { success: true, saleId: newSale.id };
     } catch (error) {
       console.error('Error adding sale:', error);
       return { success: false, errors: ['Failed to add sale'] };
     }
-  }, [sales, products, customers, movements, ledgerEntries]);
-
-  // Helper function to recalculate running balances for a customer
-  const recalculateBalances = (entries: LedgerEntry[], customerId?: string): LedgerEntry[] => {
-    
-    // Group by customer
-    const customerGroups = new Map<string, LedgerEntry[]>();
-    entries.forEach(entry => {
-      if (!customerGroups.has(entry.customerId)) {
-        customerGroups.set(entry.customerId, []);
-      }
-      customerGroups.get(entry.customerId)!.push(entry);
-    });
-    
-    // Recalculate balances for each customer
-    const updatedEntries: LedgerEntry[] = [];
-    
-    customerGroups.forEach((customerEntries, custId) => {
-      // Only recalculate for the specified customer or all if not specified
-      if (!customerId || custId === customerId) {
-        // Sort by date and then by creation time
-        const sorted = [...customerEntries].sort((a, b) => {
-          const dateA = new Date(a.date).getTime();
-          const dateB = new Date(b.date).getTime();
-          if (dateA !== dateB) return dateA - dateB;
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        });
-        
-        let balance = 0;
-        sorted.forEach(entry => {
-          // For open book: credit increases balance (customer has credit), debit decreases (customer owes)
-          balance = balance + entry.credit - entry.debit;
-          updatedEntries.push({
-            ...entry,
-            runningBalance: balance
-          });
-        });
-      } else {
-        // Keep other customers' entries unchanged
-        updatedEntries.push(...customerEntries);
-      }
-    });
-    
-    return updatedEntries;
-  };
+  }, [sales, products, customers, movements, ledgerEntries, addBatchBookedStock, recalculateBalances]);
 
   // Update an existing sale
   const updateSale = useCallback((
@@ -480,15 +513,12 @@ export const useSalesWithGitHub = () => {
               updatedProducts[productIndex] = {
                 ...product,
                 quantityOnHand: product.quantityOnHand + oldItem.quantity,
-                availableQuantity: (product.quantityOnHand + oldItem.quantity) - (product.quantityBooked || 0),
                 updatedAt: new Date()
               };
             } else {
-              // For pending/processing sales, reverse booking
+              // For pending/processing sales, bookings will be handled separately
               updatedProducts[productIndex] = {
                 ...product,
-                quantityBooked: Math.max(0, (product.quantityBooked || 0) - oldItem.quantity),
-                availableQuantity: product.quantityOnHand - Math.max(0, (product.quantityBooked || 0) - oldItem.quantity),
                 updatedAt: new Date()
               };
             }
@@ -519,17 +549,14 @@ export const useSalesWithGitHub = () => {
             updatedProducts[productIndex] = {
               ...product,
               quantityOnHand: product.quantityOnHand - newItem.quantity,
-              availableQuantity: (product.quantityOnHand - newItem.quantity) - (product.quantityBooked || 0),
               status: ((product.quantityOnHand - newItem.quantity) <= 0 ? 'out-of-stock' : 
                      (product.quantityOnHand - newItem.quantity) <= product.reorderLevel ? 'low-stock' : 'in-stock') as Product['status'],
               updatedAt: new Date()
             };
           } else {
-            // For pending/processing sales, update booking
+            // For pending/processing sales, bookings handled separately
             updatedProducts[productIndex] = {
               ...product,
-              quantityBooked: (product.quantityBooked || 0) + newItem.quantity,
-              availableQuantity: product.quantityOnHand - ((product.quantityBooked || 0) + newItem.quantity),
               updatedAt: new Date()
             };
           }
@@ -582,20 +609,20 @@ export const useSalesWithGitHub = () => {
         else if ((updates.status === 'pending' || updates.status === 'processing') && 
                  oldSale.status === 'completed') {
           const items = updates.items || oldSale.items;
-          items.forEach(item => {
-            addBookedStock(
-              updatedSale.customerId,
-              updatedSale.customerName,
-              updatedSale.id,
-              updatedSale.orderId,
-              item.productId,
-              item.productName,
-              item.quantity,
-              item.unit,
-              updatedSale.date,
-              `Booked from sale ${updatedSale.orderId}`
-            );
-          });
+          const bookingsToAdd = items.map(item => ({
+            customerId: updatedSale.customerId,
+            customerName: updatedSale.customerName,
+            saleId: updatedSale.id,
+            orderId: updatedSale.orderId,
+            productId: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            unit: item.unit,
+            bookingDate: updatedSale.date,
+            notes: `Booked from sale ${updatedSale.orderId}`
+          }));
+          
+          addBatchBookedStock(bookingsToAdd);
         }
         // If items changed, update bookings
         else if (updates.items && (updatedSale.status === 'pending' || updatedSale.status === 'processing')) {
@@ -604,20 +631,20 @@ export const useSalesWithGitHub = () => {
             deleteBookedStock(booking.id);
           });
           // Create new bookings
-          updates.items.forEach(item => {
-            addBookedStock(
-              updatedSale.customerId,
-              updatedSale.customerName,
-              updatedSale.id,
-              updatedSale.orderId,
-              item.productId,
-              item.productName,
-              item.quantity,
-              item.unit,
-              updatedSale.date,
-              `Booked from sale ${updatedSale.orderId}`
-            );
-          });
+          const bookingsToAdd = updates.items.map(item => ({
+            customerId: updatedSale.customerId,
+            customerName: updatedSale.customerName,
+            saleId: updatedSale.id,
+            orderId: updatedSale.orderId,
+            productId: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            unit: item.unit,
+            bookingDate: updatedSale.date,
+            notes: `Booked from sale ${updatedSale.orderId}`
+          }));
+          
+          addBatchBookedStock(bookingsToAdd);
         }
       }
 
@@ -688,7 +715,7 @@ export const useSalesWithGitHub = () => {
       console.error('Error updating sale:', error);
       return { success: false, errors: ['Failed to update sale'] };
     }
-  }, [sales, products, customers, movements, ledgerEntries]);
+  }, [sales, products, customers, movements, ledgerEntries, addBatchBookedStock, updateBookedStock, deleteBookedStock, getBookedStockBySale, recalculateBalances]);
 
   // Delete a sale
   const deleteSale = useCallback((id: string): { success: boolean; warning?: string } => {
@@ -707,16 +734,13 @@ export const useSalesWithGitHub = () => {
             return {
               ...product,
               quantityOnHand: product.quantityOnHand + saleItem.quantity,
-              availableQuantity: (product.quantityOnHand + saleItem.quantity) - (product.quantityBooked || 0),
               status: ((product.quantityOnHand + saleItem.quantity) > product.reorderLevel ? 'in-stock' : 'low-stock') as Product['status'],
               updatedAt: new Date()
             };
           } else {
-            // For pending/processing sales, only reverse the booking
+            // For pending/processing sales, bookings handled separately
             return {
               ...product,
-              quantityBooked: Math.max(0, (product.quantityBooked || 0) - saleItem.quantity),
-              availableQuantity: product.quantityOnHand - Math.max(0, (product.quantityBooked || 0) - saleItem.quantity),
               updatedAt: new Date()
             };
           }
@@ -764,7 +788,7 @@ export const useSalesWithGitHub = () => {
       console.error('Error deleting sale:', error);
       return { success: false };
     }
-  }, [sales, products, customers, movements, ledgerEntries]);
+  }, [sales, products, customers, movements, ledgerEntries, deleteBookedStock, getBookedStockBySale, recalculateBalances]);
 
   // Get sale by ID
   const getSaleById = useCallback((id: string): Sale | undefined => {

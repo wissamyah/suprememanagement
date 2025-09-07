@@ -30,7 +30,7 @@ export const PaymentModal = ({
   onUpdate
 }: PaymentModalProps) => {
   const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<LedgerEntry['paymentMethod']>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<LedgerEntry['paymentMethod']>('bank_transfer');
   const [notes, setNotes] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -40,13 +40,13 @@ export const PaymentModal = ({
   useEffect(() => {
     if (editingEntry && editingEntry.transactionType === 'payment') {
       setAmount(editingEntry.credit.toString());
-      setPaymentMethod(editingEntry.paymentMethod || 'cash');
+      setPaymentMethod(editingEntry.paymentMethod || 'bank_transfer');
       setNotes(editingEntry.notes || '');
       setDate(new Date(editingEntry.date).toISOString().split('T')[0]);
     } else if (!editingEntry) {
       // Reset form when not editing
       setAmount('');
-      setPaymentMethod('cash');
+      setPaymentMethod('bank_transfer');
       setNotes('');
       setDate(new Date().toISOString().split('T')[0]);
     }
@@ -104,7 +104,7 @@ export const PaymentModal = ({
     if (result.success) {
       // Reset form
       setAmount('');
-      setPaymentMethod('cash');
+      setPaymentMethod('bank_transfer');
       setNotes('');
       setDate(new Date().toISOString().split('T')[0]);
       setErrors({});
@@ -116,7 +116,7 @@ export const PaymentModal = ({
       onClose();
       // Reset form
       setAmount('');
-      setPaymentMethod('cash');
+      setPaymentMethod('bank_transfer');
       setNotes('');
       setDate(new Date().toISOString().split('T')[0]);
       setErrors({});
@@ -162,8 +162,8 @@ export const PaymentModal = ({
             className="w-full px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
             disabled={isSubmitting}
           >
-            <option value="cash">Cash</option>
             <option value="bank_transfer">Bank Transfer</option>
+            <option value="cash">Cash</option>
             <option value="cheque">Cheque</option>
           </select>
         </div>

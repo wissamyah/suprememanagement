@@ -116,14 +116,38 @@ export const CustomerLedger = () => {
   
   // Calculate totals
   const totals = useMemo(() => {
+    // Calculate totals from filtered entries for display
     const totalDebit = filteredEntries.reduce((sum, entry) => sum + entry.debit, 0);
     const totalCredit = filteredEntries.reduce((sum, entry) => sum + entry.credit, 0);
-    const balance = customerId && currentCustomer
-      ? currentCustomer.balance
-      : totalCredit - totalDebit; // For all customers view
+    
+    // Get the actual current balance from ALL entries (not filtered)
+    let balance = 0;
+    if (customerId) {
+      // For individual customer, always get the running balance from ALL their ledger entries
+      // This ensures the balance is always accurate regardless of filters
+      const allCustomerEntries = ledgerEntries
+        .filter(e => e.customerId === customerId)
+        .sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          if (dateA !== dateB) return dateA - dateB;
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+      
+      if (allCustomerEntries.length > 0) {
+        // Take the running balance of the last (most recent) entry
+        balance = allCustomerEntries[allCustomerEntries.length - 1].runningBalance;
+      } else if (currentCustomer) {
+        // If no ledger entries exist, use the customer's initial balance
+        balance = currentCustomer.balance;
+      }
+    } else {
+      // For all customers view, calculate net balance from filtered entries
+      balance = totalCredit - totalDebit;
+    }
     
     return { totalDebit, totalCredit, balance };
-  }, [filteredEntries, customerId, currentCustomer]);
+  }, [filteredEntries, customerId, ledgerEntries, currentCustomer]);
   
   const handleAddPayment = (
     amount: number,

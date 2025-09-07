@@ -9,6 +9,7 @@ import {
   getStockStatus, 
   validateProduct 
 } from '../utils/inventory';
+import { useBookedStockWithGitHub } from './useBookedStockWithGitHub';
 
 const PRODUCTS_KEY = 'products';
 const CATEGORIES_KEY = 'product_categories';
@@ -28,6 +29,9 @@ export const useInventoryWithGitHub = () => {
   const { isAuthenticated } = useContext(GitHubContext);
   const mountedRef = useRef(true);
   const isInitialLoad = useRef(true);
+  
+  // Get booked stock data to calculate actual booked quantities
+  const { getTotalBookedQuantity, bookedStock } = useBookedStockWithGitHub();
 
   // Cleanup on unmount and subscribe to global sync
   useEffect(() => {
@@ -163,26 +167,26 @@ export const useInventoryWithGitHub = () => {
       });
     }
     
-    // Notify global sync manager
-    globalSyncManager.markAsChanged();
+    // Notify global sync manager - immediate sync for inventory operations
+    globalSyncManager.markAsChanged(true);
   };
 
   const saveCategories = (newCategories: ProductCategory[]) => {
     setCategories(newCategories);
     storage.set(CATEGORIES_KEY, newCategories);
-    globalSyncManager.markAsChanged();
+    globalSyncManager.markAsChanged(true); // Immediate sync for category changes
   };
 
   const saveMovements = (newMovements: InventoryMovement[]) => {
     setMovements(newMovements);
     storage.set(MOVEMENTS_KEY, newMovements);
-    globalSyncManager.markAsChanged();
+    globalSyncManager.markAsChanged(true); // Immediate sync for movement changes
   };
 
   const saveProduction = (newProduction: ProductionEntry[]) => {
     setProductionEntries(newProduction);
     storage.set(PRODUCTION_KEY, newProduction);
-    globalSyncManager.markAsChanged();
+    globalSyncManager.markAsChanged(true); // Immediate sync for production changes
   };
 
   // Category operations
@@ -573,15 +577,27 @@ export const useInventoryWithGitHub = () => {
   }, [products, productionEntries, movements]);
 
   const getProductById = useCallback((id: string): Product | undefined => {
-    return products.find(p => p.id === id);
-  }, [products]);
+    const product = products.find(p => p.id === id);
+    if (product) {
+      // Calculate actual booked quantity from booked stock records
+      const actualBookedQty = getTotalBookedQuantity(id);
+      return {
+        ...product,
+        quantityBooked: actualBookedQty,
+        availableQuantity: product.quantityOnHand - actualBookedQty
+      };
+    }
+    return product;
+  }, [products, getTotalBookedQuantity]);
 
   const getAvailableQuantity = useCallback((productId: string): number => {
     const product = products.find(p => p.id === productId);
     if (!product) return 0;
     
-    return product.availableQuantity || product.quantityOnHand;
-  }, [products]);
+    // Calculate actual available quantity from booked stock records
+    const actualBookedQty = getTotalBookedQuantity(productId);
+    return product.quantityOnHand - actualBookedQty;
+  }, [products, getTotalBookedQuantity]);
 
   // Force sync method - delegate to global sync manager
   const forceSync = useCallback(async () => {
@@ -591,11 +607,22 @@ export const useInventoryWithGitHub = () => {
     }
   }, [isAuthenticated]);
 
+  // Enhance products with actual booked quantities
+  const enhancedProducts = products.map(product => {
+    const actualBookedQty = getTotalBookedQuantity(product.id);
+    return {
+      ...product,
+      quantityBooked: actualBookedQty,
+      availableQuantity: product.quantityOnHand - actualBookedQty
+    };
+  });
+
   return {
-    products,
+    products: enhancedProducts,
     categories,
     movements,
     productionEntries,
+    bookedStock,
     loading,
     pendingChanges,
     lastSyncError,

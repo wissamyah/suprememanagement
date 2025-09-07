@@ -1,14 +1,16 @@
-import { useState, useEffect, useCallback, useContext, useRef } from 'react';
-import type { Customer } from '../types';
+import { useState, useEffect, useCallback, useContext, useRef, useMemo } from 'react';
+import type { Customer, LedgerEntry } from '../types';
 import { storage, generateId } from '../utils/storage';
 import { GitHubContext } from '../App';
 import githubStorage from '../services/githubStorage';
 import { globalSyncManager } from '../services/globalSyncManager';
 
 const CUSTOMERS_KEY = 'customers';
+const LEDGER_KEY = 'ledger_entries';
 
 export const useCustomersWithGitHub = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncPending, setSyncPending] = useState(false);
   const [pendingChanges, setPendingChanges] = useState(0);
@@ -47,22 +49,28 @@ export const useCustomersWithGitHub = () => {
         const githubData = await githubStorage.loadAllData();
         
         if (githubData) {
-          // Set customers data from GitHub
+          // Set customers and ledger data from GitHub
           setCustomers(githubData.customers || []);
+          setLedgerEntries(githubData.ledgerEntries || []);
           
           // Update localStorage with GitHub data as backup
           storage.set(CUSTOMERS_KEY, githubData.customers || []);
+          storage.set(LEDGER_KEY, githubData.ledgerEntries || []);
         }
       } else {
         // Load from localStorage
         const storedCustomers = storage.get<Customer[]>(CUSTOMERS_KEY) || [];
+        const storedLedger = storage.get<LedgerEntry[]>(LEDGER_KEY) || [];
         setCustomers(storedCustomers);
+        setLedgerEntries(storedLedger);
       }
     } catch (error) {
       console.error('Error loading customers data:', error);
       // Fallback to localStorage on error
       const storedCustomers = storage.get<Customer[]>(CUSTOMERS_KEY) || [];
+      const storedLedger = storage.get<LedgerEntry[]>(LEDGER_KEY) || [];
       setCustomers(storedCustomers);
+      setLedgerEntries(storedLedger);
     } finally {
       if (mountedRef.current) {
         setLoading(false);
@@ -84,6 +92,9 @@ export const useCustomersWithGitHub = () => {
       if (e.key === `supreme_mgmt_${CUSTOMERS_KEY}`) {
         const newData = e.newValue ? JSON.parse(e.newValue) : [];
         setCustomers(newData);
+      } else if (e.key === `supreme_mgmt_${LEDGER_KEY}`) {
+        const newData = e.newValue ? JSON.parse(e.newValue) : [];
+        setLedgerEntries(newData);
       }
     };
 
@@ -99,7 +110,7 @@ export const useCustomersWithGitHub = () => {
     }
   }, [customers, isAuthenticated, loading]);
 
-  const saveCustomers = (newCustomers: Customer[]) => {
+  const saveCustomers = (newCustomers: Customer[], immediate: boolean = false) => {
     // Save to local state immediately (optimistic update)
     setCustomers(newCustomers);
     storage.set(CUSTOMERS_KEY, newCustomers);
@@ -111,8 +122,8 @@ export const useCustomersWithGitHub = () => {
       url: window.location.href
     }));
     
-    // Notify global sync manager
-    globalSyncManager.markAsChanged();
+    // Notify global sync manager - immediate sync for critical operations
+    globalSyncManager.markAsChanged(immediate);
   };
 
   // Customer operations
@@ -157,7 +168,7 @@ export const useCustomersWithGitHub = () => {
       };
 
       const updatedCustomers = [...customers, newCustomer];
-      saveCustomers(updatedCustomers);
+      saveCustomers(updatedCustomers, true); // Immediate sync for adding customer
       
       return { success: true };
     } catch (error) {
@@ -215,7 +226,7 @@ export const useCustomersWithGitHub = () => {
         return customer;
       });
 
-      saveCustomers(updatedCustomers);
+      saveCustomers(updatedCustomers, true); // Immediate sync for updating customer
       return { success: true };
     } catch (error) {
       console.error('Error updating customer:', error);
@@ -237,7 +248,7 @@ export const useCustomersWithGitHub = () => {
       }
 
       const updatedCustomers = customers.filter(c => c.id !== id);
-      saveCustomers(updatedCustomers);
+      saveCustomers(updatedCustomers, true); // Immediate sync for deleting customer
       
       return { success: true, warning };
     } catch (error) {
@@ -325,16 +336,45 @@ export const useCustomersWithGitHub = () => {
     }
   }, [customers]);
 
+  // Get customer balance from ledger
+  const getCustomerBalanceFromLedger = useCallback((customerId: string): number => {
+    const customerEntries = ledgerEntries
+      .filter(e => e.customerId === customerId)
+      .sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
+    
+    if (customerEntries.length === 0) {
+      // If no ledger entries, return the customer's initial balance
+      const customer = customers.find(c => c.id === customerId);
+      return customer?.balance || 0;
+    }
+    
+    // Return the running balance of the last entry
+    return customerEntries[customerEntries.length - 1].runningBalance;
+  }, [ledgerEntries, customers]);
+
+  // Get all customers with their ledger balances
+  const customersWithLedgerBalances = useMemo((): Customer[] => {
+    return customers.map(customer => ({
+      ...customer,
+      balance: getCustomerBalanceFromLedger(customer.id)
+    }));
+  }, [customers, getCustomerBalanceFromLedger]);
+
   // Calculate statistics
   const getStatistics = useCallback(() => {
-    const totalCustomers = customers.length;
-    const totalPositiveBalance = customers
+    const totalCustomers = customersWithLedgerBalances.length;
+    const totalPositiveBalance = customersWithLedgerBalances
       .filter(c => c.balance > 0)
       .reduce((sum, c) => sum + c.balance, 0);
-    const totalNegativeBalance = customers
+    const totalNegativeBalance = customersWithLedgerBalances
       .filter(c => c.balance < 0)
       .reduce((sum, c) => sum + Math.abs(c.balance), 0);
-    const customersWithDebt = customers.filter(c => c.balance < 0).length;
+    const customersWithDebt = customersWithLedgerBalances.filter(c => c.balance < 0).length;
 
     return {
       totalCustomers,
@@ -342,7 +382,7 @@ export const useCustomersWithGitHub = () => {
       totalNegativeBalance,
       customersWithDebt
     };
-  }, [customers]);
+  }, [customersWithLedgerBalances]);
 
   // Force sync method - delegate to global sync manager
   const forceSync = useCallback(async () => {
@@ -354,6 +394,7 @@ export const useCustomersWithGitHub = () => {
 
   return {
     customers,
+    customersWithLedgerBalances,
     loading,
     pendingChanges,
     lastSyncError,
@@ -363,6 +404,7 @@ export const useCustomersWithGitHub = () => {
     deleteCustomer,
     updateCustomerBalance,
     getCustomerById,
+    getCustomerBalanceFromLedger,
     searchCustomers,
     getCustomersByState,
     getCustomersByBalance,
