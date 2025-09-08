@@ -146,7 +146,8 @@ export const useCustomersDirect = () => {
     credit: number,
     referenceId?: string,
     referenceNumber?: string,
-    date: Date = new Date()
+    date: Date = new Date(),
+    notes?: string
   ): { success: boolean; error?: string } => {
     try {
       const customer = customers.find(c => c.id === customerId);
@@ -155,8 +156,11 @@ export const useCustomersDirect = () => {
       }
       
       // Calculate running balance
+      // Balance is negative when customer owes money, positive when they have credit
+      // Debit increases what they owe (makes balance more negative)
+      // Credit reduces what they owe (makes balance more positive)
       const prevBalance = customer.balance || 0;
-      const runningBalance = prevBalance + debit - credit;
+      const runningBalance = prevBalance - debit + credit;
       
       const now = new Date();
       const newEntry: LedgerEntry = {
@@ -171,6 +175,7 @@ export const useCustomersDirect = () => {
         debit,
         credit,
         runningBalance,
+        notes,
         createdAt: now,
         updatedAt: now
       };
@@ -215,7 +220,8 @@ export const useCustomersDirect = () => {
       const customer = customers.find(c => c.id === entry.customerId);
       if (customer) {
         // Reverse the balance change
-        const balanceAdjustment = -entry.debit + entry.credit;
+        // When deleting, we need to undo the effect: add back debit, subtract credit
+        const balanceAdjustment = entry.debit - entry.credit;
         const newBalance = (customer.balance || 0) + balanceAdjustment;
         
         const updatedCustomersList = customers.map(c => {
@@ -272,6 +278,72 @@ export const useCustomersDirect = () => {
       customersWithDebt
     };
   }, [customers]);
+
+  // Recalculate all running balances (to fix existing incorrect entries)
+  const recalculateAllBalances = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      console.log('Starting balance recalculation for all customers...');
+      
+      // Group entries by customer
+      const customerGroups = new Map<string, LedgerEntry[]>();
+      ledgerEntries.forEach(entry => {
+        if (!customerGroups.has(entry.customerId)) {
+          customerGroups.set(entry.customerId, []);
+        }
+        customerGroups.get(entry.customerId)!.push(entry);
+      });
+
+      // Process each customer
+      const updatedEntries: LedgerEntry[] = [];
+      const updatedCustomersList: Customer[] = [...customers];
+
+      customerGroups.forEach((entries, customerId) => {
+        // Sort entries by date and creation time
+        const sortedEntries = [...entries].sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          if (dateA !== dateB) return dateA - dateB;
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+
+        // Recalculate running balance for each entry
+        let runningBalance = 0;
+        sortedEntries.forEach(entry => {
+          // Apply the transaction to the running balance
+          runningBalance = runningBalance - entry.debit + entry.credit;
+          
+          // Update the entry with correct balance
+          updatedEntries.push({
+            ...entry,
+            runningBalance,
+            updatedAt: new Date()
+          });
+        });
+
+        // Update the customer's final balance
+        const customerIndex = updatedCustomersList.findIndex(c => c.id === customerId);
+        if (customerIndex !== -1) {
+          updatedCustomersList[customerIndex] = {
+            ...updatedCustomersList[customerIndex],
+            balance: runningBalance,
+            updatedAt: new Date()
+          };
+        }
+      });
+
+      // Save the corrected data
+      await Promise.all([
+        updateLedgerEntries(updatedEntries),
+        updateCustomers(updatedCustomersList)
+      ]);
+
+      console.log(`Successfully recalculated balances for ${customerGroups.size} customers`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error recalculating balances:', error);
+      return { success: false, error: 'Failed to recalculate balances' };
+    }
+  }, [ledgerEntries, customers, updateLedgerEntries, updateCustomers]);
   
   return {
     // Data
@@ -297,6 +369,7 @@ export const useCustomersDirect = () => {
     addLedgerEntry,
     deleteLedgerEntry,
     getCustomerLedger,
+    recalculateAllBalances,
     
     // Sync operations
     forceSync,

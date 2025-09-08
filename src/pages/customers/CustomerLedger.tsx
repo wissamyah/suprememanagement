@@ -177,7 +177,7 @@ export const CustomerLedger = () => {
     amount: number,
     paymentMethod: LedgerEntry['paymentMethod'],
     referenceNumber: string,
-    _notes: string,
+    notes: string,
     date: Date
   ) => {
     if (!customerId || !currentCustomer) {
@@ -193,7 +193,8 @@ export const CustomerLedger = () => {
       amount, // Credit amount
       undefined,
       referenceNumber,
-      date
+      date,
+      notes
     );
     
     if (result.success) {
@@ -211,7 +212,7 @@ export const CustomerLedger = () => {
     debit: number,
     credit: number,
     description: string,
-    _notes: string,
+    notes: string,
     date: Date
   ) => {
     if (!customerId || !currentCustomer) {
@@ -227,7 +228,8 @@ export const CustomerLedger = () => {
       credit,
       undefined,
       undefined,
-      date
+      date,
+      notes
     );
     
     if (result.success) {
