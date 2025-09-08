@@ -207,6 +207,14 @@ export const useSalesDirect = () => {
   ): { success: boolean; error?: string } => {
     try {
       const now = new Date();
+      
+      // Find the existing sale
+      const existingSale = sales.find(s => s.id === id);
+      if (!existingSale) {
+        return { success: false, error: 'Sale not found' };
+      }
+      
+      // Update the sale
       const updatedSalesList = sales.map(sale => {
         if (sale.id === id) {
           return {
@@ -218,15 +226,61 @@ export const useSalesDirect = () => {
         return sale;
       });
       
-      // Fire and forget
-      updateSales(updatedSalesList).catch(console.error);
+      // If totalAmount changed, update the corresponding ledger entry
+      if (updates.totalAmount !== undefined && updates.totalAmount !== existingSale.totalAmount) {
+        const newTotalAmount = updates.totalAmount;
+        const updatedLedgerEntries = ledgerEntries.map(entry => {
+          // Find the ledger entry for this sale
+          if (entry.referenceId === id && entry.transactionType === 'sale') {
+            return {
+              ...entry,
+              debit: newTotalAmount, // Update the debit amount to match new sale total
+              description: `Sale Order: ${existingSale.orderId}`, // Keep the same description
+              updatedAt: now
+            };
+          }
+          return entry;
+        });
+        
+        // Update customer balance if amount changed
+        const customer = customers.find(c => c.id === existingSale.customerId);
+        if (customer) {
+          const amountDifference = newTotalAmount - existingSale.totalAmount;
+          const updatedCustomersList = customers.map(c => {
+            if (c.id === existingSale.customerId) {
+              return {
+                ...c,
+                balance: (c.balance || 0) + amountDifference,
+                updatedAt: now
+              };
+            }
+            return c;
+          });
+          
+          // Fire and forget all updates
+          Promise.all([
+            updateSales(updatedSalesList),
+            updateLedgerEntries(updatedLedgerEntries),
+            updateCustomers(updatedCustomersList)
+          ]).catch(console.error);
+        } else {
+          // Fire and forget updates without customer update
+          Promise.all([
+            updateSales(updatedSalesList),
+            updateLedgerEntries(updatedLedgerEntries)
+          ]).catch(console.error);
+        }
+      } else {
+        // Fire and forget - only update sales if amount didn't change
+        updateSales(updatedSalesList).catch(console.error);
+      }
       
       return { success: true };
     } catch (error) {
       console.error('Error updating sale:', error);
       return { success: false, error: 'Failed to update sale' };
     }
-  }, [sales, updateSales]);
+  }, [sales, customers, ledgerEntries, updateSales, updateLedgerEntries, updateCustomers]);
   
   // Delete sale
   const deleteSale = useCallback((id: string): { success: boolean; error?: string } => {
