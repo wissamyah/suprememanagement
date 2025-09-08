@@ -8,8 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "npm run build && git add -f dist/ && git commit -m 'Build for deployment' && git push origin main && git subtree push --prefix=dist origin gh-pages"
   },
   "dependencies": {
     "clsx": "^2.1.1",
