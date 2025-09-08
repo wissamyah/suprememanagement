@@ -14,7 +14,6 @@ import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 import GitHubAuthModal from './components/GitHubAuthModal';
 import githubStorage from './services/githubStorage';
-import { globalSyncManager } from './services/globalSyncManager';
 import { githubDataManager } from './services/githubDataManager';
 
 // Context for GitHub storage
@@ -23,10 +22,6 @@ interface GitHubContextType {
   isLoading: boolean;
   syncStatus: 'idle' | 'syncing' | 'success' | 'error';
   lastSync: string | null;
-  pendingChanges?: number;
-  pendingDetails?: any;
-  syncError?: string | null;
-  syncInProgress?: boolean;
   syncData: () => Promise<void>;
   logout: () => void;
 }
@@ -46,45 +41,14 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [lastSync, setLastSync] = useState<string | null>(null);
-  const [pendingChanges, setPendingChanges] = useState<number>(0);
-  const [pendingDetails, setPendingDetails] = useState<any>({});
-  const [syncError, setSyncError] = useState<string | null>(null);
-  const [syncInProgress, setSyncInProgress] = useState(false);
   const mountedRef = useRef(true);
 
   // Cleanup on unmount
   useEffect(() => {
     mountedRef.current = true;
     
-    // Subscribe to global sync state
-    const unsubscribe = globalSyncManager.subscribe((syncState) => {
-      if (mountedRef.current) {
-        setPendingChanges(syncState.pendingChanges);
-        setPendingDetails(syncState.pendingDetails || {});
-        setSyncError(syncState.error);
-        setSyncInProgress(syncState.isInProgress);
-        
-        // Update sync status based on state
-        if (syncState.isInProgress) {
-          setSyncStatus('syncing');
-        } else if (syncState.error) {
-          setSyncStatus('error');
-        } else if (syncState.lastSync && Date.now() - syncState.lastSync.getTime() < 3000) {
-          setSyncStatus('success');
-          setTimeout(() => {
-            if (mountedRef.current) setSyncStatus('idle');
-          }, 3000);
-        }
-        
-        if (syncState.lastSync) {
-          setLastSync(syncState.lastSync.toISOString());
-        }
-      }
-    });
-    
     return () => {
       mountedRef.current = false;
-      unsubscribe();
     };
   }, []);
 
@@ -160,8 +124,7 @@ function App() {
       console.error('Failed to load data from GitHub:', error);
       if (mountedRef.current) {
         setSyncStatus('error');
-        setSyncError(error instanceof Error ? error.message : 'Failed to load data');
-        setTimeout(() => {
+          setTimeout(() => {
           if (mountedRef.current) setSyncStatus('idle');
         }, 5000);
       }
@@ -174,22 +137,32 @@ function App() {
       return;
     }
 
-    // Use global sync manager for syncing
-    const success = await globalSyncManager.forceSync();
-    
-    if (!success && mountedRef.current) {
-      setSyncStatus('error');
-      setTimeout(() => {
-        if (mountedRef.current) setSyncStatus('idle');
-      }, 5000);
+    // Direct sync with GitHub
+    try {
+      setSyncStatus('syncing');
+      await githubStorage.loadAllData();
+      
+      if (mountedRef.current) {
+        setLastSync(new Date().toISOString());
+        setSyncStatus('success');
+        setTimeout(() => {
+          if (mountedRef.current) setSyncStatus('idle');
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Sync failed:', error);
+      if (mountedRef.current) {
+        setSyncStatus('error');
+        setTimeout(() => {
+          if (mountedRef.current) setSyncStatus('idle');
+        }, 5000);
+      }
     }
   };
 
   const handleAuthSuccess = async () => {
     if (mountedRef.current) {
       setIsAuthenticated(true);
-      // Initialize global sync manager on successful auth
-      globalSyncManager.initialize(true);
       setShowAuthModal(false);
       await loadDataFromGitHub();
     }
@@ -197,15 +170,10 @@ function App() {
 
   const handleLogout = () => {
     githubStorage.clearAuthentication();
-    // Destroy global sync manager on logout
-    globalSyncManager.destroy();
     if (mountedRef.current) {
       setIsAuthenticated(false);
       setLastSync(null);
       setSyncStatus('idle');
-      setSyncError(null);
-      setPendingChanges(0);
-      setPendingDetails({});
       // Immediately show the auth modal after logout
       setShowAuthModal(true);
     }
@@ -216,10 +184,6 @@ function App() {
     isLoading,
     syncStatus,
     lastSync,
-    pendingChanges,
-    pendingDetails,
-    syncError,
-    syncInProgress,
     syncData,
     logout: handleLogout
   };
