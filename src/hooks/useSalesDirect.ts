@@ -141,6 +141,16 @@ export const useSalesDirect = () => {
         }
       });
       
+      // Get the previous balance from the most recent ledger entry
+      const customerLedgerEntries = ledgerEntries.filter(e => e.customerId === customerId);
+      const sortedLedgerEntries = customerLedgerEntries.sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        if (dateA !== dateB) return dateB - dateA; // Most recent first
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      const previousBalance = sortedLedgerEntries.length > 0 ? sortedLedgerEntries[0].runningBalance : 0;
+      
       // Create ledger entry
       const ledgerEntry: LedgerEntry = {
         id: generateId(),
@@ -153,17 +163,17 @@ export const useSalesDirect = () => {
         description: `Sale ${orderId}`,
         debit: total, // Customer owes this amount
         credit: 0,
-        runningBalance: (customer.balance || 0) - total,
+        runningBalance: previousBalance - total, // Debit reduces balance (makes it more negative)
         createdAt: now,
         updatedAt: now
       };
       
-      // Update customer balance
+      // Update customer balance to match the ledger entry
       const updatedCustomersList = customers.map(c => {
         if (c.id === customerId) {
           return {
             ...c,
-            balance: (c.balance || 0) - total,
+            balance: previousBalance - total, // Use the same calculated balance
             updatedAt: now
           };
         }

@@ -155,11 +155,23 @@ export const useCustomersDirect = () => {
         return { success: false, error: 'Customer not found' };
       }
       
+      // Get all existing entries for this customer to find the previous balance
+      const customerEntries = ledgerEntries.filter(e => e.customerId === customerId);
+      
+      // Sort entries by date and creation time to find the most recent one
+      const sortedEntries = customerEntries.sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        if (dateA !== dateB) return dateB - dateA; // Most recent first
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      
       // Calculate running balance
       // Balance is negative when customer owes money, positive when they have credit
       // Debit increases what they owe (makes balance more negative)
       // Credit reduces what they owe (makes balance more positive)
-      const prevBalance = customer.balance || 0;
+      // Use the running balance from the most recent entry, or 0 if no entries exist
+      const prevBalance = sortedEntries.length > 0 ? sortedEntries[0].runningBalance : 0;
       const runningBalance = prevBalance - debit + credit;
       
       const now = new Date();
