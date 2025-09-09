@@ -120,6 +120,7 @@ export const AddProductModal = ({
             className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text"
             placeholder="Enter product name"
             required
+            autoFocus
           />
         </div>
 

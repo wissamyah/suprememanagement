@@ -127,6 +127,7 @@ export const AddSupplierModal = ({ isOpen, onClose, onAdd }: AddSupplierModalPro
               placeholder="Enter supplier name"
               className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
               required
+              autoFocus
             />
           </div>
         </div>

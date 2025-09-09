@@ -145,6 +145,7 @@ export const PaymentModal = ({
             }`}
             placeholder="Enter amount"
             disabled={isSubmitting}
+            autoFocus
           />
           {errors.amount && (
             <p className="text-red-400 text-xs mt-1">{errors.amount}</p>

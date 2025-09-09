@@ -218,6 +218,7 @@ export const AddLoadingModal = ({
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
               className="w-full p-2.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+              autoFocus
             >
               <option value="">Select customer with bookings</option>
               {customersWithBookings.map(customer => (

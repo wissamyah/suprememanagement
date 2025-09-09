@@ -59,7 +59,8 @@ export const useSalesDirect = () => {
       price: number;
       total: number;
     }>,
-    date: Date = new Date()
+    date: Date = new Date(),
+    paymentStatus: 'pending' | 'partial' | 'paid' = 'pending'
   ): { success: boolean; sale?: Sale; error?: string } => {
     try {
       const customer = customers.find(c => c.id === customerId);
@@ -78,7 +79,7 @@ export const useSalesDirect = () => {
         customerName: customer.name,
         items,
         totalAmount: total,
-        paymentStatus: 'pending',
+        paymentStatus,
         date,
         createdAt: now,
         updatedAt: now

@@ -58,7 +58,7 @@ export const Sales = () => {
     customerId: string,
     date: Date,
     items: any[],
-    _paymentStatus: 'pending' | 'partial' | 'paid'
+    paymentStatus: 'pending' | 'partial' | 'paid'
   ) => {
     // Map items to the required format
     const mappedItems = items.map(item => ({
@@ -70,7 +70,7 @@ export const Sales = () => {
       total: item.total || (item.quantity * (item.price || item.unitPrice || 0))
     }));
     
-    const result = addSale(customerId, mappedItems, date);
+    const result = addSale(customerId, mappedItems, date, paymentStatus);
     if (result.success) {
       showSuccess('Sale created successfully');
       setShowAddModal(false);
