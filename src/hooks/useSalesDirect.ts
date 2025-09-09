@@ -94,18 +94,18 @@ export const useSalesDirect = () => {
         if (productIndex !== -1) {
           const product = updatedProductsList[productIndex];
           
-          // Create movement
+          // Create movement (sales don't affect physical stock, only book it)
           const movement: InventoryMovement = {
             id: generateId(),
             productId: item.productId,
             productName: item.productName,
             movementType: 'sales',
-            quantity: item.quantity,
+            quantity: 0, // No physical stock change, only booking
             previousQuantity: product.quantityOnHand,
             newQuantity: product.quantityOnHand, // On-hand doesn't change until loading
             reference: `Sale: ${orderId}`,
             referenceId: newSale.id,
-            notes: `Sold to ${customer.name}`,
+            notes: `Booked ${item.quantity} ${item.unit} for ${customer.name} (no physical stock change)`,
             date,
             createdAt: now,
             updatedAt: now
@@ -354,18 +354,18 @@ export const useSalesDirect = () => {
           if (!existingMovementProductIds.has(item.productId)) {
             const product = products.find(p => p.id === item.productId);
             if (product) {
-              // Create new movement entry for new product
+              // Create new movement entry for new product (sales don't affect physical stock)
               const newMovement: InventoryMovement = {
                 id: generateId(),
                 productId: item.productId,
                 productName: item.productName,
                 movementType: 'sales',
-                quantity: item.quantity,
+                quantity: 0, // No physical stock change, only booking
                 previousQuantity: product.quantityOnHand,
                 newQuantity: product.quantityOnHand, // On-hand doesn't change until loading
                 reference: `Sale: ${existingSale.orderId}`,
                 referenceId: id,
-                notes: `Sold to ${existingSale.customerName}`,
+                notes: `Booked ${item.quantity} ${item.unit} for ${existingSale.customerName} (no physical stock change)`,
                 date: existingSale.date,
                 createdAt: now,
                 updatedAt: now

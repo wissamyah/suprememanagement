@@ -82,11 +82,25 @@ export const CustomerLedger = () => {
       // This ensures the memo recalculates when ledgerEntries changes
       return ledgerEntries
         .filter(l => l.customerId === customerId)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        .sort((a, b) => {
+          // Sort by date first (newest first)
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          if (dateB !== dateA) return dateB - dateA;
+          // If same date, sort by creation time (newest first)
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
     } else {
       // All customers view - show all ledger entries
       return ledgerEntries
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        .sort((a, b) => {
+          // Sort by date first (newest first)
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          if (dateB !== dateA) return dateB - dateA;
+          // If same date, sort by creation time (newest first)
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
     }
   }, [customerId, ledgerEntries]);
   

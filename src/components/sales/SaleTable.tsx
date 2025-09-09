@@ -44,11 +44,13 @@ export const SaleTable = ({
       );
     });
     
-    // Sort by date - newest first
+    // Sort by date - newest first, then by creation time if same date
     return filtered.sort((a, b) => {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
-      return dateB - dateA;
+      if (dateB !== dateA) return dateB - dateA;
+      // If same date, sort by creation time (newest first)
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }, [sales, dateFilter, searchTerm]);
 

@@ -38,6 +38,10 @@ export const useLoadingsDirect = () => {
     updateData: updateBookedStock
   } = useGitHubData<BookedStock>({ dataType: 'bookedStock', immediate: true });
   
+  const {
+    data: sales
+  } = useGitHubData<import('../types').Sale>({ dataType: 'sales', immediate: true });
+  
   const loading = loadingsLoading;
   const error = loadingsError;
   
@@ -108,7 +112,7 @@ export const useLoadingsDirect = () => {
             productId: item.productId,
             productName: item.productName,
             movementType: 'loading',
-            quantity: item.quantity,
+            quantity: -item.quantity, // Negative because it removes stock
             previousQuantity: product.quantityOnHand,
             newQuantity: product.quantityOnHand - item.quantity,
             reference: `Loading: ${loadingNumber}`,
@@ -127,16 +131,20 @@ export const useLoadingsDirect = () => {
             updatedAt: now
           };
           
-          // If this is for a sale, update booked stock status
-          if (item.saleId) {
+          // Update booked stock status and loaded quantity
+          if (item.bookedStockId) {
             const bookedIndex = updatedBookedStockList.findIndex(
-              b => b.saleId === item.saleId && b.productId === item.productId
+              b => b.id === item.bookedStockId
             );
             if (bookedIndex !== -1) {
+              const booking = updatedBookedStockList[bookedIndex];
+              const newQuantityLoaded = booking.quantityLoaded + item.quantity;
+              const isFullyLoaded = newQuantityLoaded >= booking.quantity;
+              
               updatedBookedStockList[bookedIndex] = {
-                ...updatedBookedStockList[bookedIndex],
-                status: 'fully-loaded' as const,
-                quantityLoaded: updatedBookedStockList[bookedIndex].quantity,
+                ...booking,
+                quantityLoaded: newQuantityLoaded,
+                status: isFullyLoaded ? 'fully-loaded' : 'partial-loaded',
                 updatedAt: now
               };
               
@@ -162,7 +170,7 @@ export const useLoadingsDirect = () => {
         updateProducts(updatedProductsList)
       ];
       
-      if (items.some(item => item.saleId)) {
+      if (items.some(item => item.bookedStockId)) {
         updates.push(updateBookedStock(updatedBookedStockList));
       }
       
@@ -217,8 +225,39 @@ export const useLoadingsDirect = () => {
         return { success: false, error: 'Loading not found' };
       }
       
-      // Loadings can be deleted if needed
-      // In the future, we may want to check status
+      // Revert product quantities and booked stock
+      const updatedProductsList = [...products];
+      const updatedBookedStockList = [...bookedStock];
+      
+      loadingToDelete.items.forEach(item => {
+        // Revert product quantities
+        const productIndex = updatedProductsList.findIndex(p => p.id === item.productId);
+        if (productIndex !== -1) {
+          const product = updatedProductsList[productIndex];
+          updatedProductsList[productIndex] = {
+            ...product,
+            quantityOnHand: product.quantityOnHand + item.quantity,
+            quantityBooked: (product.quantityBooked || 0) + item.quantity,
+            availableQuantity: product.quantityOnHand + item.quantity - ((product.quantityBooked || 0) + item.quantity),
+            updatedAt: new Date()
+          };
+        }
+        
+        // Revert booked stock
+        if (item.bookedStockId) {
+          const bookedIndex = updatedBookedStockList.findIndex(b => b.id === item.bookedStockId);
+          if (bookedIndex !== -1) {
+            const booking = updatedBookedStockList[bookedIndex];
+            const newQuantityLoaded = Math.max(0, booking.quantityLoaded - item.quantity);
+            updatedBookedStockList[bookedIndex] = {
+              ...booking,
+              quantityLoaded: newQuantityLoaded,
+              status: newQuantityLoaded === 0 ? 'pending' : 'partial-loaded',
+              updatedAt: new Date()
+            };
+          }
+        }
+      });
       
       // Remove loading
       const updatedLoadingsList = loadings.filter(l => l.id !== id);
@@ -226,16 +265,20 @@ export const useLoadingsDirect = () => {
       // Remove related movements
       const updatedMovementsList = movements.filter(m => m.referenceId !== id);
       
-      // Fire and forget
+      // Fire and forget - update all
       updateLoadings(updatedLoadingsList).catch(console.error);
       updateMovements(updatedMovementsList).catch(console.error);
+      updateProducts(updatedProductsList).catch(console.error);
+      if (loadingToDelete.items.some(item => item.bookedStockId)) {
+        updateBookedStock(updatedBookedStockList).catch(console.error);
+      }
       
       return { success: true };
     } catch (error) {
       console.error('Error deleting loading:', error);
       return { success: false, error: 'Failed to delete loading' };
     }
-  }, [loadings, movements, updateLoadings, updateMovements]);
+  }, [loadings, movements, products, bookedStock, updateLoadings, updateMovements, updateProducts, updateBookedStock]);
   
   // Get loading by ID
   const getLoadingById = useCallback((id: string): Loading | undefined => {
@@ -289,12 +332,19 @@ export const useLoadingsDirect = () => {
       .filter(booking => 
         booking.customerId === customerId && (booking.status === 'pending' || booking.status === 'confirmed')
       )
-      .map(booking => ({
-        ...booking,
-        availableQuantity: booking.quantity - booking.quantityLoaded,
-        unitPrice: 0 // This should come from the product, but for now we'll default
-      }));
-  }, [bookedStock]);
+      .map(booking => {
+        // Find the sale to get the unit price
+        const sale = sales.find(s => s.id === booking.saleId);
+        const saleItem = sale?.items.find(item => item.productId === booking.productId);
+        const unitPrice = saleItem?.price || 0;
+        
+        return {
+          ...booking,
+          availableQuantity: booking.quantity - booking.quantityLoaded,
+          unitPrice
+        };
+      });
+  }, [bookedStock, sales]);
   
   return {
     // Data

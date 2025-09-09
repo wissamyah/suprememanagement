@@ -320,7 +320,7 @@ export const useInventoryDirect = () => {
         productId: productId,
         productName: product.name,
         movementType: 'adjustment',
-        quantity: Math.abs(difference),
+        quantity: difference, // Use actual difference (positive for increase, negative for decrease)
         previousQuantity: product.quantityOnHand,
         newQuantity: newQuantity,
         reference: 'Stock adjustment',
