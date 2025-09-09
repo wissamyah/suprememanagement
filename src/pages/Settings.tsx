@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useRef } from 'react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Button } from '../components/ui/Button';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
@@ -8,27 +8,25 @@ import {
   Database, 
   AlertTriangle,
   Download,
-  TestTube,
+  Upload,
   Shield,
-  Code
+  FileJson
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { GitHubContext } from '../App';
-import { generateTestData } from '../utils/testDataGenerator';
 import { githubDataManager } from '../services/githubDataManager';
 
 export const Settings = () => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
+  const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importData, setImportData] = useState<any>(null);
+  const [importSummary, setImportSummary] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { isAuthenticated } = useContext(GitHubContext);
   const { toasts, showSuccess, showError, showWarning, removeToast } = useToast();
-  
-  // Check if we're in development mode (localhost)
-  const isDevelopment = window.location.hostname === 'localhost' || 
-                        window.location.hostname === '127.0.0.1';
 
   const handleResetData = async () => {
     setIsResetting(true);
@@ -51,49 +49,166 @@ export const Settings = () => {
     }
   };
 
-  const handleGenerateTestData = async () => {
-    setIsGenerating(true);
+  const validateImportedData = (data: any): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    // Check if it's an object
+    if (typeof data !== 'object' || data === null) {
+      errors.push('Invalid data format: expected an object');
+      return { isValid: false, errors };
+    }
+    
+    // Define allowed keys
+    const allowedKeys = ['products', 'categories', 'movements', 'productionEntries', 
+                         'customers', 'sales', 'ledgerEntries', 'bookedStock', 
+                         'loadings', 'suppliers', 'paddyTrucks', 'metadata'];
+    
+    // Check for unknown keys
+    const dataKeys = Object.keys(data);
+    const unknownKeys = dataKeys.filter(key => !allowedKeys.includes(key));
+    if (unknownKeys.length > 0) {
+      errors.push(`Unknown data types: ${unknownKeys.join(', ')}`);
+    }
+    
+    // Validate arrays
+    const arrayFields = allowedKeys.filter(key => key !== 'metadata');
+    arrayFields.forEach(field => {
+      if (data[field] && !Array.isArray(data[field])) {
+        errors.push(`${field} must be an array`);
+      }
+    });
+    
+    // Validate required fields for each data type
+    if (data.products && Array.isArray(data.products)) {
+      data.products.forEach((product: any, index: number) => {
+        if (!product.id) errors.push(`Product at index ${index} missing 'id'`);
+        if (!product.name) errors.push(`Product at index ${index} missing 'name'`);
+      });
+    }
+    
+    if (data.customers && Array.isArray(data.customers)) {
+      data.customers.forEach((customer: any, index: number) => {
+        if (!customer.id) errors.push(`Customer at index ${index} missing 'id'`);
+        if (!customer.name) errors.push(`Customer at index ${index} missing 'name'`);
+      });
+    }
+    
+    if (data.sales && Array.isArray(data.sales)) {
+      data.sales.forEach((sale: any, index: number) => {
+        if (!sale.id) errors.push(`Sale at index ${index} missing 'id'`);
+        if (!sale.customerId) errors.push(`Sale at index ${index} missing 'customerId'`);
+        if (!sale.items || !Array.isArray(sale.items)) {
+          errors.push(`Sale at index ${index} missing or invalid 'items' array`);
+        }
+      });
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  };
+  
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.name.endsWith('.json')) {
+      showError('Please select a JSON file');
+      return;
+    }
+    
+    setIsImporting(true);
     
     try {
-      if (!isAuthenticated) {
-        showError('You must be authenticated to generate test data');
-        setIsGenerating(false);
-        setShowGenerateConfirm(false);
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      // Validate the data
+      const validation = validateImportedData(data);
+      
+      if (!validation.isValid) {
+        showError(`Invalid data format: ${validation.errors[0]}`);
+        if (validation.errors.length > 1) {
+          console.error('All validation errors:', validation.errors);
+        }
+        setIsImporting(false);
         return;
       }
       
-      const testData = generateTestData();
+      // Create summary
+      const summary = `
+        • Products: ${data.products?.length || 0}
+        • Categories: ${data.categories?.length || 0}
+        • Customers: ${data.customers?.length || 0}
+        • Sales: ${data.sales?.length || 0}
+        • Inventory Movements: ${data.movements?.length || 0}
+        • Production Entries: ${data.productionEntries?.length || 0}
+        • Ledger Entries: ${data.ledgerEntries?.length || 0}
+        • Booked Stock: ${data.bookedStock?.length || 0}
+        • Loadings: ${data.loadings?.length || 0}
+        • Suppliers: ${data.suppliers?.length || 0}
+        • Paddy Trucks: ${data.paddyTrucks?.length || 0}
+      `.trim();
       
-      console.log('Generated test data:', {
-        products: testData.products.length,
-        customers: testData.customers.length,
-        sales: testData.sales.length,
-        ledgerEntries: testData.ledgerEntries.length,
-        bookedStock: testData.bookedStock.length,
-        loadings: testData.loadings?.length || 0
-      });
-      
-      // Save test data directly to GitHub
-      await githubDataManager.updateData('products', testData.products, true);
-      await githubDataManager.updateData('customers', testData.customers, true);
-      await githubDataManager.updateData('sales', testData.sales, true);
-      await githubDataManager.updateData('movements', testData.movements, true);
-      await githubDataManager.updateData('categories', testData.categories, true);
-      await githubDataManager.updateData('ledgerEntries', testData.ledgerEntries, true);
-      await githubDataManager.updateData('bookedStock', testData.bookedStock, true);
-      await githubDataManager.updateData('loadings', testData.loadings || [], true);
-      
-      showSuccess(`Generated test data: ${testData.products.length} products, ${testData.customers.length} customers, ${testData.sales.length} sales, ${testData.ledgerEntries.length} ledger entries, ${testData.bookedStock.length} bookings, ${testData.loadings?.length || 0} loadings`);
-      
-      setIsGenerating(false);
-      
+      setImportData(data);
+      setImportSummary(summary);
+      setShowImportConfirm(true);
     } catch (error) {
-      console.error('Error generating test data:', error);
-      showError('Failed to generate test data');
-      setIsGenerating(false);
+      console.error('Error reading file:', error);
+      showError('Failed to read file. Please ensure it is a valid JSON file.');
+    } finally {
+      setIsImporting(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
+  };
+  
+  const handleImportData = async () => {
+    if (!importData) return;
     
-    setShowGenerateConfirm(false);
+    setIsImporting(true);
+    
+    try {
+      if (!isAuthenticated) {
+        showError('You must be authenticated to import data');
+        setIsImporting(false);
+        setShowImportConfirm(false);
+        return;
+      }
+      
+      showWarning('Importing data...');
+      
+      // Use batch update for better performance
+      githubDataManager.startBatchUpdate();
+      
+      // Update each data type if present
+      if (importData.products) await githubDataManager.updateData('products', importData.products, true);
+      if (importData.categories) await githubDataManager.updateData('categories', importData.categories, true);
+      if (importData.customers) await githubDataManager.updateData('customers', importData.customers, true);
+      if (importData.sales) await githubDataManager.updateData('sales', importData.sales, true);
+      if (importData.movements) await githubDataManager.updateData('movements', importData.movements, true);
+      if (importData.productionEntries) await githubDataManager.updateData('productionEntries', importData.productionEntries, true);
+      if (importData.ledgerEntries) await githubDataManager.updateData('ledgerEntries', importData.ledgerEntries, true);
+      if (importData.bookedStock) await githubDataManager.updateData('bookedStock', importData.bookedStock, true);
+      if (importData.loadings) await githubDataManager.updateData('loadings', importData.loadings, true);
+      if (importData.suppliers) await githubDataManager.updateData('suppliers', importData.suppliers, true);
+      if (importData.paddyTrucks) await githubDataManager.updateData('paddyTrucks', importData.paddyTrucks, true);
+      
+      // End batch update
+      await githubDataManager.endBatchUpdate();
+      
+      showSuccess('Data imported successfully!');
+      
+      // Clear import data
+      setImportData(null);
+      setImportSummary('');
+    } catch (error) {
+      console.error('Error importing data:', error);
+      showError('Failed to import data');
+    } finally {
+      setIsImporting(false);
+      setShowImportConfirm(false);
+    }
   };
 
   const handleExportAllData = async () => {
@@ -160,6 +275,36 @@ export const Settings = () => {
             </div>
           </div>
 
+          {/* Import Section */}
+          <div className="p-4 glass rounded-lg">
+            <div className="flex items-start gap-3">
+              <Upload className="text-blue-400 mt-1" size={20} />
+              <div className="flex-1">
+                <h3 className="font-medium mb-1">Import Data</h3>
+                <p className="text-sm text-muted mb-3">
+                  Import data from a previously exported JSON file. This will replace all existing data.
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="import-file-input"
+                />
+                <Button 
+                  variant="primary" 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isImporting}
+                  loading={isImporting}
+                >
+                  <FileJson size={16} />
+                  Import Data from JSON
+                </Button>
+              </div>
+            </div>
+          </div>
+
           {/* Reset Data Section */}
           <div className="p-4 glass rounded-lg border border-red-500/20">
             <div className="flex items-start gap-3">
@@ -219,76 +364,6 @@ export const Settings = () => {
         </div>
       </GlassCard>
 
-      {/* Development Tools Section - Only show in development */}
-      {isDevelopment && (
-        <GlassCard>
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Code className="text-purple-400" size={24} />
-              <h2 className="text-xl font-semibold">Development Tools</h2>
-              <span className="px-2 py-1 text-xs bg-purple-500/20 text-purple-400 rounded-full">
-                Dev Mode
-              </span>
-            </div>
-
-            {/* Test Data Generator */}
-            <div className="p-4 glass rounded-lg">
-              <div className="flex items-start gap-3">
-                <TestTube className="text-yellow-400 mt-1" size={20} />
-                <div className="flex-1">
-                  <h3 className="font-medium mb-1">Generate Test Data</h3>
-                  <p className="text-sm text-muted mb-3">
-                    Quickly populate your database with sample data for testing. This will create products, customers, sales, complete ledger entries with various transaction types (advance payments, sales, payments, credit notes, adjustments), booked stock, and loadings using realistic Nigerian data.
-                  </p>
-                  <Button 
-                    variant="primary" 
-                    onClick={() => setShowGenerateConfirm(true)}
-                    disabled={isGenerating}
-                    loading={isGenerating}
-                    loadingText="Generating..."
-                  >
-                    <TestTube size={16} />
-                    Generate Test Data
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="p-4 glass rounded-lg">
-              <h3 className="font-medium mb-3">Quick Console Commands</h3>
-              <div className="space-y-2 font-mono text-xs">
-                <div className="p-2 bg-black/30 rounded">
-                  <span className="text-green-400">// Clear all data</span><br/>
-                  githubDataManager.clearAllData()
-                </div>
-                <div className="p-2 bg-black/30 rounded">
-                  <span className="text-green-400">// Get all data</span><br/>
-                  githubDataManager.getAllData()
-                </div>
-                <div className="p-2 bg-black/30 rounded">
-                  <span className="text-green-400">// Force sync</span><br/>
-                  githubDataManager.forceSync()
-                </div>
-              </div>
-            </div>
-          </div>
-        </GlassCard>
-      )}
-
-      {/* Security Note */}
-      <GlassCard>
-        <div className="flex items-start gap-3">
-          <Shield className="text-blue-400 mt-1" size={20} />
-          <div>
-            <h3 className="font-medium mb-1">Data Security</h3>
-            <p className="text-sm text-muted">
-              Your data is stored locally in your browser and optionally synced to your private GitHub repository. 
-              No data is sent to external servers. Always backup your data before performing reset operations.
-            </p>
-          </div>
-        </div>
-      </GlassCard>
 
       {/* Reset Confirmation Modal */}
       <ConfirmModal
@@ -300,14 +375,26 @@ export const Settings = () => {
         confirmText="Yes, Reset Everything"
       />
 
-      {/* Generate Test Data Confirmation Modal */}
+      {/* Import Data Confirmation Modal */}
       <ConfirmModal
-        isOpen={showGenerateConfirm}
-        onClose={() => setShowGenerateConfirm(false)}
-        onConfirm={handleGenerateTestData}
-        title="Generate Test Data"
-        message="This will replace your existing data with sample test data. Your current data will be lost unless you've made a backup. Continue?"
-        confirmText="Generate Test Data"
+        isOpen={showImportConfirm}
+        onClose={() => {
+          setShowImportConfirm(false);
+          setImportData(null);
+          setImportSummary('');
+        }}
+        onConfirm={handleImportData}
+        title="Import Data"
+        message={
+          <div>
+            <p className="mb-4">This will replace all your existing data with the imported data. Make sure you have backed up your current data if needed.</p>
+            <div className="p-3 bg-black/30 rounded-lg text-sm font-mono">
+              <p className="font-semibold mb-2">Data to import:</p>
+              <pre className="whitespace-pre-wrap">{importSummary}</pre>
+            </div>
+          </div>
+        }
+        confirmText="Import Data"
       />
 
       {/* Toast Container */}

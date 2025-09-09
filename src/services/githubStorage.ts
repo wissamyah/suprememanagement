@@ -1,9 +1,9 @@
 // GitHub Storage Service for Data Management
 class GitHubStorage {
     private owner: string = 'wissamyah';
-    private repo: string = 'suprememanagement';
+    private repo: string = 'suprememanagement-data';  // Separate private data repo
     private path: string = 'data/data.json';
-    private branch: string = 'data';
+    private branch: string = 'main';  // Use main branch in data repo
     private token: string | null = null;
     private apiBase: string = 'https://api.github.com';
     private saveQueue: Promise<any> | null = null;

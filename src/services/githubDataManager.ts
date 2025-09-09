@@ -61,9 +61,9 @@ class GitHubDataManager {
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly DEBOUNCE_DELAY = 2000; // 2 seconds
   private owner: string = 'wissamyah';
-  private repo: string = 'suprememanagement';
+  private repo: string = 'suprememanagement-data';  // Separate private data repo
   private path: string = 'data/data.json';
-  private branch: string = 'data';
+  private branch: string = 'main';  // Use main branch in data repo
   private token: string | null = null;
   private apiBase: string = 'https://api.github.com';
   
