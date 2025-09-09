@@ -11,12 +11,8 @@ export interface Customer {
 export interface Supplier {
   id: string;
   name: string;
-  email: string;
   phone: string;
-  address: string;
-  category: 'Paddy Supplier' | 'Rice Mill' | 'Grain Supplier' | 'Other';
-  totalBusiness: number;
-  status: 'active' | 'inactive';
+  agent: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -120,19 +116,18 @@ export interface LoadingItem {
 
 export interface PaddyTruck {
   id: string;
-  truckNo: string;
+  date: Date;
   supplierId: string;
   supplierName: string;
-  driver: string;
-  arrivalDate: Date;
-  grossWeight: number;
-  tareWeight: number;
-  netWeight: number;
+  waybillNumber?: string;
+  truckPlate: string;
+  netWeight?: number;
+  deduction?: number;
+  weightAfterDeduction: number;
   moistureLevel: number;
-  quality: 'Grade A' | 'Grade B' | 'Grade C';
   pricePerKg: number;
   totalAmount: number;
-  status: 'waiting' | 'weighing' | 'unloaded' | 'completed';
+  agent: string;
   createdAt: Date;
   updatedAt: Date;
 }

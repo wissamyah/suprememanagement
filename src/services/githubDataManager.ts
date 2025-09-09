@@ -17,6 +17,8 @@ interface DataState {
   ledgerEntries: any[];
   bookedStock: any[];
   loadings: any[];
+  suppliers: any[];
+  paddyTrucks: any[];
 }
 
 interface OfflineOperation {
@@ -41,7 +43,9 @@ class GitHubDataManager {
     sales: [],
     ledgerEntries: [],
     bookedStock: [],
-    loadings: []
+    loadings: [],
+    suppliers: [],
+    paddyTrucks: []
   };
   
   private offlineQueue: OfflineOperation[] = [];
@@ -157,7 +161,9 @@ class GitHubDataManager {
           sales: data.sales || [],
           ledgerEntries: data.ledgerEntries || [],
           bookedStock: data.bookedStock || [],
-          loadings: data.loadings || []
+          loadings: data.loadings || [],
+          suppliers: data.suppliers || [],
+          paddyTrucks: data.paddyTrucks || []
         };
       } else {
         throw new Error(`GitHub API error: ${response.status}`);
@@ -336,7 +342,9 @@ class GitHubDataManager {
             sales: this.mergeArrays(this.memoryData.sales, localData.sales, 'id'),
             ledgerEntries: this.mergeArrays(this.memoryData.ledgerEntries, localData.ledgerEntries, 'id'),
             bookedStock: this.mergeArrays(this.memoryData.bookedStock, localData.bookedStock, 'id'),
-            loadings: this.mergeArrays(this.memoryData.loadings, localData.loadings, 'id')
+            loadings: this.mergeArrays(this.memoryData.loadings, localData.loadings, 'id'),
+            suppliers: this.mergeArrays(this.memoryData.suppliers, localData.suppliers, 'id'),
+            paddyTrucks: this.mergeArrays(this.memoryData.paddyTrucks, localData.paddyTrucks, 'id')
           };
           
           // Update the content with merged data
@@ -552,7 +560,9 @@ class GitHubDataManager {
       sales: [],
       ledgerEntries: [],
       bookedStock: [],
-      loadings: []
+      loadings: [],
+      suppliers: [],
+      paddyTrucks: []
     };
   }
   

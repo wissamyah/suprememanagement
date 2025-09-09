@@ -42,7 +42,7 @@ export const useInventoryDirect = () => {
   // Calculate total booked quantity for a product
   const getTotalBookedQuantity = useCallback((productId: string): number => {
     return bookedStock
-      .filter((item: any) => item.productId === productId && item.status === 'active')
+      .filter((item: any) => item.productId === productId && item.status === 'pending')
       .reduce((total: number, item: any) => total + item.quantity, 0);
   }, [bookedStock]);
   

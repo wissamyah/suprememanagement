@@ -9,7 +9,6 @@ import { Loadings } from './pages/customers/Loadings';
 import { CustomerLedger } from './pages/customers/CustomerLedger';
 import { SupplierList } from './pages/suppliers/SupplierList';
 import { PaddyTrucks } from './pages/suppliers/PaddyTrucks';
-import { SupplierLedger } from './pages/suppliers/SupplierLedger';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 import GitHubAuthModal from './components/GitHubAuthModal';
@@ -213,7 +212,6 @@ function App() {
             <Route path="customers/ledger/:customerId" element={<CustomerLedger />} />
             <Route path="suppliers" element={<SupplierList />} />
             <Route path="suppliers/paddy-trucks" element={<PaddyTrucks />} />
-            <Route path="suppliers/ledger" element={<SupplierLedger />} />
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<Settings />} />
           </Route>

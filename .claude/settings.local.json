@@ -38,7 +38,8 @@
       "Bash(git subtree push:*)",
       "Bash(pkill:*)",
       "Bash(true)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm run deploy:*)"
     ],
     "deny": []
   }

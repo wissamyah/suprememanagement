@@ -51,8 +51,7 @@ const menuItems: MenuItem[] = [
     icon: <Truck size={20} />,
     subItems: [
       { title: 'Supplier List', path: '/suppliers', icon: <List size={18} /> },
-      { title: 'Paddy Trucks', path: '/suppliers/paddy-trucks', icon: <Wheat size={18} /> },
-      { title: 'Ledger', path: '/suppliers/ledger', icon: <BookOpen size={18} /> }
+      { title: 'Paddy Trucks', path: '/suppliers/paddy-trucks', icon: <Wheat size={18} /> }
     ]
   },
   {

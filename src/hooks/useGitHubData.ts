@@ -6,7 +6,7 @@ import { githubDataManager } from '../services/githubDataManager';
 
 // Define the data types available
 type DataType = 'products' | 'categories' | 'movements' | 'productionEntries' | 
-                'customers' | 'sales' | 'ledgerEntries' | 'bookedStock' | 'loadings';
+                'customers' | 'sales' | 'ledgerEntries' | 'bookedStock' | 'loadings' | 'suppliers' | 'paddyTrucks';
 
 interface UseGitHubDataOptions {
   dataType: DataType;
