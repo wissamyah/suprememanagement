@@ -236,11 +236,12 @@ export const useSalesDirect = () => {
         return sale;
       });
       
-      // Initialize variables for booked stock and product updates
+      // Initialize variables for booked stock, product, and movement updates
       let updatedBookedStock: any[] | undefined;
       let updatedProducts: any[] | undefined;
+      let updatedMovements: any[] | undefined;
       
-      // Handle item changes (booked stock and product quantities)
+      // Handle item changes (booked stock, movements, and product quantities)
       if (updates.items && JSON.stringify(updates.items) !== JSON.stringify(existingSale.items)) {
         // Calculate quantity differences for each product
         const oldItemsMap = new Map(existingSale.items.map(item => [item.productId, item]));
@@ -319,18 +320,75 @@ export const useSalesDirect = () => {
           return product;
         });
         
+        // Update movements for this sale
+        const updatedMovementsList = movements.map(movement => {
+          if (movement.referenceId === id && movement.movementType === 'sales') {
+            const newItem = newItemsMap.get(movement.productId);
+            if (newItem) {
+              // Update existing movement entry with new quantity
+              return {
+                ...movement,
+                quantity: newItem.quantity,
+                productName: newItem.productName,
+                notes: `Sold to ${existingSale.customerName}`,
+                updatedAt: now
+              };
+            }
+            // If product not in new items, it will be removed below
+          }
+          return movement;
+        }).filter(movement => {
+          // Remove movements for products no longer in the sale
+          if (movement.referenceId === id && movement.movementType === 'sales') {
+            return newItemsMap.has(movement.productId);
+          }
+          return true;
+        });
+        
+        // Add new movements for new products
+        const existingMovementProductIds = new Set(
+          movements.filter(m => m.referenceId === id && m.movementType === 'sales').map(m => m.productId)
+        );
+        
+        updates.items.forEach(item => {
+          if (!existingMovementProductIds.has(item.productId)) {
+            const product = products.find(p => p.id === item.productId);
+            if (product) {
+              // Create new movement entry for new product
+              const newMovement: InventoryMovement = {
+                id: generateId(),
+                productId: item.productId,
+                productName: item.productName,
+                movementType: 'sales',
+                quantity: item.quantity,
+                previousQuantity: product.quantityOnHand,
+                newQuantity: product.quantityOnHand, // On-hand doesn't change until loading
+                reference: `Sale: ${existingSale.orderId}`,
+                referenceId: id,
+                notes: `Sold to ${existingSale.customerName}`,
+                date: existingSale.date,
+                createdAt: now,
+                updatedAt: now
+              };
+              updatedMovementsList.push(newMovement);
+            }
+          }
+        });
+        
         // Store references to updated data for combined update
         updatedBookedStock = updatedBookedStockList;
         updatedProducts = updatedProductsList;
+        updatedMovements = updatedMovementsList;
       }
       
       // Prepare all updates
       const allUpdates = [updateSales(updatedSalesList)];
       
-      // Add booked stock and product updates if items changed
-      if (updatedBookedStock && updatedProducts) {
+      // Add booked stock, movement, and product updates if items changed
+      if (updatedBookedStock && updatedProducts && updatedMovements) {
         allUpdates.push(updateBookedStock(updatedBookedStock));
         allUpdates.push(updateProducts(updatedProducts));
+        allUpdates.push(updateMovements(updatedMovements));
       }
       
       // If totalAmount changed, update the corresponding ledger entry
@@ -402,8 +460,8 @@ export const useSalesDirect = () => {
       console.error('Error updating sale:', error);
       return { success: false, error: 'Failed to update sale' };
     }
-  }, [sales, customers, ledgerEntries, products, bookedStock, 
-      updateSales, updateLedgerEntries, updateCustomers, updateBookedStock, updateProducts]);
+  }, [sales, customers, ledgerEntries, products, bookedStock, movements,
+      updateSales, updateLedgerEntries, updateCustomers, updateBookedStock, updateProducts, updateMovements]);
   
   // Delete sale
   const deleteSale = useCallback((id: string): { success: boolean; error?: string } => {
