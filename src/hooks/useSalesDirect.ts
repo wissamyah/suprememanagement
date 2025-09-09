@@ -236,6 +236,103 @@ export const useSalesDirect = () => {
         return sale;
       });
       
+      // Initialize variables for booked stock and product updates
+      let updatedBookedStock: any[] | undefined;
+      let updatedProducts: any[] | undefined;
+      
+      // Handle item changes (booked stock and product quantities)
+      if (updates.items && JSON.stringify(updates.items) !== JSON.stringify(existingSale.items)) {
+        // Calculate quantity differences for each product
+        const oldItemsMap = new Map(existingSale.items.map(item => [item.productId, item]));
+        const newItemsMap = new Map(updates.items.map(item => [item.productId, item]));
+        
+        // Update booked stock entries
+        const updatedBookedStockList = bookedStock.map(entry => {
+          if (entry.saleId === id) {
+            const newItem = newItemsMap.get(entry.productId);
+            if (newItem) {
+              // Update existing booked stock entry
+              return {
+                ...entry,
+                quantity: newItem.quantity,
+                productName: newItem.productName,
+                unit: newItem.unit,
+                updatedAt: now
+              };
+            }
+            // If product not in new items, it will be removed below
+          }
+          return entry;
+        }).filter(entry => {
+          // Remove booked stock entries for products no longer in the sale
+          if (entry.saleId === id) {
+            return newItemsMap.has(entry.productId);
+          }
+          return true;
+        });
+        
+        // Add new booked stock entries for new products
+        const existingBookedProductIds = new Set(
+          bookedStock.filter(b => b.saleId === id).map(b => b.productId)
+        );
+        
+        updates.items.forEach(item => {
+          if (!existingBookedProductIds.has(item.productId)) {
+            // Create new booked stock entry for new product
+            const newBookedEntry = {
+              id: generateId(),
+              customerId: existingSale.customerId,
+              customerName: existingSale.customerName,
+              saleId: id,
+              orderId: existingSale.orderId,
+              productId: item.productId,
+              productName: item.productName,
+              quantity: item.quantity,
+              quantityLoaded: 0,
+              unit: item.unit,
+              bookingDate: existingSale.date,
+              status: 'pending' as const,
+              createdAt: now,
+              updatedAt: now
+            };
+            updatedBookedStockList.push(newBookedEntry);
+          }
+        });
+        
+        // Update product quantities
+        const updatedProductsList = products.map(product => {
+          const oldItem = oldItemsMap.get(product.id);
+          const newItem = newItemsMap.get(product.id);
+          
+          if (oldItem || newItem) {
+            const oldQuantity = oldItem?.quantity || 0;
+            const newQuantity = newItem?.quantity || 0;
+            const quantityDiff = newQuantity - oldQuantity;
+            
+            return {
+              ...product,
+              quantityBooked: Math.max(0, (product.quantityBooked || 0) + quantityDiff),
+              availableQuantity: product.quantityOnHand - Math.max(0, (product.quantityBooked || 0) + quantityDiff),
+              updatedAt: now
+            };
+          }
+          return product;
+        });
+        
+        // Store references to updated data for combined update
+        updatedBookedStock = updatedBookedStockList;
+        updatedProducts = updatedProductsList;
+      }
+      
+      // Prepare all updates
+      const allUpdates = [updateSales(updatedSalesList)];
+      
+      // Add booked stock and product updates if items changed
+      if (updatedBookedStock && updatedProducts) {
+        allUpdates.push(updateBookedStock(updatedBookedStock));
+        allUpdates.push(updateProducts(updatedProducts));
+      }
+      
       // If totalAmount changed, update the corresponding ledger entry
       if (updates.totalAmount !== undefined && updates.totalAmount !== existingSale.totalAmount) {
         const newTotalAmount = updates.totalAmount;
@@ -292,23 +389,21 @@ export const useSalesDirect = () => {
           return c;
         });
         
-        // Fire and forget all updates
-        Promise.all([
-          updateSales(updatedSalesList),
-          updateLedgerEntries(updatedLedgerEntries),
-          updateCustomers(updatedCustomersList)
-        ]).catch(console.error);
-      } else {
-        // Fire and forget - only update sales if amount didn't change
-        updateSales(updatedSalesList).catch(console.error);
+        // Add ledger and customer updates
+        allUpdates.push(updateLedgerEntries(updatedLedgerEntries));
+        allUpdates.push(updateCustomers(updatedCustomersList));
       }
+      
+      // Fire and forget all updates together
+      Promise.all(allUpdates).catch(console.error);
       
       return { success: true };
     } catch (error) {
       console.error('Error updating sale:', error);
       return { success: false, error: 'Failed to update sale' };
     }
-  }, [sales, customers, ledgerEntries, updateSales, updateLedgerEntries, updateCustomers]);
+  }, [sales, customers, ledgerEntries, products, bookedStock, 
+      updateSales, updateLedgerEntries, updateCustomers, updateBookedStock, updateProducts]);
   
   // Delete sale
   const deleteSale = useCallback((id: string): { success: boolean; error?: string } => {
