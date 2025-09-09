@@ -666,23 +666,23 @@ class GitHubDataManager {
             this.dataListeners.forEach(listener => listener(this.memoryData));
           }
         };
-      } else {
-        // Fallback to localStorage events for older browsers
-        window.addEventListener('storage', (event) => {
-          if (event.key === 'supreme_data_sync' && event.newValue) {
-            try {
-              const update = JSON.parse(event.newValue);
-              if (update.timestamp > Date.now() - 1000) { // Only process recent updates
-                this.memoryData = update.data;
-                // Notify listeners in this tab
-                this.dataListeners.forEach(listener => listener(this.memoryData));
-              }
-            } catch (error) {
-              console.error('Failed to parse cross-tab update:', error);
-            }
-          }
-        });
       }
+      
+      // Also setup localStorage fallback (always, as additional sync mechanism)
+      window.addEventListener('storage', (event: StorageEvent) => {
+        if (event.key === 'supreme_data_sync' && event.newValue) {
+          try {
+            const update = JSON.parse(event.newValue);
+            if (update.timestamp > Date.now() - 1000) { // Only process recent updates
+              this.memoryData = update.data;
+              // Notify listeners in this tab
+              this.dataListeners.forEach(listener => listener(this.memoryData));
+            }
+          } catch (error) {
+            console.error('Failed to parse cross-tab update:', error);
+          }
+        }
+      });
     } catch (error) {
       console.error('Failed to setup cross-tab sync:', error);
     }
@@ -691,24 +691,26 @@ class GitHubDataManager {
   // Broadcast data changes to other tabs
   private broadcastDataChange(): void {
     try {
+      const updateMessage = {
+        type: 'data_update',
+        data: this.memoryData,
+        timestamp: Date.now()
+      };
+      
+      // Use BroadcastChannel if available
       if (this.broadcastChannel) {
-        // Use BroadcastChannel
-        this.broadcastChannel.postMessage({
-          type: 'data_update',
-          data: this.memoryData,
-          timestamp: Date.now()
-        });
-      } else {
-        // Fallback to localStorage
-        localStorage.setItem('supreme_data_sync', JSON.stringify({
-          data: this.memoryData,
-          timestamp: Date.now()
-        }));
-        // Clean up after a short delay
-        setTimeout(() => {
-          localStorage.removeItem('supreme_data_sync');
-        }, 100);
+        this.broadcastChannel.postMessage(updateMessage);
       }
+      
+      // Also use localStorage for additional sync
+      localStorage.setItem('supreme_data_sync', JSON.stringify({
+        data: this.memoryData,
+        timestamp: Date.now()
+      }));
+      // Clean up after a short delay
+      setTimeout(() => {
+        localStorage.removeItem('supreme_data_sync');
+      }, 100);
     } catch (error) {
       console.error('Failed to broadcast data change:', error);
     }

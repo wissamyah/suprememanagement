@@ -56,7 +56,6 @@ export const CustomerLedger = () => {
     pendingChanges,
     addLedgerEntry,
     deleteLedgerEntry,
-    getCustomerLedger,
     forceSync
   } = useCustomers();
   
