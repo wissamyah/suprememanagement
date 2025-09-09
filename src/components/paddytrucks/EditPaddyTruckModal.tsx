@@ -39,7 +39,6 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
   const [moistureLevel, setMoistureLevel] = useState('');
   const [pricePerKg, setPricePerKg] = useState('');
   const [agent, setAgent] = useState('');
-  const [status, setStatus] = useState<PaddyTruck['status']>('waiting');
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -55,7 +54,6 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
       setMoistureLevel(truck.moistureLevel.toString());
       setPricePerKg(truck.pricePerKg.toString());
       setAgent(truck.agent);
-      setStatus(truck.status);
     }
   }, [truck]);
   

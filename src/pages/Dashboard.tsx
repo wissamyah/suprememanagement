@@ -20,12 +20,11 @@ import { useSalesDirect } from '../hooks/useSalesDirect';
 import { useLoadingsDirect } from '../hooks/useLoadingsDirect';
 import { usePaddyTrucksDirect } from '../hooks/usePaddyTrucksDirect';
 import { useSuppliersDirect } from '../hooks/useSuppliersDirect';
-import type { Sale, InventoryMovement, Loading, PaddyTruck } from '../types';
 
 export const Dashboard = () => {
   // Fetch real data from hooks
-  const { products, movements, loading: inventoryLoading } = useInventoryDirect();
-  const { customers, ledgerEntries, loading: customersLoading } = useCustomersDirect();
+  const { products, loading: inventoryLoading } = useInventoryDirect();
+  const { customers, loading: customersLoading } = useCustomersDirect();
   const { sales, bookedStock, loading: salesLoading } = useSalesDirect();
   const { loadings, loading: loadingsLoading } = useLoadingsDirect();
   const { paddyTrucks, loading: paddyTrucksLoading } = usePaddyTrucksDirect();
@@ -87,10 +86,6 @@ export const Dashboard = () => {
     ).length;
   }, [products]);
 
-  const inventoryValue = useMemo(() => {
-    // This is a simplified calculation - you might want to add unit prices to products
-    return products.reduce((sum, product) => sum + product.quantityOnHand, 0);
-  }, [products]);
 
   // Calculate active orders
   const activeOrders = useMemo(() => {

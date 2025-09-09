@@ -20,7 +20,7 @@ export const SupplierStats = ({ stats, loading }: SupplierStatsProps) => {
       icon: Users,
       color: 'text-blue-400',
       bgColor: 'bg-blue-500/10',
-      format: (val: number) => val.toString()
+      format: (val: number | string) => val.toString()
     },
     {
       title: 'Unique Agents',
@@ -28,7 +28,7 @@ export const SupplierStats = ({ stats, loading }: SupplierStatsProps) => {
       icon: UserCheck,
       color: 'text-green-400',
       bgColor: 'bg-green-500/10',
-      format: (val: number) => val.toString()
+      format: (val: number | string) => val.toString()
     },
     {
       title: 'Top Agent',
@@ -37,7 +37,7 @@ export const SupplierStats = ({ stats, loading }: SupplierStatsProps) => {
       icon: TrendingUp,
       color: 'text-purple-400',
       bgColor: 'bg-purple-500/10',
-      format: (val: any) => typeof val === 'string' ? val : val.toString()
+      format: (val: number | string) => typeof val === 'string' ? val : val.toString()
     }
   ];
 

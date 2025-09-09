@@ -239,47 +239,65 @@ export const useSalesDirect = () => {
       // If totalAmount changed, update the corresponding ledger entry
       if (updates.totalAmount !== undefined && updates.totalAmount !== existingSale.totalAmount) {
         const newTotalAmount = updates.totalAmount;
-        const updatedLedgerEntries = ledgerEntries.map(entry => {
-          // Find the ledger entry for this sale
+        
+        // Get all ledger entries for this customer sorted by date
+        const customerEntries = ledgerEntries
+          .filter(e => e.customerId === existingSale.customerId)
+          .sort((a, b) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            if (dateA !== dateB) return dateA - dateB;
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          });
+        
+        // Recalculate running balances
+        let runningBalance = 0;
+        const updatedCustomerEntries = customerEntries.map(entry => {
+          // Update the debit amount if this is the sale entry being edited
+          let debit = entry.debit;
           if (entry.referenceId === id && entry.transactionType === 'sale') {
+            debit = newTotalAmount;
+          }
+          
+          // Calculate new running balance
+          runningBalance = runningBalance - debit + entry.credit;
+          
+          // Return updated entry if it changed
+          if (entry.referenceId === id || entry.runningBalance !== runningBalance) {
             return {
               ...entry,
-              debit: newTotalAmount, // Update the debit amount to match new sale total
-              description: `Sale Order: ${existingSale.orderId}`, // Keep the same description
+              debit,
+              runningBalance,
               updatedAt: now
             };
           }
           return entry;
         });
         
-        // Update customer balance if amount changed
-        const customer = customers.find(c => c.id === existingSale.customerId);
-        if (customer) {
-          const amountDifference = newTotalAmount - existingSale.totalAmount;
-          const updatedCustomersList = customers.map(c => {
-            if (c.id === existingSale.customerId) {
-              return {
-                ...c,
-                balance: (c.balance || 0) + amountDifference,
-                updatedAt: now
-              };
-            }
-            return c;
-          });
-          
-          // Fire and forget all updates
-          Promise.all([
-            updateSales(updatedSalesList),
-            updateLedgerEntries(updatedLedgerEntries),
-            updateCustomers(updatedCustomersList)
-          ]).catch(console.error);
-        } else {
-          // Fire and forget updates without customer update
-          Promise.all([
-            updateSales(updatedSalesList),
-            updateLedgerEntries(updatedLedgerEntries)
-          ]).catch(console.error);
-        }
+        // Merge updated customer entries back into the full list
+        const updatedLedgerEntries = ledgerEntries.map(entry => {
+          const updated = updatedCustomerEntries.find(e => e.id === entry.id);
+          return updated || entry;
+        });
+        
+        // Update customer's final balance
+        const updatedCustomersList = customers.map(c => {
+          if (c.id === existingSale.customerId) {
+            return {
+              ...c,
+              balance: runningBalance, // Use the final running balance
+              updatedAt: now
+            };
+          }
+          return c;
+        });
+        
+        // Fire and forget all updates
+        Promise.all([
+          updateSales(updatedSalesList),
+          updateLedgerEntries(updatedLedgerEntries),
+          updateCustomers(updatedCustomersList)
+        ]).catch(console.error);
       } else {
         // Fire and forget - only update sales if amount didn't change
         updateSales(updatedSalesList).catch(console.error);

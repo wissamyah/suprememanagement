@@ -56,6 +56,7 @@ class GitHubDataManager {
   private pendingSaves: Set<keyof DataState> = new Set();
   private batchUpdateInProgress: boolean = false;
   private batchUpdateQueue: Array<{ type: keyof DataState; data: any }> = [];
+  private broadcastChannel: BroadcastChannel | null = null;
   
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly DEBOUNCE_DELAY = 2000; // 2 seconds
@@ -73,6 +74,9 @@ class GitHubDataManager {
     
     // Check connection periodically
     setInterval(() => this.checkConnection(), 30000); // Every 30 seconds
+    
+    // Setup cross-tab communication
+    this.setupCrossTabSync();
   }
   
   // Initialize with GitHub token
@@ -591,6 +595,9 @@ class GitHubDataManager {
   // Notify data listeners
   private notifyDataListeners(): void {
     this.dataListeners.forEach(listener => listener(this.memoryData));
+    
+    // Broadcast changes to other tabs
+    this.broadcastDataChange();
   }
   
   // Notify connection listeners
@@ -641,6 +648,69 @@ class GitHubDataManager {
     
     if (this.isOnline) {
       await this.saveToGitHub();
+    }
+  }
+  
+  // Setup cross-tab synchronization
+  private setupCrossTabSync(): void {
+    try {
+      // Use BroadcastChannel if available
+      if ('BroadcastChannel' in window) {
+        this.broadcastChannel = new BroadcastChannel('supreme_data_sync');
+        
+        this.broadcastChannel.onmessage = (event) => {
+          if (event.data.type === 'data_update') {
+            // Update local memory data from another tab's changes
+            this.memoryData = event.data.data;
+            // Notify listeners in this tab
+            this.dataListeners.forEach(listener => listener(this.memoryData));
+          }
+        };
+      } else {
+        // Fallback to localStorage events for older browsers
+        window.addEventListener('storage', (event) => {
+          if (event.key === 'supreme_data_sync' && event.newValue) {
+            try {
+              const update = JSON.parse(event.newValue);
+              if (update.timestamp > Date.now() - 1000) { // Only process recent updates
+                this.memoryData = update.data;
+                // Notify listeners in this tab
+                this.dataListeners.forEach(listener => listener(this.memoryData));
+              }
+            } catch (error) {
+              console.error('Failed to parse cross-tab update:', error);
+            }
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Failed to setup cross-tab sync:', error);
+    }
+  }
+  
+  // Broadcast data changes to other tabs
+  private broadcastDataChange(): void {
+    try {
+      if (this.broadcastChannel) {
+        // Use BroadcastChannel
+        this.broadcastChannel.postMessage({
+          type: 'data_update',
+          data: this.memoryData,
+          timestamp: Date.now()
+        });
+      } else {
+        // Fallback to localStorage
+        localStorage.setItem('supreme_data_sync', JSON.stringify({
+          data: this.memoryData,
+          timestamp: Date.now()
+        }));
+        // Clean up after a short delay
+        setTimeout(() => {
+          localStorage.removeItem('supreme_data_sync');
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Failed to broadcast data change:', error);
     }
   }
   

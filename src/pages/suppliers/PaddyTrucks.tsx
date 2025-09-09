@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
 import { ToastContainer } from '../../components/ui/Toast';
@@ -34,75 +33,7 @@ import {
 } from '../../utils/paddyTrucks';
 import type { PaddyTruck } from '../../types';
 
-const paddyTrucksData = [
-  {
-    id: 1,
-    truckNo: 'PB-12-AB-1234',
-    supplier: 'Punjab Agro Industries',
-    driver: 'Harpreet Singh',
-    arrivalDate: '2024-01-15',
-    arrivalTime: '10:30 AM',
-    grossWeight: 15000,
-    tareWeight: 5000,
-    netWeight: 10000,
-    moistureLevel: '12.5%',
-    quality: 'Grade A',
-    status: 'unloaded',
-    price: 2800,
-    totalAmount: 280000
-  },
-  {
-    id: 2,
-    truckNo: 'HR-06-CD-5678',
-    supplier: 'Haryana Rice Mills',
-    driver: 'Rajesh Kumar',
-    arrivalDate: '2024-01-15',
-    arrivalTime: '02:15 PM',
-    grossWeight: 18000,
-    tareWeight: 5500,
-    netWeight: 12500,
-    moistureLevel: '13.2%',
-    quality: 'Grade A',
-    status: 'weighing',
-    price: 2750,
-    totalAmount: 343750
-  },
-  {
-    id: 3,
-    truckNo: 'UP-32-EF-9012',
-    supplier: 'UP Grain Traders',
-    driver: 'Sunil Yadav',
-    arrivalDate: '2024-01-15',
-    arrivalTime: '04:45 PM',
-    grossWeight: 0,
-    tareWeight: 0,
-    netWeight: 0,
-    moistureLevel: '-',
-    quality: '-',
-    status: 'waiting',
-    price: 0,
-    totalAmount: 0
-  },
-  {
-    id: 4,
-    truckNo: 'BR-10-GH-3456',
-    supplier: 'Bihar Agricultural Co-op',
-    driver: 'Rakesh Sharma',
-    arrivalDate: '2024-01-14',
-    arrivalTime: '09:00 AM',
-    grossWeight: 16000,
-    tareWeight: 5200,
-    netWeight: 10800,
-    moistureLevel: '14.0%',
-    quality: 'Grade B',
-    status: 'completed',
-    price: 2600,
-    totalAmount: 280800
-  },
-];
-
 export const PaddyTrucks = () => {
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [supplierFilter, setSupplierFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');

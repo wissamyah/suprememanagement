@@ -79,14 +79,17 @@ export const CustomerLedger = () => {
   // Get ledger data based on view mode
   const ledgerData = useMemo(() => {
     if (customerId) {
-      // Individual customer view
-      return getCustomerLedger(customerId);
+      // Individual customer view - filter directly here instead of using getCustomerLedger
+      // This ensures the memo recalculates when ledgerEntries changes
+      return ledgerEntries
+        .filter(l => l.customerId === customerId)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     } else {
       // All customers view - show all ledger entries
       return ledgerEntries
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
-  }, [customerId, ledgerEntries, getCustomerLedger]);
+  }, [customerId, ledgerEntries]);
   
   // Filter ledger entries
   const filteredEntries = useMemo(() => {
