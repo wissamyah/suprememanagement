@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { Customer, BookedStock } from '../../types';
 import { formatCurrency } from '../../utils/sales';
+import { sanitizeTextInput } from '../../utils/loadings';
 
 interface LoadingItem {
   productId: string;
@@ -154,8 +155,8 @@ export const AddLoadingModal = ({
       const result = await onAdd(
         date,
         customerId,
-        truckPlateNumber.trim(),
-        wayBillNumber.trim() || undefined,
+        sanitizeTextInput(truckPlateNumber),
+        sanitizeTextInput(wayBillNumber) || undefined,
         validItems
       );
 
@@ -237,7 +238,7 @@ export const AddLoadingModal = ({
             <input
               type="text"
               value={truckPlateNumber}
-              onChange={(e) => setTruckPlateNumber(e.target.value)}
+              onChange={(e) => setTruckPlateNumber(sanitizeTextInput(e.target.value))}
               placeholder="e.g., ABC-123"
               className="w-full p-2.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
             />
@@ -251,7 +252,7 @@ export const AddLoadingModal = ({
             <input
               type="text"
               value={wayBillNumber}
-              onChange={(e) => setWayBillNumber(e.target.value)}
+              onChange={(e) => setWayBillNumber(sanitizeTextInput(e.target.value))}
               placeholder="e.g., WB-2024-001"
               className="w-full p-2.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
             />

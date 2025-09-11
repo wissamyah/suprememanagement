@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { Loading, Customer, BookedStock } from '../../types';
 import { formatCurrency } from '../../utils/sales';
+import { sanitizeTextInput } from '../../utils/loadings';
 
 interface EditLoadingModalProps {
   isOpen: boolean;
@@ -54,7 +55,19 @@ export const EditLoadingModal = ({
       
       // Load booked products for the customer
       const products = getCustomerBookedProducts(loading.customerId);
-      setBookedProducts(products);
+      // Adjust available quantities to include the quantities from the current loading being edited
+      const adjustedProducts = products.map(product => {
+        const loadingItem = loading.items.find(item => item.bookedStockId === product.id);
+        if (loadingItem) {
+          // Add back the quantity from this loading to the available quantity
+          return {
+            ...product,
+            availableQuantity: product.availableQuantity + loadingItem.quantity
+          };
+        }
+        return product;
+      });
+      setBookedProducts(adjustedProducts);
     }
   }, [loading, isOpen, getCustomerBookedProducts]);
 
@@ -125,8 +138,8 @@ export const EditLoadingModal = ({
         date,
         customerId,
         customerName: customersWithBookings.find(c => c.id === customerId)?.name || loading.customerName,
-        truckPlateNumber: truckPlateNumber.trim(),
-        wayBillNumber: wayBillNumber.trim() || undefined,
+        truckPlateNumber: sanitizeTextInput(truckPlateNumber),
+        wayBillNumber: sanitizeTextInput(wayBillNumber) || undefined,
         items: validItems,
         totalValue: calculateTotalValue()
       });
@@ -210,7 +223,7 @@ export const EditLoadingModal = ({
             <input
               type="text"
               value={truckPlateNumber}
-              onChange={(e) => setTruckPlateNumber(e.target.value)}
+              onChange={(e) => setTruckPlateNumber(sanitizeTextInput(e.target.value))}
               placeholder="e.g., ABC-123"
               className="w-full p-2.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
             />
@@ -224,7 +237,7 @@ export const EditLoadingModal = ({
             <input
               type="text"
               value={wayBillNumber}
-              onChange={(e) => setWayBillNumber(e.target.value)}
+              onChange={(e) => setWayBillNumber(sanitizeTextInput(e.target.value))}
               placeholder="e.g., WB-2024-001"
               className="w-full p-2.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
             />

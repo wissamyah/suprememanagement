@@ -1,5 +1,30 @@
 import type { Loading } from '../types';
 
+// Sanitize text input to remove special/invisible Unicode characters
+export const sanitizeTextInput = (text: string): string => {
+  if (!text) return '';
+  
+  // Replace various Unicode spaces with regular spaces
+  return text
+    // Replace non-breaking spaces (U+00A0) with regular spaces
+    .replace(/\u00A0/g, ' ')
+    // Replace zero-width spaces and other invisible characters
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    // Replace various Unicode space characters with regular space
+    .replace(/[\u2000-\u200A\u202F\u205F]/g, ' ')
+    // Replace em dash, en dash with regular dash
+    .replace(/[\u2013\u2014]/g, '-')
+    // Replace various quotation marks with regular quotes
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    // Remove any other control characters
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+    // Normalize multiple spaces to single space
+    .replace(/\s+/g, ' ')
+    // Trim whitespace
+    .trim();
+};
+
 // Format currency
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-US', {

@@ -196,6 +196,129 @@ export const useLoadingsDirect = () => {
   ): { success: boolean; error?: string } => {
     try {
       const now = new Date();
+      const existingLoading = loadings.find(l => l.id === id);
+      if (!existingLoading) {
+        return { success: false, error: 'Loading not found' };
+      }
+      
+      // If items are being updated, handle booked stock adjustments
+      if (updates.items) {
+        const updatedProductsList = [...products];
+        const updatedBookedStockList = [...bookedStock];
+        const newMovements: InventoryMovement[] = [];
+        
+        // Step 1: Revert old loading quantities (add back to booked stock)
+        existingLoading.items.forEach(oldItem => {
+          if (oldItem.bookedStockId) {
+            const bookedIndex = updatedBookedStockList.findIndex(
+              b => b.id === oldItem.bookedStockId
+            );
+            if (bookedIndex !== -1) {
+              const booking = updatedBookedStockList[bookedIndex];
+              // Reduce loaded quantity (reverting the old loading)
+              const revertedQuantityLoaded = Math.max(0, booking.quantityLoaded - oldItem.quantity);
+              updatedBookedStockList[bookedIndex] = {
+                ...booking,
+                quantityLoaded: revertedQuantityLoaded,
+                status: revertedQuantityLoaded === 0 ? 'pending' : 
+                        revertedQuantityLoaded >= booking.quantity ? 'fully-loaded' : 'partial-loaded',
+                updatedAt: now
+              };
+            }
+            
+            // Revert product booked quantity (add back since we're reverting the loading)
+            const productIndex = updatedProductsList.findIndex(p => p.id === oldItem.productId);
+            if (productIndex !== -1) {
+              const product = updatedProductsList[productIndex];
+              updatedProductsList[productIndex] = {
+                ...product,
+                quantityOnHand: product.quantityOnHand + oldItem.quantity,
+                quantityBooked: (product.quantityBooked || 0) + oldItem.quantity,
+                availableQuantity: (product.quantityOnHand + oldItem.quantity) - 
+                  ((product.quantityBooked || 0) + oldItem.quantity),
+                updatedAt: now
+              };
+            }
+          }
+        });
+        
+        // Step 2: Apply new loading quantities (subtract from booked stock)
+        updates.items.forEach(newItem => {
+          if (newItem.bookedStockId) {
+            const bookedIndex = updatedBookedStockList.findIndex(
+              b => b.id === newItem.bookedStockId
+            );
+            if (bookedIndex !== -1) {
+              const booking = updatedBookedStockList[bookedIndex];
+              // Increase loaded quantity (applying the new loading)
+              const newQuantityLoaded = booking.quantityLoaded + newItem.quantity;
+              const isFullyLoaded = newQuantityLoaded >= booking.quantity;
+              
+              updatedBookedStockList[bookedIndex] = {
+                ...booking,
+                quantityLoaded: newQuantityLoaded,
+                status: isFullyLoaded ? 'fully-loaded' : 'partial-loaded',
+                updatedAt: now
+              };
+            }
+            
+            // Update product quantities (subtract for the new loading)
+            const productIndex = updatedProductsList.findIndex(p => p.id === newItem.productId);
+            if (productIndex !== -1) {
+              const product = updatedProductsList[productIndex];
+              updatedProductsList[productIndex] = {
+                ...product,
+                quantityOnHand: product.quantityOnHand - newItem.quantity,
+                quantityBooked: Math.max(0, (product.quantityBooked || 0) - newItem.quantity),
+                availableQuantity: (product.quantityOnHand - newItem.quantity) - 
+                  Math.max(0, (product.quantityBooked || 0) - newItem.quantity),
+                updatedAt: now
+              };
+              
+              // Create movement for the edit
+              const movement: InventoryMovement = {
+                id: generateId(),
+                productId: newItem.productId,
+                productName: newItem.productName,
+                movementType: 'loading',
+                quantity: newItem.quantity - (existingLoading.items.find(i => i.productId === newItem.productId)?.quantity || 0),
+                previousQuantity: product.quantityOnHand,
+                newQuantity: product.quantityOnHand - newItem.quantity,
+                reference: `Loading Edit: ${existingLoading.loadingId}`,
+                referenceId: existingLoading.id,
+                notes: `Updated loading for ${existingLoading.customerName}`,
+                date: new Date(updates.date || existingLoading.date),
+                createdAt: now,
+                updatedAt: now
+              };
+              if (movement.quantity !== 0) {
+                newMovements.push(movement);
+              }
+            }
+          }
+        });
+        
+        // Update all data
+        githubDataManager.startBatchUpdate();
+        
+        const batchUpdates = [
+          updateProducts(updatedProductsList),
+          updateBookedStock(updatedBookedStockList)
+        ];
+        
+        if (newMovements.length > 0) {
+          batchUpdates.push(updateMovements([...movements, ...newMovements]));
+        }
+        
+        Promise.all(batchUpdates).then(() => {
+          githubDataManager.endBatchUpdate();
+        }).catch(error => {
+          console.error('Error in batch update:', error);
+          githubDataManager.endBatchUpdate();
+        });
+      }
+      
+      // Update the loading itself
       const updatedLoadingsList = loadings.map(loading => {
         if (loading.id === id) {
           return {
@@ -215,7 +338,7 @@ export const useLoadingsDirect = () => {
       console.error('Error updating loading:', error);
       return { success: false, error: 'Failed to update loading' };
     }
-  }, [loadings, updateLoadings]);
+  }, [loadings, products, bookedStock, movements, updateLoadings, updateProducts, updateBookedStock, updateMovements]);
   
   // Delete loading
   const deleteLoading = useCallback((id: string): { success: boolean; error?: string } => {
