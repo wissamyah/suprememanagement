@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { GlassCard } from '../components/ui/GlassCard';
+import { Tooltip, ProductTooltip } from '../components/ui/Tooltip';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -176,14 +177,26 @@ export const Dashboard = () => {
       }));
   }, [sales, loadings, paddyTrucks, products]);
 
-  // Get pending deliveries
+  // Get pending deliveries - show all booked stock items
   const pendingDeliveries = useMemo(() => {
     return bookedStock
       .filter(booking => booking.status === 'pending' || booking.status === 'confirmed')
       .reduce((acc, booking) => {
+        // Find the related sale to get price information
+        const sale = sales.find(s => s.id === booking.saleId);
+        const saleItem = sale?.items.find(item => item.productId === booking.productId);
+        const price = saleItem?.price || 0;
+        const total = booking.quantity * price;
+        
         const existing = acc.find(d => d.orderId === booking.orderId);
         if (existing) {
           existing.items++;
+          existing.products.push({
+            productName: booking.productName,
+            quantity: booking.quantity,
+            price: price,
+            total: total
+          });
           return acc;
         }
         return [...acc, {
@@ -192,7 +205,13 @@ export const Dashboard = () => {
           customerName: booking.customerName,
           status: booking.status,
           items: 1,
-          date: booking.bookingDate
+          date: booking.bookingDate,
+          products: [{
+            productName: booking.productName,
+            quantity: booking.quantity,
+            price: price,
+            total: total
+          }]
         }];
       }, [] as Array<{
         id: string;
@@ -201,9 +220,14 @@ export const Dashboard = () => {
         status: string;
         items: number;
         date: Date;
-      }>)
-      .slice(0, 5);
-  }, [bookedStock]);
+        products: Array<{
+          productName: string;
+          quantity: number;
+          price: number;
+          total: number;
+        }>;
+      }>);
+  }, [bookedStock, sales]);
 
   // Get top selling products
   const topSellingProducts = useMemo(() => {
@@ -373,7 +397,14 @@ export const Dashboard = () => {
                     <div>
                       <p className="font-medium">Order {delivery.orderId}</p>
                       <p className="text-sm text-gray-400">Customer: {delivery.customerName}</p>
-                      <p className="text-xs text-gray-500">{delivery.items} item{delivery.items > 1 ? 's' : ''}</p>
+                      <Tooltip
+                        content={<ProductTooltip items={delivery.products} />}
+                        placement="top"
+                      >
+                        <p className="text-xs text-gray-500 cursor-help underline decoration-dotted">
+                          {delivery.items} item{delivery.items > 1 ? 's' : ''}
+                        </p>
+                      </Tooltip>
                     </div>
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       delivery.status === 'confirmed' 

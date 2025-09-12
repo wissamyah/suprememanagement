@@ -92,13 +92,23 @@ export const LoadingTable = ({
       });
     }
 
-    // Apply sorting
+    // Apply sorting - always show newest first by default
     filtered.sort((a, b) => {
       let comparison = 0;
       
       switch (sortField) {
         case 'date':
-          comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+          // Sort by date first
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          comparison = dateA - dateB;
+          
+          // If same date, sort by creation time
+          if (comparison === 0) {
+            const createdA = new Date(a.createdAt).getTime();
+            const createdB = new Date(b.createdAt).getTime();
+            comparison = createdA - createdB;
+          }
           break;
         case 'customer':
           comparison = a.customerName.localeCompare(b.customerName);

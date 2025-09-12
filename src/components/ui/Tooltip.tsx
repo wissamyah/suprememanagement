@@ -169,14 +169,14 @@ export const ProductTooltip = ({ items }: ProductTooltipProps) => {
               {item.productName}
             </div>
             <div className="text-right">{item.quantity}</div>
-            <div className="text-right">₦{item.price.toLocaleString()}</div>
-            <div className="text-right font-medium">₦{item.total.toLocaleString()}</div>
+            <div className="text-right">₦{(item.price || 0).toLocaleString()}</div>
+            <div className="text-right font-medium">₦{(item.total || 0).toLocaleString()}</div>
           </div>
         ))}
         <div className="grid grid-cols-4 gap-2 text-xs font-bold pt-1 border-t border-white/10">
           <div className="col-span-3 text-right">Grand Total:</div>
           <div className="text-right text-green-400">
-            ₦{items.reduce((sum, item) => sum + item.total, 0).toLocaleString()}
+            ₦{items.reduce((sum, item) => sum + (item.total || 0), 0).toLocaleString()}
           </div>
         </div>
       </div>
