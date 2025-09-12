@@ -240,9 +240,11 @@ export const AddSaleModal = ({
                 autoFocus
               >
                 <option value="">Select a customer</option>
-                {customers.map(customer => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name} - {customer.state}
+                {customers
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(customer => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.name} - {customer.state}
                   </option>
                 ))}
               </select>
