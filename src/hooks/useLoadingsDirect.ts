@@ -453,7 +453,7 @@ export const useLoadingsDirect = () => {
   const getCustomerBookedProducts = useCallback((customerId: string) => {
     return bookedStock
       .filter(booking => 
-        booking.customerId === customerId && (booking.status === 'pending' || booking.status === 'confirmed')
+        booking.customerId === customerId && (booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'partial-loaded')
       )
       .map(booking => {
         // Find the sale to get the unit price
