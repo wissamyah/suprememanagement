@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { Package, AlertCircle, TrendingUp, Eye, EyeOff, CheckCircle, Clock } from 'lucide-react';
+import { AlertCircle, TrendingUp, Eye, EyeOff, CheckCircle, Clock } from 'lucide-react';
 import { useBookedStock } from '../../hooks/useBookedStock';
 import type { Customer, BookedStock } from '../../types';
 

@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { githubDataManager } from '../services/githubDataManager';
+import { useDataContext } from '../contexts/DataContext';
 
 // Define the data types available
 type DataType = 'products' | 'categories' | 'movements' | 'productionEntries' | 
@@ -15,44 +16,70 @@ interface UseGitHubDataOptions {
 
 export function useGitHubData<T>(options: UseGitHubDataOptions) {
   const { dataType, immediate = false } = options;
-  
-  const [data, setData] = useState<T[]>([]);
+
+  // Try to use context if available
+  let contextData: T[] | null = null;
+  let contextIsOnline: boolean | null = null;
+  let contextRefreshKey: number | null = null;
+
+  try {
+    const context = useDataContext();
+    contextData = context.data[dataType] as T[];
+    contextIsOnline = context.isOnline;
+    contextRefreshKey = context.refreshKey;
+  } catch {
+    // Context not available, fall back to direct subscription
+  }
+
+  const [localData, setLocalData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isOnline, setIsOnline] = useState(true);
+  const [localIsOnline, setLocalIsOnline] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [offlineQueueSize, setOfflineQueueSize] = useState(0);
-  
+
+  // Use context data if available, otherwise use local state
+  const data = contextData !== null ? contextData : localData;
+  const isOnline = contextIsOnline !== null ? contextIsOnline : localIsOnline;
+
   const mountedRef = useRef(true);
   const unsubscribeDataRef = useRef<(() => void) | null>(null);
   const unsubscribeConnectionRef = useRef<(() => void) | null>(null);
   
-  // Initialize and subscribe to data changes
+  // Initialize and subscribe to data changes (only if context is not available)
   useEffect(() => {
     mountedRef.current = true;
-    
-    // Subscribe to data changes
+
+    // If using context, we get updates through context refresh key
+    if (contextData !== null) {
+      setLoading(false);
+      return () => {
+        mountedRef.current = false;
+      };
+    }
+
+    // Only subscribe directly if not using context
     unsubscribeDataRef.current = githubDataManager.subscribeToData((allData) => {
       if (mountedRef.current) {
-        setData(allData[dataType] as T[]);
+        setLocalData(allData[dataType] as T[]);
         setLoading(false);
       }
     });
-    
+
     // Subscribe to connection status
     unsubscribeConnectionRef.current = githubDataManager.subscribeToConnection((online) => {
       if (mountedRef.current) {
-        setIsOnline(online);
+        setLocalIsOnline(online);
         setOfflineQueueSize(githubDataManager.getOfflineQueueSize());
       }
     });
-    
+
     // Initial load
     const loadInitialData = async () => {
       try {
         setLoading(true);
         const currentData = githubDataManager.getData(dataType);
-        setData(currentData as T[]);
+        setLocalData(currentData as T[]);
       } catch (err) {
         console.error(`Error loading ${String(dataType)}:`, err);
         setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -62,15 +89,15 @@ export function useGitHubData<T>(options: UseGitHubDataOptions) {
         }
       }
     };
-    
+
     loadInitialData();
-    
+
     return () => {
       mountedRef.current = false;
       unsubscribeDataRef.current?.();
       unsubscribeConnectionRef.current?.();
     };
-  }, [dataType]);
+  }, [dataType, contextData, contextRefreshKey]); // Include contextRefreshKey to force updates
   
   // Update data
   const updateData = useCallback(async (newData: T[]) => {

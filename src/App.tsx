@@ -14,6 +14,7 @@ import { Settings } from './pages/Settings';
 import GitHubAuthModal from './components/GitHubAuthModal';
 import githubStorage from './services/githubStorage';
 import { githubDataManager } from './services/githubDataManager';
+import { DataProvider } from './contexts/DataContext';
 
 // Context for GitHub storage
 interface GitHubContextType {
@@ -200,29 +201,31 @@ function App() {
 
   return (
     <GitHubContext.Provider value={contextValue}>
-      <HashRouter>
-        <Routes>
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="inventory" element={<Inventory />} />
-            <Route path="customers" element={<CustomerList />} />
-            <Route path="customers/sales" element={<Sales />} />
-            <Route path="customers/loadings" element={<Loadings />} />
-            <Route path="customers/ledger" element={<CustomerLedger />} />
-            <Route path="customers/ledger/:customerId" element={<CustomerLedger />} />
-            <Route path="suppliers" element={<SupplierList />} />
-            <Route path="suppliers/paddy-trucks" element={<PaddyTrucks />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
-        </Routes>
-        
-        <GitHubAuthModal
-          isOpen={showAuthModal}
-          onSuccess={handleAuthSuccess}
-          onClose={() => setShowAuthModal(false)}
-        />
-      </HashRouter>
+      <DataProvider>
+        <HashRouter>
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="inventory" element={<Inventory />} />
+              <Route path="customers" element={<CustomerList />} />
+              <Route path="customers/sales" element={<Sales />} />
+              <Route path="customers/loadings" element={<Loadings />} />
+              <Route path="customers/ledger" element={<CustomerLedger />} />
+              <Route path="customers/ledger/:customerId" element={<CustomerLedger />} />
+              <Route path="suppliers" element={<SupplierList />} />
+              <Route path="suppliers/paddy-trucks" element={<PaddyTrucks />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
+          </Routes>
+
+          <GitHubAuthModal
+            isOpen={showAuthModal}
+            onSuccess={handleAuthSuccess}
+            onClose={() => setShowAuthModal(false)}
+          />
+        </HashRouter>
+      </DataProvider>
     </GitHubContext.Provider>
   );
 }
