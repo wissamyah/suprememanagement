@@ -432,9 +432,13 @@ export const useSalesDirect = () => {
         allUpdates.push(updateMovements(updatedMovements));
       }
       
-      // If totalAmount changed, update the corresponding ledger entry
-      if (updates.totalAmount !== undefined && updates.totalAmount !== existingSale.totalAmount) {
-        const newTotalAmount = updates.totalAmount;
+      // If totalAmount or date changed, update the corresponding ledger entry
+      const dateChanged = updates.date && new Date(updates.date).getTime() !== new Date(existingSale.date).getTime();
+      const amountChanged = updates.totalAmount !== undefined && updates.totalAmount !== existingSale.totalAmount;
+
+      if (dateChanged || amountChanged) {
+        const newTotalAmount = updates.totalAmount !== undefined ? updates.totalAmount : existingSale.totalAmount;
+        const newDate = updates.date || existingSale.date;
         
         // Get all ledger entries for this customer sorted by date
         const customerEntries = ledgerEntries
@@ -446,23 +450,37 @@ export const useSalesDirect = () => {
             return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           });
         
-        // Recalculate running balances
-        let runningBalance = 0;
-        const updatedCustomerEntries = customerEntries.map(entry => {
-          // Update the debit amount if this is the sale entry being edited
-          let debit = entry.debit;
+        // First update the sale's ledger entry with new date/amount
+        const updatedEntriesWithDate = customerEntries.map(entry => {
           if (entry.referenceId === id && entry.transactionType === 'sale') {
-            debit = newTotalAmount;
-          }
-          
-          // Calculate new running balance
-          runningBalance = runningBalance - debit + entry.credit;
-          
-          // Return updated entry if it changed
-          if (entry.referenceId === id || entry.runningBalance !== runningBalance) {
             return {
               ...entry,
-              debit,
+              date: newDate,
+              debit: newTotalAmount,
+              updatedAt: now
+            };
+          }
+          return entry;
+        });
+
+        // Re-sort entries by date since date might have changed
+        const resortedEntries = updatedEntriesWithDate.sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          if (dateA !== dateB) return dateA - dateB;
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+
+        // Recalculate all running balances from scratch
+        let runningBalance = 0;
+        const updatedCustomerEntries = resortedEntries.map(entry => {
+          // Calculate new running balance
+          runningBalance = runningBalance - entry.debit + entry.credit;
+
+          // Return updated entry with new running balance
+          if (entry.runningBalance !== runningBalance) {
+            return {
+              ...entry,
               runningBalance,
               updatedAt: now
             };
@@ -535,31 +553,64 @@ export const useSalesDirect = () => {
         return product;
       });
       
-      // Remove related ledger entries
+      // Remove related ledger entries and recalculate running balances
       const updatedLedgerList = ledgerEntries.filter(l => l.referenceId !== id);
-      
-      // Update customer balance
+
+      // Get all remaining entries for this customer and recalculate running balances
+      const customerEntries = updatedLedgerList
+        .filter(e => e.customerId === saleToDelete.customerId)
+        .sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          if (dateA !== dateB) return dateA - dateB;
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+
+      // Recalculate running balances
+      let runningBalance = 0;
+      const recalculatedEntries = customerEntries.map(entry => {
+        runningBalance = runningBalance - entry.debit + entry.credit;
+        if (entry.runningBalance !== runningBalance) {
+          return {
+            ...entry,
+            runningBalance,
+            updatedAt: new Date()
+          };
+        }
+        return entry;
+      });
+
+      // Merge recalculated entries back into the full list
+      const finalLedgerList = updatedLedgerList.map(entry => {
+        const recalculated = recalculatedEntries.find(e => e.id === entry.id);
+        return recalculated || entry;
+      });
+
+      // Update customer balance with final running balance
       const updatedCustomersList = customers.map(c => {
         if (c.id === saleToDelete.customerId) {
+          const finalBalance = recalculatedEntries.length > 0
+            ? recalculatedEntries[recalculatedEntries.length - 1].runningBalance
+            : 0;
           return {
             ...c,
-            balance: (c.balance || 0) + saleToDelete.totalAmount,
+            balance: finalBalance,
             updatedAt: new Date()
           };
         }
         return c;
       });
-      
+
       // Start batch update to avoid conflicts
       githubDataManager.startBatchUpdate();
-      
+
       // Fire and forget - update all in background
       const updates = Promise.all([
         updateSales(updatedSalesList),
         updateMovements(updatedMovementsList),
         updateBookedStock(updatedBookedStockList),
         updateProducts(updatedProductsList),
-        updateLedgerEntries(updatedLedgerList),
+        updateLedgerEntries(finalLedgerList),
         updateCustomers(updatedCustomersList)
       ]);
       
