@@ -116,8 +116,10 @@ export const Inventory = () => {
     const result = adjustStock(productId, newQuantity, reason, notes);
     if (result.success) {
       showSuccess('Stock adjusted successfully');
-      // Force refresh to ensure UI updates with new quantity
-      refresh();
+      // Force refresh after a small delay to ensure batch update completes
+      setTimeout(() => {
+        refresh();
+      }, 500);
     } else {
       showError('Failed to adjust stock');
     }

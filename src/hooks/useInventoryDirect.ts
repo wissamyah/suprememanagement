@@ -301,8 +301,8 @@ export const useInventoryDirect = () => {
   }, [products, movements, updateMovements, updateProducts]);
   
   const adjustStock = useCallback((
-    productId: string, 
-    newQuantity: number, 
+    productId: string,
+    newQuantity: number,
     reason: string,
     notes?: string
   ): { success: boolean } => {
@@ -312,7 +312,7 @@ export const useInventoryDirect = () => {
         console.error('Product not found');
         return { success: false };
       }
-      
+
       const difference = newQuantity - product.quantityOnHand;
       const now = new Date();
       const movement: InventoryMovement = {
@@ -329,14 +329,11 @@ export const useInventoryDirect = () => {
         createdAt: now,
         updatedAt: now
       };
-      
-      // Update movements first
+
+      // Update movements
       const updatedMovements = [...movements, movement];
-      updateMovements(updatedMovements).catch(error => {
-        console.error('Failed to sync movements to GitHub:', error);
-      });
-      
-      // Then update the product with new quantity
+
+      // Update the product with new quantity
       const updatedProducts = products.map(p => {
         if (p.id === productId) {
           return {
@@ -349,11 +346,22 @@ export const useInventoryDirect = () => {
         }
         return p;
       });
-      
-      updateProducts(updatedProducts).catch(error => {
-        console.error('Failed to sync products to GitHub:', error);
+
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Fire and forget - update all in background
+      Promise.all([
+        updateMovements(updatedMovements),
+        updateProducts(updatedProducts)
+      ]).then(() => {
+        githubDataManager.endBatchUpdate();
+        console.log(`Stock adjusted for ${product.name}: ${product.quantityOnHand} → ${newQuantity} (${difference > 0 ? '+' : ''}${difference})`);
+      }).catch(error => {
+        console.error('Error in batch update:', error);
+        githubDataManager.endBatchUpdate();
       });
-      
+
       return { success: true };
     } catch (error) {
       console.error('Error adjusting stock:', error);

@@ -1,9 +1,10 @@
 // Direct GitHub loadings hook - no localStorage dependency
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useGitHubData } from './useGitHubData';
 import type { Loading, Product, Customer, InventoryMovement, BookedStock } from '../types';
 import { generateId } from '../utils/storage';
 import { githubDataManager } from '../services/githubDataManager';
+import { fixDuplicateLoadingIds, hasDuplicateLoadingIds } from '../utils/fixDuplicateLoadingIds';
 
 export const useLoadingsDirect = () => {
   // Use the base hook for each data type
@@ -44,6 +45,26 @@ export const useLoadingsDirect = () => {
   
   const loading = loadingsLoading;
   const error = loadingsError;
+  const hasCheckedDuplicates = useRef(false);
+
+  // Check and fix duplicate loading IDs on initial load
+  useEffect(() => {
+    if (!loading && loadings.length > 0 && !hasCheckedDuplicates.current) {
+      hasCheckedDuplicates.current = true;
+
+      if (hasDuplicateLoadingIds(loadings)) {
+        console.log('🔍 Duplicate loading IDs detected. Fixing...');
+        const fixedLoadings = fixDuplicateLoadingIds(loadings);
+
+        // Update the loadings with fixed IDs
+        updateLoadings(fixedLoadings).then(() => {
+          console.log('✅ Successfully fixed duplicate loading IDs');
+        }).catch(error => {
+          console.error('❌ Error fixing duplicate loading IDs:', error);
+        });
+      }
+    }
+  }, [loading, loadings, updateLoadings]);
   
   // Add loading
   const addLoading = useCallback((
@@ -70,8 +91,20 @@ export const useLoadingsDirect = () => {
       }
       
       const now = new Date();
-      const loadingNumber = `LD${String(loadings.length + 1).padStart(6, '0')}`;
-      
+
+      // Find the highest existing loading number to ensure uniqueness
+      let maxLoadingNumber = 0;
+      loadings.forEach(loading => {
+        const match = loading.loadingId.match(/^LD(\d+)$/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxLoadingNumber) {
+            maxLoadingNumber = num;
+          }
+        }
+      });
+      const loadingNumber = `LD${String(maxLoadingNumber + 1).padStart(6, '0')}`;
+
       // Calculate total value
       const totalValue = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
       
@@ -469,6 +502,24 @@ export const useLoadingsDirect = () => {
       });
   }, [bookedStock, sales]);
   
+  // Manual fix for duplicate IDs
+  const fixDuplicateIds = useCallback((): Promise<boolean> => {
+    if (hasDuplicateLoadingIds(loadings)) {
+      console.log('🔍 Fixing duplicate loading IDs manually...');
+      const fixedLoadings = fixDuplicateLoadingIds(loadings);
+      return updateLoadings(fixedLoadings)
+        .then(() => {
+          console.log('✅ Successfully fixed duplicate loading IDs');
+          return true;
+        })
+        .catch(error => {
+          console.error('❌ Error fixing duplicate loading IDs:', error);
+          return false;
+        });
+    }
+    return Promise.resolve(false);
+  }, [loadings, updateLoadings]);
+
   return {
     // Data
     loadings,
@@ -476,7 +527,7 @@ export const useLoadingsDirect = () => {
     customers,
     movements,
     bookedStock,
-    
+
     // Status
     loading,
     error,
@@ -484,7 +535,7 @@ export const useLoadingsDirect = () => {
     syncInProgress: isSyncing,
     pendingChanges: offlineQueueSize,
     lastSyncError: error,
-    
+
     // Operations
     addLoading,
     updateLoading,
@@ -494,7 +545,8 @@ export const useLoadingsDirect = () => {
     getLoadingsByCustomer,
     getCustomersWithBookedStock,
     getCustomerBookedProducts,
-    
+    fixDuplicateIds,
+
     // Sync operations
     forceSync,
     refreshData: refresh

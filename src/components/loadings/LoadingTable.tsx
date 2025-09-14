@@ -16,6 +16,7 @@ import {
   Eye
 } from 'lucide-react';
 import { formatCurrency } from '../../utils/sales';
+import { formatDate } from '../../utils/date';
 
 interface LoadingTableProps {
   loadings: Loading[];
@@ -157,7 +158,7 @@ export const LoadingTable = ({
                 <h3 className="font-semibold text-lg">{loading.loadingId}</h3>
                 <p className="text-sm text-muted flex items-center gap-1 mt-1">
                   <Calendar size={14} />
-                  {new Date(loading.date).toLocaleDateString()}
+                  {formatDate(loading.date)}
                 </p>
               </div>
               <div className="text-right">
@@ -298,7 +299,7 @@ export const LoadingTable = ({
                   <span className="font-medium">{loading.loadingId}</span>
                 </td>
                 <td className="py-3 px-4">
-                  {new Date(loading.date).toLocaleDateString()}
+                  {formatDate(loading.date)}
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">

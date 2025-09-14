@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
 import { ToastContainer } from '../../components/ui/Toast';
-import { 
-  Plus, 
-  Search, 
-  Truck, 
-  Calendar, 
+import {
+  Plus,
+  Search,
+  Truck,
+  Calendar,
   TrendingUp,
   RefreshCw,
   Download,
@@ -15,19 +15,21 @@ import {
   FileText,
   DollarSign,
   MoreVertical,
+  Wrench,
 } from 'lucide-react';
 import { useLoadings } from '../../hooks/useLoadings';
 import { useToast } from '../../hooks/useToast';
 import { LoadingTable } from '../../components/loadings/LoadingTable';
 import { AddLoadingModal } from '../../components/loadings/AddLoadingModal';
 import { EditLoadingModal } from '../../components/loadings/EditLoadingModal';
-import { 
+import {
   formatCurrency,
   exportLoadingsToJSON,
   exportLoadingsToCSV,
   importLoadingsFromJSON,
   calculateLoadingStats
 } from '../../utils/loadings';
+import { formatDate } from '../../utils/date';
 import type { Loading } from '../../types';
 
 export const Loadings = () => {
@@ -48,7 +50,8 @@ export const Loadings = () => {
     deleteLoading,
     getCustomersWithBookedStock,
     getCustomerBookedProducts,
-    forceSync
+    forceSync,
+    fixDuplicateIds
   } = useLoadings();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
@@ -136,10 +139,19 @@ export const Loadings = () => {
     } catch (error: any) {
       showError(error.message || 'Failed to import loadings');
     }
-    
+
     // Reset input
     e.target.value = '';
     setShowImportExportMenu(false);
+  };
+
+  const handleFixDuplicates = async () => {
+    const fixed = await fixDuplicateIds();
+    if (fixed) {
+      showSuccess('Duplicate loading IDs have been fixed');
+    } else {
+      showSuccess('No duplicate loading IDs found');
+    }
   };
   
   return (
@@ -214,6 +226,19 @@ export const Loadings = () => {
                     className="hidden"
                   />
                 </label>
+                <div className="border-t border-gray-800/50">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFixDuplicates();
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2 text-yellow-400"
+                  >
+                    <Wrench size={16} />
+                    Fix Duplicate IDs
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -271,6 +296,15 @@ export const Loadings = () => {
                       className="hidden"
                     />
                   </label>
+                  <div className="border-t border-gray-800/50">
+                    <button
+                      onClick={handleFixDuplicates}
+                      className="w-full px-4 py-2 text-left hover:bg-glass flex items-center gap-2 text-yellow-400"
+                    >
+                      <Wrench size={16} />
+                      Fix Duplicate IDs
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

@@ -189,13 +189,17 @@ export const Dashboard = () => {
         const total = booking.quantity * price;
         
         const existing = acc.find(d => d.orderId === booking.orderId);
+        // Calculate remaining quantity (original quantity - loaded quantity)
+        const remainingQuantity = booking.quantity - booking.quantityLoaded;
+        const remainingTotal = remainingQuantity * price;
+
         if (existing) {
           existing.items++;
           existing.products.push({
             productName: booking.productName,
-            quantity: booking.quantity,
+            quantity: remainingQuantity,  // Show remaining quantity, not original
             price: price,
-            total: total
+            total: remainingTotal  // Show remaining total, not original
           });
           return acc;
         }
@@ -208,9 +212,9 @@ export const Dashboard = () => {
           date: booking.bookingDate,
           products: [{
             productName: booking.productName,
-            quantity: booking.quantity,
+            quantity: remainingQuantity,  // Show remaining quantity, not original
             price: price,
-            total: total
+            total: remainingTotal  // Show remaining total, not original
           }]
         }];
       }, [] as Array<{
