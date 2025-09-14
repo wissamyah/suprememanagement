@@ -3,9 +3,9 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { Button } from '../components/ui/Button';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { ToastContainer } from '../components/ui/Toast';
-import { 
-  Trash2, 
-  Database, 
+import {
+  Trash2,
+  Database,
   AlertTriangle,
   Download,
   Upload,
@@ -15,6 +15,15 @@ import {
 import { useToast } from '../hooks/useToast';
 import { GitHubContext } from '../App';
 import { githubDataManager } from '../services/githubDataManager';
+import {
+  createBackup,
+  exportBackup,
+  readBackupFile,
+  restoreBackup,
+  validateBackup,
+  getBackupSummary,
+  type RestoreOptions
+} from '../utils/backup';
 
 export const Settings = () => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -23,6 +32,7 @@ export const Settings = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [importData, setImportData] = useState<any>(null);
   const [importSummary, setImportSummary] = useState<string>('');
+  const [restoreMode, setRestoreMode] = useState<'replace' | 'merge' | 'append'>('replace');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { isAuthenticated } = useContext(GitHubContext);
@@ -49,111 +59,42 @@ export const Settings = () => {
     }
   };
 
-  const validateImportedData = (data: any): { isValid: boolean; errors: string[] } => {
-    const errors: string[] = [];
-    
-    // Check if it's an object
-    if (typeof data !== 'object' || data === null) {
-      errors.push('Invalid data format: expected an object');
-      return { isValid: false, errors };
-    }
-    
-    // Define allowed keys
-    const allowedKeys = ['products', 'categories', 'movements', 'productionEntries', 
-                         'customers', 'sales', 'ledgerEntries', 'bookedStock', 
-                         'loadings', 'suppliers', 'paddyTrucks', 'metadata'];
-    
-    // Check for unknown keys
-    const dataKeys = Object.keys(data);
-    const unknownKeys = dataKeys.filter(key => !allowedKeys.includes(key));
-    if (unknownKeys.length > 0) {
-      errors.push(`Unknown data types: ${unknownKeys.join(', ')}`);
-    }
-    
-    // Validate arrays
-    const arrayFields = allowedKeys.filter(key => key !== 'metadata');
-    arrayFields.forEach(field => {
-      if (data[field] && !Array.isArray(data[field])) {
-        errors.push(`${field} must be an array`);
-      }
-    });
-    
-    // Validate required fields for each data type
-    if (data.products && Array.isArray(data.products)) {
-      data.products.forEach((product: any, index: number) => {
-        if (!product.id) errors.push(`Product at index ${index} missing 'id'`);
-        if (!product.name) errors.push(`Product at index ${index} missing 'name'`);
-      });
-    }
-    
-    if (data.customers && Array.isArray(data.customers)) {
-      data.customers.forEach((customer: any, index: number) => {
-        if (!customer.id) errors.push(`Customer at index ${index} missing 'id'`);
-        if (!customer.name) errors.push(`Customer at index ${index} missing 'name'`);
-      });
-    }
-    
-    if (data.sales && Array.isArray(data.sales)) {
-      data.sales.forEach((sale: any, index: number) => {
-        if (!sale.id) errors.push(`Sale at index ${index} missing 'id'`);
-        if (!sale.customerId) errors.push(`Sale at index ${index} missing 'customerId'`);
-        if (!sale.items || !Array.isArray(sale.items)) {
-          errors.push(`Sale at index ${index} missing or invalid 'items' array`);
-        }
-      });
-    }
-    
-    return { isValid: errors.length === 0, errors };
-  };
-  
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.name.endsWith('.json')) {
       showError('Please select a JSON file');
       return;
     }
-    
+
     setIsImporting(true);
-    
+
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      
-      // Validate the data
-      const validation = validateImportedData(data);
-      
-      if (!validation.isValid) {
-        showError(`Invalid data format: ${validation.errors[0]}`);
+      // Read the backup file
+      const backupData = await readBackupFile(file);
+
+      // Validate the backup
+      const validation = validateBackup(backupData);
+
+      if (!validation.valid) {
+        showError(`Invalid backup format: ${validation.errors[0]}`);
         if (validation.errors.length > 1) {
           console.error('All validation errors:', validation.errors);
         }
         setIsImporting(false);
         return;
       }
-      
+
       // Create summary
-      const summary = `
-        • Products: ${data.products?.length || 0}
-        • Categories: ${data.categories?.length || 0}
-        • Customers: ${data.customers?.length || 0}
-        • Sales: ${data.sales?.length || 0}
-        • Inventory Movements: ${data.movements?.length || 0}
-        • Production Entries: ${data.productionEntries?.length || 0}
-        • Ledger Entries: ${data.ledgerEntries?.length || 0}
-        • Booked Stock: ${data.bookedStock?.length || 0}
-        • Loadings: ${data.loadings?.length || 0}
-        • Suppliers: ${data.suppliers?.length || 0}
-        • Paddy Trucks: ${data.paddyTrucks?.length || 0}
-      `.trim();
-      
-      setImportData(data);
+      const summary = getBackupSummary(backupData);
+
+      setImportData(backupData);
       setImportSummary(summary);
       setShowImportConfirm(true);
     } catch (error) {
       console.error('Error reading file:', error);
-      showError('Failed to read file. Please ensure it is a valid JSON file.');
+      showError('Failed to read file. Please ensure it is a valid backup file.');
     } finally {
       setIsImporting(false);
       // Reset file input
@@ -165,9 +106,9 @@ export const Settings = () => {
   
   const handleImportData = async () => {
     if (!importData) return;
-    
+
     setIsImporting(true);
-    
+
     try {
       if (!isAuthenticated) {
         showError('You must be authenticated to import data');
@@ -175,30 +116,29 @@ export const Settings = () => {
         setShowImportConfirm(false);
         return;
       }
-      
-      showWarning('Importing data...');
-      
-      // Use batch update for better performance
-      githubDataManager.startBatchUpdate();
-      
-      // Update each data type if present
-      if (importData.products) await githubDataManager.updateData('products', importData.products, true);
-      if (importData.categories) await githubDataManager.updateData('categories', importData.categories, true);
-      if (importData.customers) await githubDataManager.updateData('customers', importData.customers, true);
-      if (importData.sales) await githubDataManager.updateData('sales', importData.sales, true);
-      if (importData.movements) await githubDataManager.updateData('movements', importData.movements, true);
-      if (importData.productionEntries) await githubDataManager.updateData('productionEntries', importData.productionEntries, true);
-      if (importData.ledgerEntries) await githubDataManager.updateData('ledgerEntries', importData.ledgerEntries, true);
-      if (importData.bookedStock) await githubDataManager.updateData('bookedStock', importData.bookedStock, true);
-      if (importData.loadings) await githubDataManager.updateData('loadings', importData.loadings, true);
-      if (importData.suppliers) await githubDataManager.updateData('suppliers', importData.suppliers, true);
-      if (importData.paddyTrucks) await githubDataManager.updateData('paddyTrucks', importData.paddyTrucks, true);
-      
-      // End batch update
-      await githubDataManager.endBatchUpdate();
-      
-      showSuccess('Data imported successfully!');
-      
+
+      showWarning('Restoring backup...');
+
+      // Use the new restore utility with selected mode
+      const restoreOptions: RestoreOptions = {
+        mode: restoreMode, // Use the selected restore mode
+        preserveRelationships: true,
+        validateIntegrity: true
+      };
+
+      const result = await restoreBackup(importData, restoreOptions);
+
+      if (result.success) {
+        const totalRecords = Object.values(result.recordCounts).reduce((sum, count) => sum + count, 0);
+        showSuccess(`Backup restored successfully! ${totalRecords} records imported.`);
+
+        // Show any warnings
+        result.warnings.forEach(warning => showWarning(warning));
+      } else {
+        showError('Failed to restore backup');
+        result.errors.forEach(error => console.error(error));
+      }
+
       // Clear import data
       setImportData(null);
       setImportSummary('');
@@ -213,30 +153,13 @@ export const Settings = () => {
 
   const handleExportAllData = async () => {
     try {
-      // Get all data from GitHub
-      const allData = {
-        products: githubDataManager.getData('products'),
-        categories: githubDataManager.getData('categories'),
-        movements: githubDataManager.getData('movements'),
-        productionEntries: githubDataManager.getData('productionEntries'),
-        customers: githubDataManager.getData('customers'),
-        sales: githubDataManager.getData('sales'),
-        ledgerEntries: githubDataManager.getData('ledgerEntries'),
-        bookedStock: githubDataManager.getData('bookedStock'),
-        loadings: githubDataManager.getData('loadings')
-      };
-      
-      // Create and download JSON file
-      const dataStr = JSON.stringify(allData, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-      const exportFileDefaultName = `supreme_backup_${new Date().toISOString().split('T')[0]}.json`;
-      
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
-      
-      showSuccess('Data exported successfully');
+      // Create a complete backup using the new utility
+      const backup = createBackup();
+
+      // Export the backup to file
+      exportBackup(backup);
+
+      showSuccess(`Complete backup exported (${backup.metadata.totalRecords} total records)`);
     } catch (error) {
       console.error('Error exporting data:', error);
       showError('Failed to export data');
@@ -382,19 +305,66 @@ export const Settings = () => {
           setShowImportConfirm(false);
           setImportData(null);
           setImportSummary('');
+          setRestoreMode('replace');
         }}
         onConfirm={handleImportData}
-        title="Import Data"
+        title="Restore Backup"
         message={
           <div>
-            <p className="mb-4">This will replace all your existing data with the imported data. Make sure you have backed up your current data if needed.</p>
+            <div className="mb-4">
+              <p className="mb-3">Choose how to restore your backup:</p>
+              <div className="space-y-2">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="restoreMode"
+                    value="replace"
+                    checked={restoreMode === 'replace'}
+                    onChange={() => setRestoreMode('replace')}
+                    className="mt-1"
+                  />
+                  <div>
+                    <div className="font-medium">Replace All</div>
+                    <div className="text-xs text-muted">Delete existing data and replace with backup</div>
+                  </div>
+                </label>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="restoreMode"
+                    value="merge"
+                    checked={restoreMode === 'merge'}
+                    onChange={() => setRestoreMode('merge')}
+                    className="mt-1"
+                  />
+                  <div>
+                    <div className="font-medium">Merge</div>
+                    <div className="text-xs text-muted">Update existing records and add new ones</div>
+                  </div>
+                </label>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="restoreMode"
+                    value="append"
+                    checked={restoreMode === 'append'}
+                    onChange={() => setRestoreMode('append')}
+                    className="mt-1"
+                  />
+                  <div>
+                    <div className="font-medium">Append Only</div>
+                    <div className="text-xs text-muted">Add only new records, skip existing ones</div>
+                  </div>
+                </label>
+              </div>
+            </div>
             <div className="p-3 bg-black/30 rounded-lg text-sm font-mono">
-              <p className="font-semibold mb-2">Data to import:</p>
-              <pre className="whitespace-pre-wrap">{importSummary}</pre>
+              <p className="font-semibold mb-2">Backup Summary:</p>
+              <pre className="whitespace-pre-wrap text-xs">{importSummary}</pre>
             </div>
           </div>
         }
-        confirmText="Import Data"
+        confirmText="Restore Backup"
       />
 
       {/* Toast Container */}

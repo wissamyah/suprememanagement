@@ -40,6 +40,7 @@ export const CustomerList = () => {
   
   const {
     customers,
+    ledgerEntries,
     loading,
     syncInProgress,
     pendingChanges,
@@ -47,6 +48,8 @@ export const CustomerList = () => {
     updateCustomer,
     deleteCustomer,
     getStatistics,
+    importCustomers,
+    importRelatedData,
     forceSync,
     refreshData
   } = useCustomers();
@@ -104,9 +107,18 @@ export const CustomerList = () => {
     setViewingBookingsCustomer(customer);
   };
 
-  const handleExportJSON = () => {
-    exportCustomersToJSON(customers);
-    showSuccess('Customers exported to JSON');
+  const handleExportJSON = (includeRelatedData: boolean = false) => {
+    if (includeRelatedData) {
+      // Export with related data (full backup)
+      exportCustomersToJSON(customers, true, {
+        ledgerEntries: ledgerEntries
+      });
+      showSuccess('Full backup exported with all related data');
+    } else {
+      // Export only customers
+      exportCustomersToJSON(customers);
+      showSuccess('Customers exported to JSON');
+    }
     setShowImportExportMenu(false);
   };
 
@@ -121,37 +133,53 @@ export const CustomerList = () => {
     if (!file) return;
 
     try {
-      const importedCustomers = await importCustomersFromJSON(file);
-      
-      // Check for duplicates and add customers
-      let successCount = 0;
-      let duplicateCount = 0;
-      
-      for (const customer of importedCustomers) {
-        const result = addCustomer(
-          customer.name,
-          customer.phone,
-          customer.state
-        );
-        
-        if (result.success) {
-          successCount++;
-        } else {
-          duplicateCount++;
+      const importResult = await importCustomersFromJSON(file);
+
+      // Import customers with full data preservation
+      const result = await importCustomers(importResult.customers, {
+        mode: 'merge', // Merge mode: update existing, add new
+        preserveExisting: false // Overwrite existing with imported data
+      });
+
+      // Import related data if it's a full backup
+      if (importResult.isFullBackup && importResult.relatedData) {
+        const relatedResult = await importRelatedData(importResult.relatedData);
+        if (!relatedResult.success) {
+          showError(relatedResult.error || 'Failed to import some related data');
         }
       }
-      
-      if (successCount > 0) {
-        showSuccess(`Imported ${successCount} customers successfully`);
+
+      // Show results
+      const messages: string[] = [];
+
+      if (result.imported > 0) {
+        messages.push(`${result.imported} new customers imported`);
       }
-      
-      if (duplicateCount > 0) {
-        showError(`${duplicateCount} customers were duplicates and were skipped`);
+
+      if (result.updated > 0) {
+        messages.push(`${result.updated} customers updated`);
+      }
+
+      if (result.skipped > 0) {
+        messages.push(`${result.skipped} customers skipped`);
+      }
+
+      if (messages.length > 0) {
+        showSuccess(messages.join(', '));
+      }
+
+      if (result.errors && result.errors.length > 0) {
+        result.errors.forEach(error => showError(error));
+      }
+
+      // If it was a full backup, show additional info
+      if (importResult.isFullBackup) {
+        showSuccess('Full backup restored with all related data');
       }
     } catch (error: any) {
       showError(error.message || 'Failed to import customers');
     }
-    
+
     // Reset input
     e.target.value = '';
     setShowImportExportMenu(false);
@@ -197,13 +225,24 @@ export const CustomerList = () => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleExportJSON();
+                    handleExportJSON(false);
                     setShowMobileMenu(false);
                   }}
                   className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
                 >
                   <FileJson size={16} />
                   Export as JSON
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleExportJSON(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
+                >
+                  <FileJson size={16} />
+                  Export Full Backup
                 </button>
                 <button
                   onClick={(e) => {
@@ -261,13 +300,20 @@ export const CustomerList = () => {
               </Button>
               
               {showImportExportMenu && (
-                <div className="absolute right-0 top-full mt-2 w-48 glass rounded-lg shadow-xl z-10 overflow-hidden">
+                <div className="absolute right-0 top-full mt-2 w-56 glass rounded-lg shadow-xl z-10 overflow-hidden">
                   <button
-                    onClick={handleExportJSON}
+                    onClick={() => handleExportJSON(false)}
                     className="w-full px-4 py-2 text-left hover:bg-glass flex items-center gap-2"
                   >
                     <FileJson size={16} />
                     Export as JSON
+                  </button>
+                  <button
+                    onClick={() => handleExportJSON(true)}
+                    className="w-full px-4 py-2 text-left hover:bg-glass flex items-center gap-2"
+                  >
+                    <FileJson size={16} />
+                    Export Full Backup
                   </button>
                   <button
                     onClick={handleExportCSV}
@@ -276,9 +322,10 @@ export const CustomerList = () => {
                     <FileText size={16} />
                     Export as CSV
                   </button>
+                  <div className="border-t border-white/10 my-1"></div>
                   <label className="w-full px-4 py-2 hover:bg-glass flex items-center gap-2 cursor-pointer">
                     <Upload size={16} />
-                    Import from JSON
+                    Import / Restore Backup
                     <input
                       type="file"
                       accept=".json"

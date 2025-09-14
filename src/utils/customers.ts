@@ -114,13 +114,30 @@ export const checkDuplicateCustomer = (
   return { isDuplicate: false };
 };
 
-// Export customers to JSON
-export const exportCustomersToJSON = (customers: Customer[]): void => {
-  const dataStr = JSON.stringify(customers, null, 2);
+// Export customers to JSON (with optional related data)
+export const exportCustomersToJSON = (
+  customers: Customer[],
+  includeRelatedData: boolean = false,
+  relatedData?: {
+    sales?: any[];
+    ledgerEntries?: any[];
+    bookedStock?: any[];
+  }
+): void => {
+  const exportData = includeRelatedData && relatedData ? {
+    customers,
+    sales: relatedData.sales || [],
+    ledgerEntries: relatedData.ledgerEntries || [],
+    bookedStock: relatedData.bookedStock || [],
+    exportedAt: new Date().toISOString(),
+    version: '2.0' // Version to handle backward compatibility
+  } : customers;
+
+  const dataStr = JSON.stringify(exportData, null, 2);
   const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-  
-  const exportFileDefaultName = `customers_${new Date().toISOString().split('T')[0]}.json`;
-  
+
+  const exportFileDefaultName = `customers_${includeRelatedData ? 'full_' : ''}${new Date().toISOString().split('T')[0]}.json`;
+
   const linkElement = document.createElement('a');
   linkElement.setAttribute('href', dataUri);
   linkElement.setAttribute('download', exportFileDefaultName);
@@ -158,45 +175,79 @@ export const exportCustomersToCSV = (customers: Customer[]): void => {
   document.body.removeChild(link);
 };
 
-// Import customers from JSON
-export const importCustomersFromJSON = async (file: File): Promise<Customer[]> => {
+// Import customers from JSON (supports both old and new format)
+export interface ImportResult {
+  customers: Customer[];
+  relatedData?: {
+    sales?: any[];
+    ledgerEntries?: any[];
+    bookedStock?: any[];
+  };
+  isFullBackup: boolean;
+}
+
+export const importCustomersFromJSON = async (file: File): Promise<ImportResult> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
+
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
-        const importedCustomers = JSON.parse(content);
-        
-        // Validate the structure
-        if (!Array.isArray(importedCustomers)) {
-          throw new Error('Invalid file format: Expected an array of customers');
+        const importedData = JSON.parse(content);
+
+        let customers: Customer[] = [];
+        let relatedData: any = {};
+        let isFullBackup = false;
+
+        // Check if it's the new format (object with version) or old format (array)
+        if (Array.isArray(importedData)) {
+          // Old format - array of customers
+          customers = importedData;
+        } else if (importedData.version === '2.0' && importedData.customers) {
+          // New format - includes related data
+          customers = importedData.customers;
+          relatedData = {
+            sales: importedData.sales || [],
+            ledgerEntries: importedData.ledgerEntries || [],
+            bookedStock: importedData.bookedStock || []
+          };
+          isFullBackup = true;
+        } else {
+          throw new Error('Invalid file format: Unrecognized data structure');
         }
-        
-        // Validate each customer
-        const validatedCustomers = importedCustomers.map((customer, index) => {
+
+        // Validate and preserve all customer data
+        const validatedCustomers = customers.map((customer, index) => {
           if (!customer.name || !customer.phone || !customer.state) {
             throw new Error(`Invalid customer at position ${index + 1}: Missing required fields`);
           }
-          
+
+          // Preserve ALL fields from the imported data
           return {
-            ...customer,
-            balance: customer.balance || 0,
+            id: customer.id, // PRESERVE original ID
+            name: customer.name,
+            phone: customer.phone,
+            state: customer.state,
+            balance: typeof customer.balance === 'number' ? customer.balance : 0, // PRESERVE balance
             createdAt: customer.createdAt ? new Date(customer.createdAt) : new Date(),
             updatedAt: customer.updatedAt ? new Date(customer.updatedAt) : new Date()
-          };
+          } as Customer;
         });
-        
-        resolve(validatedCustomers);
+
+        resolve({
+          customers: validatedCustomers,
+          relatedData: isFullBackup ? relatedData : undefined,
+          isFullBackup
+        });
       } catch (error) {
         reject(error);
       }
     };
-    
+
     reader.onerror = () => {
       reject(new Error('Failed to read file'));
     };
-    
+
     reader.readAsText(file);
   });
 };

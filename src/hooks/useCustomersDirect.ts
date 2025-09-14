@@ -357,11 +357,131 @@ export const useCustomersDirect = () => {
     }
   }, [ledgerEntries, customers, updateLedgerEntries, updateCustomers]);
   
+  // Import customers with full data preservation
+  const importCustomers = useCallback(async (
+    importedCustomers: Customer[],
+    options: {
+      mode: 'merge' | 'replace' | 'add-new';
+      preserveExisting?: boolean;
+    } = { mode: 'merge' }
+  ): Promise<{ success: boolean; imported: number; updated: number; skipped: number; errors?: string[] }> => {
+    try {
+      let newCustomersList: Customer[] = [];
+      let imported = 0;
+      let updated = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+
+      if (options.mode === 'replace') {
+        // Replace all existing customers with imported ones
+        newCustomersList = importedCustomers;
+        imported = importedCustomers.length;
+      } else if (options.mode === 'add-new') {
+        // Only add customers that don't exist (by ID)
+        const existingIds = new Set(customers.map(c => c.id));
+        newCustomersList = [...customers];
+
+        for (const customer of importedCustomers) {
+          if (!existingIds.has(customer.id)) {
+            newCustomersList.push(customer);
+            imported++;
+          } else {
+            skipped++;
+          }
+        }
+      } else {
+        // Merge mode: Update existing, add new
+        const customerMap = new Map(customers.map(c => [c.id, c]));
+
+        for (const importedCustomer of importedCustomers) {
+          const existing = customerMap.get(importedCustomer.id);
+
+          if (existing) {
+            // Update existing customer, preserving ID and merging data
+            if (options.preserveExisting) {
+              // Keep existing data, only update if imported has newer updatedAt
+              if (new Date(importedCustomer.updatedAt) > new Date(existing.updatedAt)) {
+                customerMap.set(importedCustomer.id, importedCustomer);
+                updated++;
+              } else {
+                skipped++;
+              }
+            } else {
+              // Overwrite with imported data
+              customerMap.set(importedCustomer.id, importedCustomer);
+              updated++;
+            }
+          } else {
+            // Add new customer
+            customerMap.set(importedCustomer.id, importedCustomer);
+            imported++;
+          }
+        }
+
+        newCustomersList = Array.from(customerMap.values());
+      }
+
+      // Save the updated customer list
+      await updateCustomers(newCustomersList);
+
+      return {
+        success: true,
+        imported,
+        updated,
+        skipped,
+        errors: errors.length > 0 ? errors : undefined
+      };
+    } catch (error) {
+      console.error('Error importing customers:', error);
+      return {
+        success: false,
+        imported: 0,
+        updated: 0,
+        skipped: 0,
+        errors: ['Failed to import customers: ' + (error instanceof Error ? error.message : 'Unknown error')]
+      };
+    }
+  }, [customers, updateCustomers]);
+
+  // Import related data (ledger entries, etc.)
+  const importRelatedData = useCallback(async (
+    relatedData: {
+      ledgerEntries?: LedgerEntry[];
+    }
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      if (relatedData.ledgerEntries) {
+        // Merge ledger entries (avoid duplicates by ID)
+        const existingIds = new Set(ledgerEntries.map(e => e.id));
+        const newEntries = relatedData.ledgerEntries.filter(e => !existingIds.has(e.id));
+        const mergedEntries = [...ledgerEntries, ...newEntries];
+
+        // Sort by date and recalculate balances
+        mergedEntries.sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          if (dateA !== dateB) return dateA - dateB;
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+
+        await updateLedgerEntries(mergedEntries);
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error importing related data:', error);
+      return {
+        success: false,
+        error: 'Failed to import related data: ' + (error instanceof Error ? error.message : 'Unknown error')
+      };
+    }
+  }, [ledgerEntries, updateLedgerEntries]);
+
   return {
     // Data
     customers,
     ledgerEntries,
-    
+
     // Status
     loading,
     error,
@@ -369,20 +489,22 @@ export const useCustomersDirect = () => {
     syncInProgress: isSyncing,
     pendingChanges: offlineQueueSize,
     lastSyncError: error,
-    
+
     // Customer operations
     addCustomer,
     updateCustomer,
     deleteCustomer,
     getCustomerById,
     getStatistics,
-    
+    importCustomers,
+    importRelatedData,
+
     // Ledger operations
     addLedgerEntry,
     deleteLedgerEntry,
     getCustomerLedger,
     recalculateAllBalances,
-    
+
     // Sync operations
     forceSync,
     refreshData: refresh
