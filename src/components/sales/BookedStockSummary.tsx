@@ -144,7 +144,7 @@ export const BookedStockSummary = () => {
                       <div className="flex items-center gap-4 mt-1 text-xs text-muted">
                         <span>Order: {booking.orderId}</span>
                         <span className="flex items-center gap-1">
-                          <Calendar size={12} />
+                          <Calendar className="text-gray-400" size={12} />
                           {new Date(booking.bookingDate).toLocaleDateString()}
                         </span>
                       </div>

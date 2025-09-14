@@ -157,7 +157,7 @@ export const LoadingTable = ({
               <div>
                 <h3 className="font-semibold text-lg">{loading.loadingId}</h3>
                 <p className="text-sm text-muted flex items-center gap-1 mt-1">
-                  <Calendar size={14} />
+                  <Calendar className="text-gray-400" size={14} />
                   {formatDate(loading.date)}
                 </p>
               </div>

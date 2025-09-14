@@ -8,12 +8,12 @@ import { useToast } from '../../hooks/useToast';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useSales } from '../../hooks/useSales';
 import { Tooltip, ProductTooltip } from '../../components/ui/Tooltip';
-import { 
-  Search, 
-  Download, 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
+import {
+  Search,
+  Download,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
   Plus,
   Edit2,
   Trash2,
@@ -22,7 +22,8 @@ import {
   FileText,
   MoreVertical,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Calendar
 } from 'lucide-react';
 import type { LedgerEntry } from '../../types';
 import { PaymentModal } from '../../components/ledger/PaymentModal';
@@ -565,20 +566,26 @@ export const CustomerLedger = () => {
           </select>
           
           <div className="flex gap-2">
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-              placeholder="From Date"
-            />
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-              placeholder="To Date"
-            />
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="pl-10 pr-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+                placeholder="From Date"
+              />
+            </div>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="pl-10 pr-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+                placeholder="To Date"
+              />
+            </div>
           </div>
         </div>
         

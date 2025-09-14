@@ -116,7 +116,7 @@ export const BookedStockModal = ({ isOpen, product, onClose }: BookedStockModalP
                               <span>Loaded: {booking.quantityLoaded}</span>
                             )}
                             <span className="flex items-center gap-1">
-                              <Calendar size={12} />
+                              <Calendar className="text-gray-400" size={12} />
                               {new Date(booking.bookingDate).toLocaleDateString()}
                             </span>
                           </div>

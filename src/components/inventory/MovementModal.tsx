@@ -202,7 +202,7 @@ export const MovementModal = ({
             <div>
               <label className="block text-xs text-muted mb-1">Search</label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={16} />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                 <input
                   type="text"
                   value={filters.searchTerm}
@@ -240,7 +240,7 @@ export const MovementModal = ({
                   <tr key={movement.id} className="border-b border-gray-800/30">
                     <td className="py-2 px-3 text-sm">
                       <div className="flex items-center gap-2">
-                        <Calendar size={14} className="text-muted" />
+                        <Calendar size={14} className="text-gray-400" />
                         {new Date(movement.date).toLocaleString()}
                       </div>
                     </td>

@@ -186,8 +186,7 @@ export const Dashboard = () => {
         const sale = sales.find(s => s.id === booking.saleId);
         const saleItem = sale?.items.find(item => item.productId === booking.productId);
         const price = saleItem?.price || 0;
-        const total = booking.quantity * price;
-        
+
         const existing = acc.find(d => d.orderId === booking.orderId);
         // Calculate remaining quantity (original quantity - loaded quantity)
         const remainingQuantity = booking.quantity - booking.quantityLoaded;

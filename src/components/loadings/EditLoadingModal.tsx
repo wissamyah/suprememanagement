@@ -184,7 +184,7 @@ export const EditLoadingModal = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">
-              <Calendar className="inline mr-2" size={16} />
+              <Calendar className="inline mr-2 text-white" size={16} />
               Date
             </label>
             <input

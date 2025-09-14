@@ -29,7 +29,6 @@ import {
   importLoadingsFromJSON,
   calculateLoadingStats
 } from '../../utils/loadings';
-import { formatDate } from '../../utils/date';
 import type { Loading } from '../../types';
 
 export const Loadings = () => {

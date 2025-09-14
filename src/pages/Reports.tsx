@@ -197,7 +197,7 @@ export const Reports = () => {
         
         <GlassCard>
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Calendar size={20} />
+            <Calendar className="text-white" size={20} />
             Recent Activities
           </h2>
           

@@ -194,7 +194,7 @@ export const AddPaddyTruckModal = ({ isOpen, onClose, onAdd }: AddPaddyTruckModa
               Date <span className="text-red-400">*</span>
             </label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={18} />
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
               <input
                 type="date"
                 value={date}
