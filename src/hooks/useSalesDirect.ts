@@ -215,7 +215,7 @@ export const useSalesDirect = () => {
   const updateSale = useCallback((
     id: string,
     updates: Partial<Sale>
-  ): { success: boolean; error?: string } => {
+  ): { success: boolean; error?: string; errors?: string[] } => {
     try {
       const now = new Date();
       
@@ -247,7 +247,47 @@ export const useSalesDirect = () => {
         // Calculate quantity differences for each product
         const oldItemsMap = new Map(existingSale.items.map(item => [item.productId, item]));
         const newItemsMap = new Map(updates.items.map(item => [item.productId, item]));
-        
+
+        // Validation: Check if any items are being reduced below loaded quantities
+        const validationErrors: string[] = [];
+
+        // Check for quantity reduction below loaded amount
+        for (const [productId, newItem] of newItemsMap) {
+          const existingBooking = bookedStock.find(
+            b => b.saleId === id && b.productId === productId
+          );
+
+          if (existingBooking && existingBooking.quantityLoaded > 0) {
+            if (newItem.quantity < existingBooking.quantityLoaded) {
+              validationErrors.push(
+                `Cannot reduce ${newItem.productName} to ${newItem.quantity} ${newItem.unit}. ` +
+                `Already loaded: ${existingBooking.quantityLoaded} ${newItem.unit}`
+              );
+            }
+          }
+        }
+
+        // Check for removed products that have been loaded
+        for (const [productId, oldItem] of oldItemsMap) {
+          if (!newItemsMap.has(productId)) {
+            const existingBooking = bookedStock.find(
+              b => b.saleId === id && b.productId === productId
+            );
+
+            if (existingBooking && existingBooking.quantityLoaded > 0) {
+              validationErrors.push(
+                `Cannot remove ${oldItem.productName}. ` +
+                `Already loaded: ${existingBooking.quantityLoaded} ${oldItem.unit}`
+              );
+            }
+          }
+        }
+
+        // If validation fails, return errors
+        if (validationErrors.length > 0) {
+          return { success: false, errors: validationErrors };
+        }
+
         // Update booked stock entries
         const updatedBookedStockList = bookedStock.map(entry => {
           if (entry.saleId === id) {
@@ -275,7 +315,7 @@ export const useSalesDirect = () => {
         
         // Add new booked stock entries for new products
         const existingBookedProductIds = new Set(
-          bookedStock.filter(b => b.saleId === id).map(b => b.productId)
+          updatedBookedStockList.filter(b => b.saleId === id).map(b => b.productId)
         );
         
         updates.items.forEach(item => {
@@ -348,7 +388,7 @@ export const useSalesDirect = () => {
         
         // Add new movements for new products
         const existingMovementProductIds = new Set(
-          movements.filter(m => m.referenceId === id && m.movementType === 'sales').map(m => m.productId)
+          updatedMovementsList.filter(m => m.referenceId === id && m.movementType === 'sales').map(m => m.productId)
         );
         
         updates.items.forEach(item => {

@@ -150,7 +150,7 @@ export const EditSaleModal = ({
     if (result.success) {
       handleClose();
     } else {
-      setErrors(result.errors || ['Failed to update sale']);
+      setErrors(result.errors || (result.error ? [result.error] : ['Failed to update sale']));
     }
     
     setIsSubmitting(false);

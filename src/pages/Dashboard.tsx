@@ -180,7 +180,7 @@ export const Dashboard = () => {
   // Get pending deliveries - show all booked stock items
   const pendingDeliveries = useMemo(() => {
     return bookedStock
-      .filter(booking => booking.status === 'pending' || booking.status === 'confirmed')
+      .filter(booking => booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'partial-loaded')
       .reduce((acc, booking) => {
         // Find the related sale to get price information
         const sale = sales.find(s => s.id === booking.saleId);
@@ -407,11 +407,13 @@ export const Dashboard = () => {
                       </Tooltip>
                     </div>
                     <span className={`px-2 py-1 text-xs rounded-full ${
-                      delivery.status === 'confirmed' 
-                        ? 'bg-blue-500/20 text-blue-400' 
+                      delivery.status === 'confirmed'
+                        ? 'bg-blue-500/20 text-blue-400'
+                        : delivery.status === 'partial-loaded'
+                        ? 'bg-orange-500/20 text-orange-400'
                         : 'bg-yellow-500/20 text-yellow-400'
                     }`}>
-                      {delivery.status === 'confirmed' ? 'Confirmed' : 'Pending'}
+                      {delivery.status === 'confirmed' ? 'Confirmed' : delivery.status === 'partial-loaded' ? 'Partial Loaded' : 'Pending'}
                     </span>
                   </div>
                 </div>
