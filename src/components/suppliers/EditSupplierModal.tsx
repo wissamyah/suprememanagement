@@ -12,7 +12,7 @@ interface EditSupplierModalProps {
   onUpdate: (
     id: string,
     updates: Partial<Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'>>
-  ) => { success: boolean; errors?: string[] };
+  ) => Promise<{ success: boolean; errors?: string[] }> | { success: boolean; errors?: string[] };
 }
 
 export const EditSupplierModal = ({ isOpen, supplier, onClose, onUpdate }: EditSupplierModalProps) => {
@@ -61,7 +61,7 @@ export const EditSupplierModal = ({ isOpen, supplier, onClose, onUpdate }: EditS
     }
 
     // Update supplier
-    const result = onUpdate(supplier.id, {
+    const result = await onUpdate(supplier.id, {
       name: name.trim(),
       phone: phone.trim(),
       agent: agent.trim()

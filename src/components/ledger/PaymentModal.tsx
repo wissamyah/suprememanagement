@@ -13,7 +13,7 @@ interface PaymentModalProps {
     referenceNumber: string,
     notes: string,
     date: Date
-  ) => { success: boolean };
+  ) => Promise<{ success: boolean }> | { success: boolean };
 }
 
 export const PaymentModal = ({
@@ -62,7 +62,7 @@ export const PaymentModal = ({
     
     setIsSubmitting(true);
 
-    const result = onAdd(
+    const result = await onAdd(
       parseFloat(amount),
       paymentMethod,
       '', // No longer using reference number

@@ -94,7 +94,7 @@ export const PaddyTrucks = () => {
     setCurrentPage(1);
   }, [searchTerm, supplierFilter, dateFrom, dateTo]);
   
-  const handleAddPaddyTruck = (
+  const handleAddPaddyTruck = async (
     date: Date,
     supplierId: string,
     supplierName: string,
@@ -106,7 +106,7 @@ export const PaddyTrucks = () => {
     netWeight?: number,
     deduction?: number
   ) => {
-    const result = addPaddyTruck(
+    const result = await addPaddyTruck(
       date,
       supplierId,
       supplierName,
@@ -125,11 +125,11 @@ export const PaddyTrucks = () => {
     return result;
   };
 
-  const handleUpdatePaddyTruck = (
+  const handleUpdatePaddyTruck = async (
     id: string,
     updates: Partial<Omit<PaddyTruck, 'id' | 'createdAt' | 'updatedAt'>>
   ) => {
-    const result = updatePaddyTruck(id, updates);
+    const result = await updatePaddyTruck(id, updates);
     if (result.success) {
       showSuccess(`Paddy truck updated successfully`);
       setEditingTruck(null);
@@ -137,9 +137,9 @@ export const PaddyTrucks = () => {
     return result;
   };
 
-  const handleDeletePaddyTruck = (truckId: string) => {
+  const handleDeletePaddyTruck = async (truckId: string) => {
     const truck = paddyTrucks.find(t => t.id === truckId);
-    const result = deletePaddyTruck(truckId);
+    const result = await deletePaddyTruck(truckId);
     
     if (result.success) {
       showSuccess(`Paddy truck "${truck?.truckPlate}" deleted`);
@@ -172,7 +172,7 @@ export const PaddyTrucks = () => {
       let duplicateCount = 0;
       
       for (const truck of importedTrucks) {
-        const result = addPaddyTruck(
+        const result = await addPaddyTruck(
           truck.date,
           truck.supplierId,
           truck.supplierName,

@@ -29,7 +29,7 @@ interface AddPaddyTruckModalProps {
     waybillNumber?: string,
     netWeight?: number,
     deduction?: number
-  ) => { success: boolean; errors?: string[] };
+  ) => Promise<{ success: boolean; errors?: string[] }> | { success: boolean; errors?: string[] };
 }
 
 export const AddPaddyTruckModal = ({ isOpen, onClose, onAdd }: AddPaddyTruckModalProps) => {
@@ -113,7 +113,7 @@ export const AddPaddyTruckModal = ({ isOpen, onClose, onAdd }: AddPaddyTruckModa
     }
 
     // Add paddy truck
-    const result = onAdd(
+    const result = await onAdd(
       new Date(date),
       supplierId,
       supplier.name,

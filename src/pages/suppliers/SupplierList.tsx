@@ -53,12 +53,12 @@ export const SupplierList = () => {
   // Get unique agents for filter
   const uniqueAgents = Array.from(new Set(suppliers.map(s => s.agent))).sort();
 
-  const handleAddSupplier = (
+  const handleAddSupplier = async (
     name: string,
     phone: string,
     agent: string
   ) => {
-    const result = addSupplier(name, phone, agent);
+    const result = await addSupplier(name, phone, agent);
     if (result.success) {
       showSuccess(`Supplier "${name}" added successfully`);
       setShowAddModal(false);
@@ -66,11 +66,11 @@ export const SupplierList = () => {
     return result;
   };
 
-  const handleUpdateSupplier = (
+  const handleUpdateSupplier = async (
     id: string,
     updates: Partial<Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'>>
   ) => {
-    const result = updateSupplier(id, updates);
+    const result = await updateSupplier(id, updates);
     if (result.success) {
       showSuccess(`Supplier updated successfully`);
       setEditingSupplier(null);
@@ -78,9 +78,9 @@ export const SupplierList = () => {
     return result;
   };
 
-  const handleDeleteSupplier = (supplierId: string) => {
+  const handleDeleteSupplier = async (supplierId: string) => {
     const supplier = suppliers.find(s => s.id === supplierId);
-    const result = deleteSupplier(supplierId);
+    const result = await deleteSupplier(supplierId);
     
     if (result.success) {
       if (result.error) {
@@ -117,7 +117,7 @@ export const SupplierList = () => {
       let duplicateCount = 0;
       
       for (const supplier of importedSuppliers) {
-        const result = addSupplier(
+        const result = await addSupplier(
           supplier.name,
           supplier.phone,
           supplier.agent

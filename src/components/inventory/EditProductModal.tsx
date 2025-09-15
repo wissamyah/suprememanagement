@@ -11,7 +11,7 @@ interface EditProductModalProps {
   onUpdateProduct: (
     id: string,
     updates: Partial<Product>
-  ) => { success: boolean; errors?: string[] };
+  ) => Promise<{ success: boolean; errors?: string[] }> | { success: boolean; errors?: string[] };
 }
 
 export const EditProductModal = ({
@@ -49,7 +49,7 @@ export const EditProductModal = ({
     setErrors([]);
     setLoading(true);
 
-    const result = onUpdateProduct(product.id, {
+    const result = await onUpdateProduct(product.id, {
       name: formData.name,
       category: formData.category,
       unit: formData.unit,

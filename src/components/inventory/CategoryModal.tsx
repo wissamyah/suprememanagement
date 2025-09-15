@@ -8,9 +8,9 @@ interface CategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   categories: ProductCategory[];
-  onAddCategory: (name: string, description?: string) => { success: boolean };
-  onUpdateCategory: (id: string, name: string, description?: string) => { success: boolean };
-  onDeleteCategory: (id: string) => { success: boolean };
+  onAddCategory: (name: string, description?: string) => Promise<{ success: boolean }> | { success: boolean };
+  onUpdateCategory: (id: string, name: string, description?: string) => Promise<{ success: boolean }> | { success: boolean };
+  onDeleteCategory: (id: string) => Promise<{ success: boolean }> | { success: boolean };
 }
 
 export const CategoryModal = ({
@@ -46,11 +46,10 @@ export const CategoryModal = ({
     }
 
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 300)); // Simulate async operation
-    const success = onAddCategory(newCategory.name.trim(), newCategory.description.trim());
+    const result = await onAddCategory(newCategory.name.trim(), newCategory.description.trim());
     setLoading(false);
-    
-    if (success) {
+
+    if (result.success) {
       setNewCategory({ name: '', description: '' });
       setIsAddingNew(false);
     } else {
@@ -58,7 +57,7 @@ export const CategoryModal = ({
     }
   };
 
-  const handleUpdateCategory = () => {
+  const handleUpdateCategory = async () => {
     if (!editingCategory) return;
     
     setError('');
@@ -70,17 +69,17 @@ export const CategoryModal = ({
       return;
     }
 
-    const success = onUpdateCategory(editingCategory.id, name.trim(), description?.trim());
-    if (success) {
+    const result = await onUpdateCategory(editingCategory.id, name.trim(), description?.trim());
+    if (result.success) {
       setEditingCategory(null);
     } else {
       setError('Failed to update category');
     }
   };
 
-  const handleDeleteCategory = (id: string) => {
-    const success = onDeleteCategory(id);
-    if (success) {
+  const handleDeleteCategory = async (id: string) => {
+    const result = await onDeleteCategory(id);
+    if (result.success) {
       setDeleteConfirm(null);
     } else {
       setError('Cannot delete category with existing products');

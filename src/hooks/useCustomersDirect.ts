@@ -139,7 +139,7 @@ export const useCustomersDirect = () => {
   }, [customers, ledgerEntries, updateCustomers]);
   
   // Add ledger entry
-  const addLedgerEntry = useCallback((
+  const addLedgerEntry = useCallback(async (
     customerId: string,
     transactionType: 'sale' | 'payment' | 'credit_note' | 'opening_balance' | 'adjustment',
     description: string,
@@ -149,7 +149,7 @@ export const useCustomersDirect = () => {
     referenceNumber?: string,
     date: Date = new Date(),
     notes?: string
-  ): { success: boolean; error?: string } => {
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       const customer = customers.find(c => c.id === customerId);
       if (!customer) {
@@ -205,9 +205,17 @@ export const useCustomersDirect = () => {
         return c;
       });
       
-      // Fire and forget
-      updateLedgerEntries([...ledgerEntries, newEntry]).catch(console.error);
-      updateCustomers(updatedCustomersList).catch(console.error);
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Await all updates to ensure data is persisted before returning
+      await Promise.all([
+        updateLedgerEntries([...ledgerEntries, newEntry]),
+        updateCustomers(updatedCustomersList)
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
       
       return { success: true };
     } catch (error) {
@@ -217,7 +225,7 @@ export const useCustomersDirect = () => {
   }, [customers, ledgerEntries, updateCustomers, updateLedgerEntries]);
   
   // Delete ledger entry
-  const deleteLedgerEntry = useCallback((id: string): { success: boolean; error?: string } => {
+  const deleteLedgerEntry = useCallback(async (id: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const entry = ledgerEntries.find(l => l.id === id);
       if (!entry) {
@@ -291,16 +299,14 @@ export const useCustomersDirect = () => {
       // Start batch update to avoid conflicts
       githubDataManager.startBatchUpdate();
 
-      // Update both customers and ledger entries as a batch
-      Promise.all([
+      // Await all updates to ensure data is persisted before returning
+      await Promise.all([
         updateCustomers(updatedCustomersList),
         updateLedgerEntries(finalLedgerList)
-      ]).then(() => {
-        githubDataManager.endBatchUpdate();
-      }).catch(error => {
-        console.error('Error in batch update:', error);
-        githubDataManager.endBatchUpdate();
-      });
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
 
       return { success: true };
     } catch (error) {

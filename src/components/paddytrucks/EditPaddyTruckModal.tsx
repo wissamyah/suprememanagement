@@ -23,7 +23,7 @@ interface EditPaddyTruckModalProps {
   onUpdate: (
     id: string,
     updates: Partial<Omit<PaddyTruck, 'id' | 'createdAt' | 'updatedAt'>>
-  ) => { success: boolean; errors?: string[] };
+  ) => Promise<{ success: boolean; errors?: string[] }> | { success: boolean; errors?: string[] };
 }
 
 export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPaddyTruckModalProps) => {
@@ -130,7 +130,7 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
     const calculatedTotalAmount = calculatedWeightAfterDeduction * parseFloat(pricePerKg);
     
     // Update paddy truck with calculated values
-    const result = onUpdate(truck.id, {
+    const result = await onUpdate(truck.id, {
       date: new Date(date),
       supplierId,
       supplierName: supplier.name,

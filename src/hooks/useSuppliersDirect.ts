@@ -19,11 +19,11 @@ export const useSuppliersDirect = () => {
   } = useGitHubData<Supplier>({ dataType: 'suppliers', immediate: true });
   
   // Add supplier
-  const addSupplier = useCallback((
+  const addSupplier = useCallback(async (
     name: string,
     phone: string,
     agent: string
-  ): { success: boolean; supplier?: Supplier; errors?: string[] } => {
+  ): Promise<{ success: boolean; supplier?: Supplier; errors?: string[] }> => {
     try {
       // Check for duplicate
       const existing = suppliers.find(s => 
@@ -48,8 +48,8 @@ export const useSuppliersDirect = () => {
         updatedAt: now
       };
       
-      // Fire and forget
-      updateSuppliers([...suppliers, newSupplier]).catch(console.error);
+      // Await update to ensure data is persisted
+      await updateSuppliers([...suppliers, newSupplier]);
       
       return { success: true, supplier: newSupplier };
     } catch (error) {
@@ -59,10 +59,10 @@ export const useSuppliersDirect = () => {
   }, [suppliers, updateSuppliers]);
   
   // Update supplier
-  const updateSupplier = useCallback((
+  const updateSupplier = useCallback(async (
     id: string,
     updates: Partial<Supplier>
-  ): { success: boolean; errors?: string[] } => {
+  ): Promise<{ success: boolean; errors?: string[] }> => {
     try {
       // Check for duplicate if name or phone is being updated
       if (updates.name || updates.phone) {
@@ -91,9 +91,9 @@ export const useSuppliersDirect = () => {
         }
         return supplier;
       });
-      
-      // Fire and forget
-      updateSuppliers(updatedSuppliersList).catch(console.error);
+
+      // Await update to ensure data is persisted
+      await updateSuppliers(updatedSuppliersList);
       
       return { success: true };
     } catch (error) {
@@ -103,7 +103,7 @@ export const useSuppliersDirect = () => {
   }, [suppliers, updateSuppliers]);
   
   // Delete supplier
-  const deleteSupplier = useCallback((id: string): { success: boolean; error?: string } => {
+  const deleteSupplier = useCallback(async (id: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const supplier = suppliers.find(s => s.id === id);
       if (!supplier) {
@@ -111,9 +111,9 @@ export const useSuppliersDirect = () => {
       }
       
       const updatedSuppliersList = suppliers.filter(s => s.id !== id);
-      
-      // Fire and forget
-      updateSuppliers(updatedSuppliersList).catch(console.error);
+
+      // Await update to ensure data is persisted
+      await updateSuppliers(updatedSuppliersList);
       
       return { success: true };
     } catch (error) {

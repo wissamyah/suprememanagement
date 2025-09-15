@@ -11,7 +11,7 @@ interface AddSupplierModalProps {
     name: string,
     phone: string,
     agent: string
-  ) => { success: boolean; errors?: string[] };
+  ) => Promise<{ success: boolean; errors?: string[] }> | { success: boolean; errors?: string[] };
 }
 
 export const AddSupplierModal = ({ isOpen, onClose, onAdd }: AddSupplierModalProps) => {
@@ -50,7 +50,7 @@ export const AddSupplierModal = ({ isOpen, onClose, onAdd }: AddSupplierModalPro
     }
 
     // Add supplier
-    const result = onAdd(name.trim(), phone.trim(), agent.trim());
+    const result = await onAdd(name.trim(), phone.trim(), agent.trim());
     
     if (result.success) {
       handleClose();

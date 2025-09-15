@@ -78,8 +78,8 @@ export const Inventory = () => {
     };
   }, [showSettingsMenu, showMobileMenu]);
 
-  const handleAddProduct = (name: string, category: string, initialQuantity: number, unit: string, reorderLevel: number) => {
-    const result = addProduct(name, category, initialQuantity, unit, reorderLevel);
+  const handleAddProduct = async (name: string, category: string, initialQuantity: number, unit: string, reorderLevel: number) => {
+    const result = await addProduct(name, category, initialQuantity, unit, reorderLevel);
     if (result.success) {
       showSuccess(`Product "${name}" added successfully`);
       return { success: true };
@@ -88,9 +88,9 @@ export const Inventory = () => {
     }
   };
   
-  const handleDeleteProduct = (productId: string) => {
+  const handleDeleteProduct = async (productId: string) => {
     const product = products.find(p => p.id === productId);
-    const result = deleteProduct(productId);
+    const result = await deleteProduct(productId);
     if (result.success) {
       showSuccess(`Product "${product?.name}" deleted`);
     } else {
@@ -98,8 +98,8 @@ export const Inventory = () => {
     }
   };
   
-  const handleProductionEntry = (entries: Array<{ productId: string; quantity: number; notes?: string }>) => {
-    const result = addBatchProductionEntries(entries);
+  const handleProductionEntry = async (entries: Array<{ productId: string; quantity: number; notes?: string }>) => {
+    const result = await addBatchProductionEntries(entries);
     
     if (result.success && result.failedProducts.length === 0) {
       showSuccess(`Production added for ${result.successCount} product${result.successCount > 1 ? 's' : ''}`);
@@ -150,15 +150,15 @@ export const Inventory = () => {
       const imported = importInventoryFromJSON(text);
       
       if (imported) {
-        imported.forEach(product => {
-          addProduct(
+        for (const product of imported) {
+          await addProduct(
             product.name,
             product.category,
             product.quantityOnHand,
             product.unit,
             product.reorderLevel
           );
-        });
+        }
         showSuccess(`Imported ${imported.length} products`);
         refresh();
       } else {
@@ -431,21 +431,21 @@ export const Inventory = () => {
         isOpen={showCategoryModal}
         onClose={() => setShowCategoryModal(false)}
         categories={categories}
-        onAddCategory={(name, desc) => {
-          const success = addCategory(name, desc);
-          if (success) showSuccess('Category added successfully');
-          return success;
+        onAddCategory={async (name, desc) => {
+          const result = await addCategory(name, desc);
+          if (result.success) showSuccess('Category added successfully');
+          return result;
         }}
-        onUpdateCategory={(id, name, desc) => {
-          const success = updateCategory(id, name, desc);
-          if (success) showSuccess('Category updated successfully');
-          return success;
+        onUpdateCategory={async (id, name, desc) => {
+          const result = await updateCategory(id, name, desc);
+          if (result.success) showSuccess('Category updated successfully');
+          return result;
         }}
-        onDeleteCategory={(id) => {
-          const success = deleteCategory(id);
-          if (success) showSuccess('Category deleted successfully');
+        onDeleteCategory={async (id) => {
+          const result = await deleteCategory(id);
+          if (result.success) showSuccess('Category deleted successfully');
           else showError('Cannot delete category with existing products');
-          return success;
+          return result;
         }}
       />
       
@@ -461,8 +461,8 @@ export const Inventory = () => {
         onClose={() => setEditingProduct(null)}
         product={editingProduct}
         categories={categories}
-        onUpdateProduct={(id, updates) => {
-          const result = updateProduct(id, updates);
+        onUpdateProduct={async (id, updates) => {
+          const result = await updateProduct(id, updates);
           if (result.success) {
             showSuccess('Product updated successfully');
           } else {

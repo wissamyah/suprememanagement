@@ -14,12 +14,12 @@ interface ManualEntryModalProps {
     description: string,
     notes: string,
     date: Date
-  ) => { success: boolean };
+  ) => Promise<{ success: boolean }> | { success: boolean };
   editingEntry?: LedgerEntry | null;
   onUpdate?: (
     entryId: string,
     updates: Partial<Omit<LedgerEntry, 'id' | 'customerId' | 'customerName' | 'createdAt' | 'runningBalance'>>
-  ) => { success: boolean };
+  ) => Promise<{ success: boolean }> | { success: boolean };
 }
 
 export const ManualEntryModal = ({
@@ -83,7 +83,7 @@ export const ManualEntryModal = ({
     let result: { success: boolean };
     
     if (editingEntry && onUpdate) {
-      result = onUpdate(editingEntry.id, {
+      result = await onUpdate(editingEntry.id, {
         transactionType,
         debit,
         credit,
@@ -92,7 +92,7 @@ export const ManualEntryModal = ({
         date: new Date(date)
       });
     } else if (onAdd) {
-      result = onAdd(
+      result = await onAdd(
         transactionType,
         debit,
         credit,

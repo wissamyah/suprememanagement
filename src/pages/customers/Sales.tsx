@@ -90,10 +90,10 @@ export const Sales = () => {
     return result;
   };
 
-  const handleDeleteSale = (saleId: string) => {
+  const handleDeleteSale = async (saleId: string) => {
     const sale = sales.find(s => s.id === saleId);
-    const result = deleteSale(saleId);
-    
+    const result = await deleteSale(saleId);
+
     if (result.success) {
       showSuccess(`Sale ${sale?.orderId} deleted`);
     } else {

@@ -51,7 +51,7 @@ export const useInventoryDirect = () => {
   const error = productsError;
   
   // Category operations
-  const addCategory = useCallback((name: string, description?: string): { success: boolean } => {
+  const addCategory = useCallback(async (name: string, description?: string): Promise<{ success: boolean }> => {
     try {
       const now = new Date();
       const newCategory: ProductCategory = {
@@ -62,10 +62,8 @@ export const useInventoryDirect = () => {
         updatedAt: now
       };
       
-      // Fire and forget - update in background
-      updateCategories([...categories, newCategory]).catch(error => {
-        console.error('Failed to sync category to GitHub:', error);
-      });
+      // Await update to ensure data is persisted
+      await updateCategories([...categories, newCategory]);
       return { success: true };
     } catch (error) {
       console.error('Error adding category:', error);
@@ -73,17 +71,15 @@ export const useInventoryDirect = () => {
     }
   }, [categories, updateCategories]);
   
-  const updateCategory = useCallback((id: string, name: string, description?: string): { success: boolean } => {
+  const updateCategory = useCallback(async (id: string, name: string, description?: string): Promise<{ success: boolean }> => {
     try {
       const updatedCategories = categories.map(cat => 
         cat.id === id 
           ? { ...cat, name, description, updatedAt: new Date() } 
           : cat
       );
-      // Fire and forget - update in background
-      updateCategories(updatedCategories).catch(error => {
-        console.error('Failed to sync category update to GitHub:', error);
-      });
+      // Await update to ensure data is persisted
+      await updateCategories(updatedCategories);
       return { success: true };
     } catch (error) {
       console.error('Error updating category:', error);
@@ -91,7 +87,7 @@ export const useInventoryDirect = () => {
     }
   }, [categories, updateCategories]);
   
-  const deleteCategory = useCallback((id: string): { success: boolean } => {
+  const deleteCategory = useCallback(async (id: string): Promise<{ success: boolean }> => {
     try {
       const productsInCategory = products.filter(p => p.category === categories.find(c => c.id === id)?.name);
       
@@ -101,10 +97,8 @@ export const useInventoryDirect = () => {
       }
       
       const updatedCategories = categories.filter(cat => cat.id !== id);
-      // Fire and forget - update in background
-      updateCategories(updatedCategories).catch(error => {
-        console.error('Failed to sync category deletion to GitHub:', error);
-      });
+      // Await update to ensure data is persisted
+      await updateCategories(updatedCategories);
       return { success: true };
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -113,13 +107,13 @@ export const useInventoryDirect = () => {
   }, [categories, products, updateCategories]);
   
   // Product operations
-  const addProduct = useCallback((
+  const addProduct = useCallback(async (
     name: string,
     category: string,
     initialQuantity: number,
     unit: string,
     reorderLevel: number
-  ): { success: boolean; errors?: string[] } => {
+  ): Promise<{ success: boolean; errors?: string[] }> => {
     try {
       const now = new Date();
       const productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -146,10 +140,11 @@ export const useInventoryDirect = () => {
         updatedAt: now
       };
       
-      // Fire and forget - update in background
-      updateProducts([...products, newProduct]).catch(error => {
-        console.error('Failed to sync product to GitHub:', error);
-      });
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Await all updates to ensure data is persisted
+      await updateProducts([...products, newProduct]);
       
       // Create initial stock movement
       const movement: InventoryMovement = {
@@ -167,11 +162,12 @@ export const useInventoryDirect = () => {
         updatedAt: now
       };
       
-      // Fire and forget - update in background
-      updateMovements([...movements, movement]).catch(error => {
-        console.error('Failed to sync movement to GitHub:', error);
-      });
-      
+      // Await movement update
+      await updateMovements([...movements, movement]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
+
       return { success: true };
     } catch (error) {
       console.error('Error adding product:', error);
@@ -179,7 +175,7 @@ export const useInventoryDirect = () => {
     }
   }, [products, movements, updateProducts, updateMovements]);
   
-  const updateProduct = useCallback((id: string, updates: Partial<Product>): { success: boolean; errors?: string[] } => {
+  const updateProduct = useCallback(async (id: string, updates: Partial<Product>): Promise<{ success: boolean; errors?: string[] }> => {
     try {
       const updatedProducts = products.map(product => {
         if (product.id === id) {
@@ -197,10 +193,8 @@ export const useInventoryDirect = () => {
         return product;
       });
       
-      // Fire and forget - update in background
-      updateProducts(updatedProducts).catch(error => {
-        console.error('Failed to sync product update to GitHub:', error);
-      });
+      // Await update to ensure data is persisted
+      await updateProducts(updatedProducts);
       return { success: true };
     } catch (error) {
       console.error('Error updating product:', error);
@@ -208,7 +202,7 @@ export const useInventoryDirect = () => {
     }
   }, [products, updateProducts]);
   
-  const deleteProduct = useCallback((id: string): { success: boolean } => {
+  const deleteProduct = useCallback(async (id: string): Promise<{ success: boolean }> => {
     try {
       const productToDelete = products.find(p => p.id === id);
       if (!productToDelete) {
@@ -224,19 +218,14 @@ export const useInventoryDirect = () => {
       // Start batch update to avoid conflicts
       githubDataManager.startBatchUpdate();
       
-      // Fire and forget - update all in background
-      const updates = Promise.all([
+      // Await all updates to ensure data is persisted
+      await Promise.all([
         updateProducts(updatedProducts),
         updateMovements(updatedMovements)
       ]);
-      
+
       // End batch and save once
-      updates.then(() => {
-        githubDataManager.endBatchUpdate();
-      }).catch(error => {
-        console.error('Error in batch update:', error);
-        githubDataManager.endBatchUpdate();
-      });
+      await githubDataManager.endBatchUpdate();
       
       return { success: true };
     } catch (error) {
@@ -271,9 +260,7 @@ export const useInventoryDirect = () => {
       
       // Update movements
       const updatedMovements = [...movements, newMovement];
-      updateMovements(updatedMovements).catch(error => {
-        console.error('Failed to sync movement to GitHub:', error);
-      });
+      await updateMovements(updatedMovements);
       
       // Update product quantity directly
       const updatedProducts = products.map(p => {
@@ -289,9 +276,7 @@ export const useInventoryDirect = () => {
         return p;
       });
       
-      updateProducts(updatedProducts).catch(error => {
-        console.error('Failed to sync product update to GitHub:', error);
-      });
+      await updateProducts(updatedProducts);
       
       return { success: true };
     } catch (error) {
@@ -300,12 +285,12 @@ export const useInventoryDirect = () => {
     }
   }, [products, movements, updateMovements, updateProducts]);
   
-  const adjustStock = useCallback((
+  const adjustStock = useCallback(async (
     productId: string,
     newQuantity: number,
     reason: string,
     notes?: string
-  ): { success: boolean } => {
+  ): Promise<{ success: boolean }> => {
     try {
       const product = products.find(p => p.id === productId);
       if (!product) {
@@ -350,17 +335,15 @@ export const useInventoryDirect = () => {
       // Start batch update to avoid conflicts
       githubDataManager.startBatchUpdate();
 
-      // Fire and forget - update all in background
-      Promise.all([
+      // Await all updates to ensure data is persisted
+      await Promise.all([
         updateMovements(updatedMovements),
         updateProducts(updatedProducts)
-      ]).then(() => {
-        githubDataManager.endBatchUpdate();
-        console.log(`Stock adjusted for ${product.name}: ${product.quantityOnHand} → ${newQuantity} (${difference > 0 ? '+' : ''}${difference})`);
-      }).catch(error => {
-        console.error('Error in batch update:', error);
-        githubDataManager.endBatchUpdate();
-      });
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
+      console.log(`Stock adjusted for ${product.name}: ${product.quantityOnHand} → ${newQuantity} (${difference > 0 ? '+' : ''}${difference})`);
 
       return { success: true };
     } catch (error) {
@@ -369,11 +352,11 @@ export const useInventoryDirect = () => {
     }
   }, [products, movements, updateMovements, updateProducts]);
   
-  const addProductionEntry = useCallback((
+  const addProductionEntry = useCallback(async (
     productId: string,
     quantityProduced: number,
     notes?: string
-  ): { success: boolean } => {
+  ): Promise<{ success: boolean }> => {
     try {
       const product = products.find(p => p.id === productId);
       
@@ -418,9 +401,7 @@ export const useInventoryDirect = () => {
       
       // Update movements
       const updatedMovements = [...movements, movement];
-      updateMovements(updatedMovements).catch(error => {
-        console.error('Failed to sync movements to GitHub:', error);
-      });
+      await updateMovements(updatedMovements);
       
       // Update product with new quantity directly
       const updatedProducts = products.map(p => {
@@ -435,11 +416,12 @@ export const useInventoryDirect = () => {
         }
         return p;
       });
-      
-      updateProducts(updatedProducts).catch(error => {
-        console.error('Failed to sync product update to GitHub:', error);
-      });
-      
+
+      await updateProducts(updatedProducts);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
+
       return { success: true };
     } catch (error) {
       console.error('Error adding production entry:', error);
@@ -447,9 +429,9 @@ export const useInventoryDirect = () => {
     }
   }, [products, productionEntries, movements, updateProductionEntries, updateMovements, updateProduct]);
   
-  const addBatchProductionEntries = useCallback((
+  const addBatchProductionEntries = useCallback(async (
     entries: Array<{ productId: string; quantity: number; notes?: string }>
-  ): { success: boolean; successCount: number; failedProducts: string[] } => {
+  ): Promise<{ success: boolean; successCount: number; failedProducts: string[] }> => {
     try {
       const now = new Date();
       const newProductionEntries: ProductionEntry[] = [];
@@ -511,16 +493,18 @@ export const useInventoryDirect = () => {
       }
       
       if (successCount > 0) {
-        // Fire and forget - update in background
-        updateProducts(updatedProducts).catch(error => {
-          console.error('Failed to sync batch products to GitHub:', error);
-        });
-        updateProductionEntries([...productionEntries, ...newProductionEntries]).catch(error => {
-          console.error('Failed to sync batch production entries to GitHub:', error);
-        });
-        updateMovements([...movements, ...newMovements]).catch(error => {
-          console.error('Failed to sync batch movements to GitHub:', error);
-        });
+        // Start batch update to avoid conflicts
+        githubDataManager.startBatchUpdate();
+
+        // Await all updates to ensure data is persisted
+        await Promise.all([
+          updateProducts(updatedProducts),
+          updateProductionEntries([...productionEntries, ...newProductionEntries]),
+          updateMovements([...movements, ...newMovements])
+        ]);
+
+        // End batch and save once
+        await githubDataManager.endBatchUpdate();
       }
       
       return { 

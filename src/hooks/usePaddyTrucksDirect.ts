@@ -19,7 +19,7 @@ export const usePaddyTrucksDirect = () => {
   } = useGitHubData<PaddyTruck>({ dataType: 'paddyTrucks', immediate: true });
   
   // Add paddy truck
-  const addPaddyTruck = useCallback((
+  const addPaddyTruck = useCallback(async (
     date: Date,
     supplierId: string,
     supplierName: string,
@@ -30,7 +30,7 @@ export const usePaddyTrucksDirect = () => {
     waybillNumber?: string,
     netWeight?: number,
     deduction?: number
-  ): { success: boolean; truck?: PaddyTruck; errors?: string[] } => {
+  ): Promise<{ success: boolean; truck?: PaddyTruck; errors?: string[] }> => {
     try {
       // Check for duplicate truck plate on the same date
       const existingTruck = paddyTrucks.find(t => 
@@ -69,9 +69,9 @@ export const usePaddyTrucksDirect = () => {
         createdAt: now,
         updatedAt: now
       };
-      
-      // Fire and forget
-      updatePaddyTrucks([...paddyTrucks, newTruck]).catch(console.error);
+
+      // Await update to ensure data is persisted
+      await updatePaddyTrucks([...paddyTrucks, newTruck]);
       
       return { success: true, truck: newTruck };
     } catch (error) {
@@ -81,10 +81,10 @@ export const usePaddyTrucksDirect = () => {
   }, [paddyTrucks, updatePaddyTrucks]);
   
   // Update paddy truck
-  const updatePaddyTruck = useCallback((
+  const updatePaddyTruck = useCallback(async (
     id: string,
     updates: Partial<Omit<PaddyTruck, 'id' | 'createdAt' | 'updatedAt'>>
-  ): { success: boolean; errors?: string[] } => {
+  ): Promise<{ success: boolean; errors?: string[] }> => {
     try {
       // Check for duplicate truck plate if updating
       if (updates.truckPlate || updates.date) {
@@ -134,9 +134,9 @@ export const usePaddyTrucksDirect = () => {
         }
         return truck;
       });
-      
-      // Fire and forget
-      updatePaddyTrucks(updatedTrucksList).catch(console.error);
+
+      // Await update to ensure data is persisted
+      await updatePaddyTrucks(updatedTrucksList);
       
       return { success: true };
     } catch (error) {
@@ -146,7 +146,7 @@ export const usePaddyTrucksDirect = () => {
   }, [paddyTrucks, updatePaddyTrucks]);
   
   // Delete paddy truck
-  const deletePaddyTruck = useCallback((id: string): { success: boolean; error?: string } => {
+  const deletePaddyTruck = useCallback(async (id: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const truck = paddyTrucks.find(t => t.id === id);
       if (!truck) {
@@ -154,9 +154,9 @@ export const usePaddyTrucksDirect = () => {
       }
       
       const updatedTrucksList = paddyTrucks.filter(t => t.id !== id);
-      
-      // Fire and forget
-      updatePaddyTrucks(updatedTrucksList).catch(console.error);
+
+      // Await update to ensure data is persisted
+      await updatePaddyTrucks(updatedTrucksList);
       
       return { success: true };
     } catch (error) {

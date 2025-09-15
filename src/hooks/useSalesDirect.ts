@@ -49,7 +49,7 @@ export const useSalesDirect = () => {
   const error = salesError;
   
   // Add sale
-  const addSale = useCallback((
+  const addSale = useCallback(async (
     customerId: string,
     items: Array<{
       productId: string;
@@ -61,7 +61,7 @@ export const useSalesDirect = () => {
     }>,
     date: Date = new Date(),
     paymentStatus: 'pending' | 'partial' | 'paid' = 'pending'
-  ): { success: boolean; sale?: Sale; error?: string } => {
+  ): Promise<{ success: boolean; sale?: Sale; error?: string }> => {
     try {
       const customer = customers.find(c => c.id === customerId);
       if (!customer) {
@@ -183,9 +183,9 @@ export const useSalesDirect = () => {
       
       // Start batch update to avoid conflicts
       githubDataManager.startBatchUpdate();
-      
-      // Fire and forget - update all in background
-      const updates = Promise.all([
+
+      // Wait for all updates to complete
+      await Promise.all([
         updateSales([...sales, newSale]),
         updateMovements([...movements, ...newMovements]),
         updateBookedStock([...bookedStock, ...newBookedStock]),
@@ -193,15 +193,10 @@ export const useSalesDirect = () => {
         updateLedgerEntries([...ledgerEntries, ledgerEntry]),
         updateCustomers(updatedCustomersList)
       ]);
-      
+
       // End batch and save once
-      updates.then(() => {
-        githubDataManager.endBatchUpdate();
-      }).catch(error => {
-        console.error('Error in batch update:', error);
-        githubDataManager.endBatchUpdate();
-      });
-      
+      await githubDataManager.endBatchUpdate();
+
       return { success: true, sale: newSale };
     } catch (error) {
       console.error('Error adding sale:', error);
@@ -523,22 +518,22 @@ export const useSalesDirect = () => {
       updateSales, updateLedgerEntries, updateCustomers, updateBookedStock, updateProducts, updateMovements]);
   
   // Delete sale
-  const deleteSale = useCallback((id: string): { success: boolean; error?: string } => {
+  const deleteSale = useCallback(async (id: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const saleToDelete = sales.find(s => s.id === id);
       if (!saleToDelete) {
         return { success: false, error: 'Sale not found' };
       }
-      
+
       // Remove sale
       const updatedSalesList = sales.filter(s => s.id !== id);
-      
+
       // Remove related movements
       const updatedMovementsList = movements.filter(m => m.referenceId !== id);
-      
+
       // Remove booked stock entries
       const updatedBookedStockList = bookedStock.filter(b => b.saleId !== id);
-      
+
       // Update products to release booked quantities
       const updatedProductsList = products.map(product => {
         const bookedForThisSale = saleToDelete.items.find(item => item.productId === product.id);
@@ -552,7 +547,7 @@ export const useSalesDirect = () => {
         }
         return product;
       });
-      
+
       // Remove related ledger entries and recalculate running balances
       const updatedLedgerList = ledgerEntries.filter(l => l.referenceId !== id);
 
@@ -604,8 +599,8 @@ export const useSalesDirect = () => {
       // Start batch update to avoid conflicts
       githubDataManager.startBatchUpdate();
 
-      // Fire and forget - update all in background
-      const updates = Promise.all([
+      // Await all updates to ensure data is persisted before returning
+      await Promise.all([
         updateSales(updatedSalesList),
         updateMovements(updatedMovementsList),
         updateBookedStock(updatedBookedStockList),
@@ -613,15 +608,10 @@ export const useSalesDirect = () => {
         updateLedgerEntries(finalLedgerList),
         updateCustomers(updatedCustomersList)
       ]);
-      
+
       // End batch and save once
-      updates.then(() => {
-        githubDataManager.endBatchUpdate();
-      }).catch(error => {
-        console.error('Error in batch update:', error);
-        githubDataManager.endBatchUpdate();
-      });
-      
+      await githubDataManager.endBatchUpdate();
+
       return { success: true };
     } catch (error) {
       console.error('Error deleting sale:', error);

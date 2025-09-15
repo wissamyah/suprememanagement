@@ -13,7 +13,7 @@ interface AddProductModalProps {
     initialQuantity: number,
     unit: string,
     reorderLevel: number
-  ) => { success: boolean; errors?: string[] };
+  ) => Promise<{ success: boolean; errors?: string[] }> | { success: boolean; errors?: string[] };
 }
 
 export const AddProductModal = ({
@@ -52,9 +52,7 @@ export const AddProductModal = ({
     setErrors([]);
     setLoading(true);
 
-    await new Promise(resolve => setTimeout(resolve, 300)); // Simulate async operation
-    
-    const result = onAddProduct(
+    const result = await onAddProduct(
       formData.name,
       formData.category,
       formData.initialQuantity,

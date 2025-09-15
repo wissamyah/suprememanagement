@@ -15,7 +15,7 @@ interface ProductionModalProps {
   isOpen: boolean;
   onClose: () => void;
   products: Product[];
-  onAddProduction: (entries: Array<{ productId: string; quantity: number; notes?: string }>) => boolean;
+  onAddProduction: (entries: Array<{ productId: string; quantity: number; notes?: string }>) => Promise<{ success: boolean; successCount: number; failedProducts: string[] }> | { success: boolean; successCount: number; failedProducts: string[] };
 }
 
 export const ProductionModal = ({
@@ -74,7 +74,7 @@ export const ProductionModal = ({
     setEntries(entries.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setErrors([]);
     setSuccessCount(0);
     setLoading(true);
@@ -97,9 +97,9 @@ export const ProductionModal = ({
     }));
     
     // Call onAddProduction with all entries at once
-    const success = onAddProduction(productionEntries);
-    
-    if (success) {
+    const result = await onAddProduction(productionEntries);
+
+    if (result.success) {
       setSuccessCount(validEntries.length);
       setTimeout(() => {
         setLoading(false);

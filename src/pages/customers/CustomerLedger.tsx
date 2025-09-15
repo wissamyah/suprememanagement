@@ -84,7 +84,7 @@ export const CustomerLedger = () => {
     setCurrentPage(1);
   }, [searchTerm, transactionFilter, dateFrom, dateTo, customerId]);
   
-  const handleAddPayment = (
+  const handleAddPayment = async (
     amount: number,
     paymentMethod: LedgerEntry['paymentMethod'],
     referenceNumber: string,
@@ -96,7 +96,7 @@ export const CustomerLedger = () => {
       return { success: false };
     }
     
-    const result = addLedgerEntry(
+    const result = await addLedgerEntry(
       customerId,
       'payment',
       `Payment received via ${paymentMethod}`,
@@ -118,7 +118,7 @@ export const CustomerLedger = () => {
     return result;
   };
   
-  const handleAddManualEntry = (
+  const handleAddManualEntry = async (
     transactionType: LedgerEntry['transactionType'],
     debit: number,
     credit: number,
@@ -131,7 +131,7 @@ export const CustomerLedger = () => {
       return { success: false };
     }
     
-    const result = addLedgerEntry(
+    const result = await addLedgerEntry(
       customerId,
       transactionType as any,
       description,
@@ -173,7 +173,7 @@ export const CustomerLedger = () => {
   
   const handleDeleteEntry = async (entry: LedgerEntry) => {
     setIsDeletingId(entry.id);
-    const result = deleteLedgerEntry(entry.id);
+    const result = await deleteLedgerEntry(entry.id);
 
     if (result.success) {
       showSuccess('Entry deleted successfully');
