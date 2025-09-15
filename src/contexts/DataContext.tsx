@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { githubDataManager } from '../services/githubDataManager';
+import { useCustomers } from '../hooks/useCustomers';
 
 interface DataState {
   products: any[];
@@ -21,11 +22,16 @@ interface DataContextType {
   isOnline: boolean;
   refreshKey: number;
   triggerRefresh: () => void;
+  // Customer operations from useCustomers hook
+  customersHook: ReturnType<typeof useCustomers>;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Initialize useCustomers hook once at the provider level
+  const customersHook = useCustomers();
+
   const [data, setData] = useState<DataState>({
     products: [],
     categories: [],
@@ -99,8 +105,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setRefreshKey(prev => prev + 1);
   };
 
+  // Update data state when customersHook data changes
+  useEffect(() => {
+    if (customersHook.customers && customersHook.ledgerEntries) {
+      setData(prev => ({
+        ...prev,
+        customers: customersHook.customers,
+        ledgerEntries: customersHook.ledgerEntries
+      }));
+    }
+  }, [customersHook.customers, customersHook.ledgerEntries]);
+
   return (
-    <DataContext.Provider value={{ data, isOnline, refreshKey, triggerRefresh }}>
+    <DataContext.Provider value={{ data, isOnline, refreshKey, triggerRefresh, customersHook }}>
       {children}
     </DataContext.Provider>
   );

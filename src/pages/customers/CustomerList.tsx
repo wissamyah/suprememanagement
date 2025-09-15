@@ -12,7 +12,7 @@ import {
   RefreshCw,
   MoreVertical
 } from 'lucide-react';
-import { useCustomers } from '../../hooks/useCustomers';
+import { useDataContext } from '../../contexts/DataContext';
 import { useToast } from '../../hooks/useToast';
 import { CustomerStats } from '../../components/customers/CustomerStats';
 import { CustomerFilters } from '../../components/customers/CustomerFilters';
@@ -38,6 +38,8 @@ export const CustomerList = () => {
   const [showImportExportMenu, setShowImportExportMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   
+  // Use customers data from DataContext
+  const { customersHook } = useDataContext();
   const {
     customers,
     ledgerEntries,
@@ -52,7 +54,7 @@ export const CustomerList = () => {
     importRelatedData,
     forceSync,
     refreshData
-  } = useCustomers();
+  } = customersHook;
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
   

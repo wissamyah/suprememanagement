@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/Button';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { ToastContainer } from '../../components/ui/Toast';
 import { useToast } from '../../hooks/useToast';
-import { useCustomers } from '../../hooks/useCustomers';
+import { useDataContext } from '../../contexts/DataContext';
 import { useSales } from '../../hooks/useSales';
 import { Tooltip, ProductTooltip } from '../../components/ui/Tooltip';
 import {
@@ -48,6 +48,8 @@ export const CustomerLedger = () => {
   // Get sales data for tooltip
   const { sales } = useSales();
   
+  // Use customers data from DataContext
+  const { customersHook } = useDataContext();
   const {
     ledgerEntries,
     customers,
@@ -57,7 +59,7 @@ export const CustomerLedger = () => {
     addLedgerEntry,
     deleteLedgerEntry,
     forceSync
-  } = useCustomers();
+  } = customersHook;
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
   
