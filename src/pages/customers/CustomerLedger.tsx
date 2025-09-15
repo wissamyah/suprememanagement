@@ -39,7 +39,6 @@ export const CustomerLedger = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showManualEntryModal, setShowManualEntryModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState<LedgerEntry | null>(null);
-  const [editingPayment, setEditingPayment] = useState<LedgerEntry | null>(null);
   const [deletingEntry, setDeletingEntry] = useState<LedgerEntry | null>(null);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -269,7 +268,6 @@ export const CustomerLedger = () => {
     if (result.success) {
       showSuccess('Entry updated successfully');
       setEditingEntry(null);
-      setEditingPayment(null);
       setShowManualEntryModal(false);
       setShowPaymentModal(false);
     } else {
@@ -657,7 +655,7 @@ export const CustomerLedger = () => {
                         // Split the description to separately style the order number
                         const parts = entry.description.split(orderId);
                         return (
-                          <p className="text-sm mb-3">
+                          <div className="text-sm mb-3">
                             {parts[0]}
                             <Tooltip
                               content={
@@ -677,13 +675,13 @@ export const CustomerLedger = () => {
                               </span>
                             </Tooltip>
                             {parts[1]}
-                          </p>
+                          </div>
                         );
                       }
-                      return <p className="text-sm mb-3">{entry.description}</p>;
+                      return <div className="text-sm mb-3">{entry.description}</div>;
                     })()
                   ) : (
-                    <p className="text-sm mb-3">{entry.description}</p>
+                    <div className="text-sm mb-3">{entry.description}</div>
                   )}
                   
                   <div className="grid grid-cols-3 gap-2 text-sm mb-3">
@@ -719,21 +717,18 @@ export const CustomerLedger = () => {
                   
                   {customerId && entry.transactionType !== 'sale' && (
                     <div className="flex gap-2 justify-end border-t border-white/5 pt-3">
-                      <button
-                        onClick={() => {
-                          if (entry.transactionType === 'payment') {
-                            setEditingPayment(entry);
-                            setShowPaymentModal(true);
-                          } else {
+                      {entry.transactionType !== 'payment' && (
+                        <button
+                          onClick={() => {
                             setEditingEntry(entry);
                             setShowManualEntryModal(true);
-                          }
-                        }}
-                        className="p-1.5 rounded-lg hover:bg-white/10 transition-all duration-200"
-                        title="Edit Entry"
-                      >
-                        <Edit2 size={16} />
-                      </button>
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-white/10 transition-all duration-200"
+                          title="Edit Entry"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                      )}
                       <button
                         onClick={() => setDeletingEntry(entry)}
                         disabled={isDeletingId === entry.id}
@@ -803,7 +798,7 @@ export const CustomerLedger = () => {
                                 // Split the description to separately style the order number
                                 const parts = entry.description.split(orderId);
                                 return (
-                                  <p>
+                                  <div>
                                     {parts[0]}
                                     <Tooltip
                                       content={
@@ -823,16 +818,16 @@ export const CustomerLedger = () => {
                                       </span>
                                     </Tooltip>
                                     {parts[1]}
-                                  </p>
+                                  </div>
                                 );
                               }
-                              return <p>{entry.description}</p>;
+                              return <div>{entry.description}</div>;
                             })()
                           ) : (
-                            <p>{entry.description}</p>
+                            <div>{entry.description}</div>
                           )}
                           {entry.notes && (
-                            <p className="text-xs text-muted">{entry.notes}</p>
+                            <div className="text-xs text-muted">{entry.notes}</div>
                           )}
                         </div>
                       </td>
@@ -876,21 +871,18 @@ export const CustomerLedger = () => {
                         <td className="py-3 px-4">
                           {entry.transactionType !== 'sale' ? (
                             <div className="flex justify-center gap-1">
-                              <button
-                                onClick={() => {
-                                  if (entry.transactionType === 'payment') {
-                                    setEditingPayment(entry);
-                                    setShowPaymentModal(true);
-                                  } else {
+                              {entry.transactionType !== 'payment' && (
+                                <button
+                                  onClick={() => {
                                     setEditingEntry(entry);
                                     setShowManualEntryModal(true);
-                                  }
-                                }}
-                                className="p-1.5 rounded-lg hover:bg-white/10 transition-all duration-200"
-                                title="Edit Entry"
-                              >
-                                <Edit2 size={14} />
-                              </button>
+                                  }}
+                                  className="p-1.5 rounded-lg hover:bg-white/10 transition-all duration-200"
+                                  title="Edit Entry"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                              )}
                               <button
                                 onClick={() => setDeletingEntry(entry)}
                                 disabled={isDeletingId === entry.id}
@@ -1058,11 +1050,8 @@ export const CustomerLedger = () => {
           customerName={currentCustomer?.name || ''}
           onClose={() => {
             setShowPaymentModal(false);
-            setEditingPayment(null);
           }}
           onAdd={handleAddPayment}
-          editingEntry={editingPayment}
-          onUpdate={editingPayment ? handleUpdateEntry : undefined}
         />
       )}
       

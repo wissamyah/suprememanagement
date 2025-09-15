@@ -77,7 +77,6 @@ function App() {
             const decryptedToken = await githubStorage.decryptToken(token);
             if (decryptedToken) {
               await githubDataManager.initialize(decryptedToken);
-              console.log('[App] GitHub Direct mode initialized');
             }
           }
         }

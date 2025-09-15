@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useGitHubData } from './useGitHubData';
 import type { Customer, LedgerEntry } from '../types';
 import { generateId } from '../utils/storage';
+import { githubDataManager } from '../services/githubDataManager';
 
 export const useCustomersDirect = () => {
   // Use the base hook for each data type
@@ -222,21 +223,60 @@ export const useCustomersDirect = () => {
       if (!entry) {
         return { success: false, error: 'Ledger entry not found' };
       }
-      
+
       // Don't allow deletion of sale-related entries
       if (entry.referenceId) {
         return { success: false, error: 'Cannot delete entries with references' };
       }
-      
-      // Recalculate customer balance
+
+
+      // Remove the entry from the list
+      const remainingEntries = ledgerEntries.filter(l => l.id !== id);
+
+      // Get all entries for this customer (from the remaining entries)
+      const customerEntries = remainingEntries.filter(e => e.customerId === entry.customerId);
+
+      // Sort entries by date and creation time (oldest first)
+      const sortedEntries = [...customerEntries].sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
+
+      // Recalculate running balances for this customer's entries
+      let runningBalance = 0;
+      const updatedCustomerEntries = sortedEntries.map(entry => {
+        // Balance is negative when customer owes money, positive when they have credit
+        // Debit increases what they owe (makes balance more negative)
+        // Credit reduces what they owe (makes balance more positive)
+        runningBalance = runningBalance - entry.debit + entry.credit;
+        return {
+          ...entry,
+          runningBalance,
+          updatedAt: new Date()
+        };
+      });
+
+      // Merge the updated customer entries back with other entries
+      const finalLedgerList = remainingEntries.map(e => {
+        if (e.customerId === entry.customerId) {
+          const updated = updatedCustomerEntries.find(ue => ue.id === e.id);
+          return updated || e;
+        }
+        return e;
+      });
+
+      // Update customer's current balance
+      let updatedCustomersList = customers;
       const customer = customers.find(c => c.id === entry.customerId);
       if (customer) {
-        // Reverse the balance change
-        // When deleting, we need to undo the effect: add back debit, subtract credit
-        const balanceAdjustment = entry.debit - entry.credit;
-        const newBalance = (customer.balance || 0) + balanceAdjustment;
-        
-        const updatedCustomersList = customers.map(c => {
+        // The customer's balance should be the running balance of their last entry
+        // or 0 if they have no entries left
+        const lastEntry = updatedCustomerEntries[updatedCustomerEntries.length - 1];
+        const newBalance = lastEntry ? lastEntry.runningBalance : 0;
+
+        updatedCustomersList = customers.map(c => {
           if (c.id === entry.customerId) {
             return {
               ...c,
@@ -246,15 +286,22 @@ export const useCustomersDirect = () => {
           }
           return c;
         });
-        
-        updateCustomers(updatedCustomersList).catch(console.error);
       }
-      
-      const updatedLedgerList = ledgerEntries.filter(l => l.id !== id);
-      
-      // Fire and forget
-      updateLedgerEntries(updatedLedgerList).catch(console.error);
-      
+
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Update both customers and ledger entries as a batch
+      Promise.all([
+        updateCustomers(updatedCustomersList),
+        updateLedgerEntries(finalLedgerList)
+      ]).then(() => {
+        githubDataManager.endBatchUpdate();
+      }).catch(error => {
+        console.error('Error in batch update:', error);
+        githubDataManager.endBatchUpdate();
+      });
+
       return { success: true };
     } catch (error) {
       console.error('Error deleting ledger entry:', error);
@@ -294,7 +341,7 @@ export const useCustomersDirect = () => {
   // Recalculate all running balances (to fix existing incorrect entries)
   const recalculateAllBalances = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     try {
-      console.log('Starting balance recalculation for all customers...');
+      // Starting balance recalculation for all customers
       
       // Group entries by customer
       const customerGroups = new Map<string, LedgerEntry[]>();
@@ -349,7 +396,7 @@ export const useCustomersDirect = () => {
         updateCustomers(updatedCustomersList)
       ]);
 
-      console.log(`Successfully recalculated balances for ${customerGroups.size} customers`);
+      // Successfully recalculated balances
       return { success: true };
     } catch (error) {
       console.error('Error recalculating balances:', error);

@@ -14,20 +14,13 @@ interface PaymentModalProps {
     notes: string,
     date: Date
   ) => { success: boolean };
-  editingEntry?: LedgerEntry | null;
-  onUpdate?: (
-    entryId: string,
-    updates: Partial<Omit<LedgerEntry, 'id' | 'customerId' | 'customerName' | 'createdAt' | 'runningBalance'>>
-  ) => { success: boolean };
 }
 
 export const PaymentModal = ({
   isOpen,
   customerName,
   onClose,
-  onAdd,
-  editingEntry,
-  onUpdate
+  onAdd
 }: PaymentModalProps) => {
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<LedgerEntry['paymentMethod']>('bank_transfer');
@@ -36,21 +29,16 @@ export const PaymentModal = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Populate fields when editing
+  // Reset form when modal opens
   useEffect(() => {
-    if (editingEntry && editingEntry.transactionType === 'payment') {
-      setAmount(editingEntry.credit.toString());
-      setPaymentMethod(editingEntry.paymentMethod || 'bank_transfer');
-      setNotes(editingEntry.notes || '');
-      setDate(new Date(editingEntry.date).toISOString().split('T')[0]);
-    } else if (!editingEntry) {
-      // Reset form when not editing
+    if (isOpen) {
       setAmount('');
       setPaymentMethod('bank_transfer');
       setNotes('');
       setDate(new Date().toISOString().split('T')[0]);
+      setErrors({});
     }
-  }, [editingEntry]);
+  }, [isOpen]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -73,32 +61,15 @@ export const PaymentModal = ({
     if (!validateForm()) return;
     
     setIsSubmitting(true);
-    
-    let result: { success: boolean };
-    
-    if (editingEntry && onUpdate) {
-      // Update existing entry
-      result = onUpdate(editingEntry.id, {
-        credit: parseFloat(amount),
-        debit: 0,
-        paymentMethod,
-        notes,
-        date: new Date(date),
-        description: `Payment received via ${paymentMethod}`,
-        transactionType: 'payment',
-        updatedAt: new Date()
-      });
-    } else {
-      // Add new entry
-      result = onAdd(
-        parseFloat(amount),
-        paymentMethod,
-        '', // No longer using reference number
-        notes,
-        new Date(date)
-      );
-    }
-    
+
+    const result = onAdd(
+      parseFloat(amount),
+      paymentMethod,
+      '', // No longer using reference number
+      notes,
+      new Date(date)
+    );
+
     setIsSubmitting(false);
     
     if (result.success) {
@@ -127,7 +98,7 @@ export const PaymentModal = ({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={editingEntry ? `Edit Payment - ${customerName}` : `Record Payment - ${customerName}`}
+      title={`Record Payment - ${customerName}`}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Amount */}
@@ -220,7 +191,7 @@ export const PaymentModal = ({
             disabled={isSubmitting}
             className="flex-1"
           >
-            {isSubmitting ? (editingEntry ? 'Updating...' : 'Recording...') : (editingEntry ? 'Update Payment' : 'Record Payment')}
+            {isSubmitting ? 'Recording...' : 'Record Payment'}
           </Button>
         </div>
       </form>
