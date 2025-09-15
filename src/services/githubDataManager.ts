@@ -1,202 +1,143 @@
-// GitHub Data Manager - Direct GitHub operations with in-memory cache
-// This replaces localStorage as the primary data store
+// GitHub Data Manager - Refactored with modular architecture
+// Direct GitHub operations with in-memory cache
 
-interface CacheEntry<T> {
-  data: T;
-  timestamp: number;
-  ttl: number;
-}
-
-interface DataState {
-  products: any[];
-  categories: any[];
-  movements: any[];
-  productionEntries: any[];
-  customers: any[];
-  sales: any[];
-  ledgerEntries: any[];
-  bookedStock: any[];
-  loadings: any[];
-  suppliers: any[];
-  paddyTrucks: any[];
-}
-
-interface OfflineOperation {
-  id: string;
-  type: keyof DataState;
-  operation: 'create' | 'update' | 'delete';
-  data: any;
-  timestamp: number;
-}
-
-type DataListener = (data: DataState) => void;
-type ConnectionListener = (isOnline: boolean) => void;
+import { CacheManager } from './github/CacheManager';
+import { OfflineQueueManager } from './github/OfflineQueueManager';
+import { CrossTabSync } from './github/CrossTabSync';
+import { GitHubAPIClient } from './github/GitHubAPIClient';
+import { DataMerger } from './github/DataMerger';
+import type { DataState, DataListener, ConnectionListener, GitHubConfig } from './github/types';
 
 class GitHubDataManager {
-  private cache: Map<string, CacheEntry<any>> = new Map();
-  private memoryData: DataState = {
-    products: [],
-    categories: [],
-    movements: [],
-    productionEntries: [],
-    customers: [],
-    sales: [],
-    ledgerEntries: [],
-    bookedStock: [],
-    loadings: [],
-    suppliers: [],
-    paddyTrucks: []
-  };
-  
-  private offlineQueue: OfflineOperation[] = [];
-  private isOnline: boolean = navigator.onLine;
+  // Core modules
+  private cacheManager: CacheManager;
+  private offlineQueue: OfflineQueueManager;
+  private crossTabSync: CrossTabSync;
+  private githubAPI: GitHubAPIClient;
+  private dataMerger: DataMerger;
+
+  // State management
+  private memoryData: DataState;
   private dataListeners: Set<DataListener> = new Set();
   private connectionListeners: Set<ConnectionListener> = new Set();
+  private isOnline: boolean = navigator.onLine;
+
+  // Debouncing and batching
   private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingSaves: Set<keyof DataState> = new Set();
   private batchUpdateInProgress: boolean = false;
   private batchUpdateQueue: Array<{ type: keyof DataState; data: any }> = [];
-  private broadcastChannel: BroadcastChannel | null = null;
-  
+
+  // Configuration
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly DEBOUNCE_DELAY = 2000; // 2 seconds
-  private owner: string = 'wissamyah';
-  private repo: string = 'suprememanagement-data';  // Separate private data repo
-  private path: string = 'data/data.json';
-  private branch: string = 'main';  // Use main branch in data repo
-  private token: string | null = null;
-  private apiBase: string = 'https://api.github.com';
-  
+  private connectionCheckInterval: ReturnType<typeof setInterval> | null = null;
+
   constructor() {
+    // Initialize modules
+    this.cacheManager = new CacheManager();
+    this.offlineQueue = new OfflineQueueManager();
+    this.crossTabSync = new CrossTabSync();
+    this.dataMerger = new DataMerger();
+
+    // Initialize GitHub API client with default config
+    const config: GitHubConfig = {
+      owner: 'wissamyah',
+      repo: 'suprememanagement-data',
+      path: 'data/data.json',
+      branch: 'main',
+      token: null,
+      apiBase: 'https://api.github.com'
+    };
+    this.githubAPI = new GitHubAPIClient(config);
+
+    // Initialize memory data
+    this.memoryData = this.dataMerger.getDefaultDataState();
+
+    // Setup event listeners
+    this.setupEventListeners();
+
+    // Setup cross-tab sync callback
+    this.crossTabSync.onUpdate((data) => {
+      this.memoryData = data;
+      this.dataListeners.forEach(listener => listener(this.memoryData));
+    });
+  }
+
+  private setupEventListeners(): void {
     // Monitor online/offline status
     window.addEventListener('online', this.handleOnline);
     window.addEventListener('offline', this.handleOffline);
-    
+
     // Check connection periodically
-    setInterval(() => this.checkConnection(), 30000); // Every 30 seconds
-    
-    // Setup cross-tab communication
-    this.setupCrossTabSync();
+    this.connectionCheckInterval = setInterval(() => this.checkConnection(), 30000);
   }
-  
+
   // Initialize with GitHub token
   async initialize(token: string): Promise<boolean> {
-    this.token = token;
-    
+    this.githubAPI.updateToken(token);
+
     // Verify token and load initial data
-    const isValid = await this.verifyToken();
+    const isValid = await this.githubAPI.verifyToken();
     if (!isValid) {
       throw new Error('Invalid GitHub token');
     }
-    
+
     // Load all data from GitHub
     await this.loadAllData();
-    
+
     return true;
   }
-  
-  // Verify token with GitHub API
-  private async verifyToken(): Promise<boolean> {
-    if (!this.token) return false;
-    
-    try {
-      const response = await fetch(`${this.apiBase}/user`, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
-      
-      return response.ok;
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      return false;
-    }
-  }
-  
+
   // Load all data from GitHub
   async loadAllData(forceRefresh: boolean = false): Promise<DataState> {
     const cacheKey = 'all_data';
-    
+
     // Check cache first unless force refresh
     if (!forceRefresh) {
-      const cached = this.getFromCache<DataState>(cacheKey);
+      const cached = this.cacheManager.get<DataState>(cacheKey);
       if (cached) {
         this.memoryData = cached;
         this.notifyDataListeners();
         return cached;
       }
     }
-    
+
     try {
-      // Fetch from GitHub
-      const response = await fetch(
-        `${this.apiBase}/repos/${this.owner}/${this.repo}/contents/${this.path}?ref=${this.branch}&t=${Date.now()}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.token}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
-        }
-      );
-      
-      if (response.status === 404) {
-        // File doesn't exist, use empty data
-        this.memoryData = this.getDefaultData();
-      } else if (response.ok) {
-        const fileData = await response.json();
-        const content = atob(fileData.content);
-        const data = JSON.parse(content);
-        
-        // Store SHA for updates
-        this.cache.set('github_sha', {
-          data: fileData.sha,
-          timestamp: Date.now(),
-          ttl: Infinity
-        });
-        
-        // Update memory data
-        this.memoryData = {
-          products: data.products || [],
-          categories: data.categories || [],
-          movements: data.movements || [],
-          productionEntries: data.productionEntries || [],
-          customers: data.customers || [],
-          sales: data.sales || [],
-          ledgerEntries: data.ledgerEntries || [],
-          bookedStock: data.bookedStock || [],
-          loadings: data.loadings || [],
-          suppliers: data.suppliers || [],
-          paddyTrucks: data.paddyTrucks || []
-        };
+      const result = await this.githubAPI.fetchData();
+
+      if (result) {
+        this.memoryData = result.data;
+        this.cacheManager.set('github_sha', result.sha, Infinity);
       } else {
-        throw new Error(`GitHub API error: ${response.status}`);
+        // File doesn't exist, use default data
+        this.memoryData = this.dataMerger.getDefaultDataState();
       }
-      
+
       // Cache the result
-      this.setCache(cacheKey, this.memoryData);
-      
+      this.cacheManager.set(cacheKey, this.memoryData, this.CACHE_TTL);
+
       // Notify listeners
       this.notifyDataListeners();
-      
+
       return this.memoryData;
     } catch (error) {
       console.error('Error loading data from GitHub:', error);
-      
+
       // If offline, return memory data
       if (!this.isOnline) {
         return this.memoryData;
       }
-      
+
       throw error;
     }
   }
-  
+
   // Get specific data type
   getData<K extends keyof DataState>(type: K): DataState[K] {
     return this.memoryData[type];
   }
-  
+
   // Update specific data type with optimistic updates
   async updateData<K extends keyof DataState>(
     type: K,
@@ -206,22 +147,22 @@ class GitHubDataManager {
     // Optimistic update - update memory immediately
     const previousData = this.memoryData[type];
     this.memoryData[type] = data;
-    
+
     // Notify listeners immediately for responsive UI
     this.notifyDataListeners();
-    
+
     // Mark as pending save
     this.pendingSaves.add(type);
-    
+
     try {
       if (this.isOnline) {
         if (immediate) {
           // If we're in a batch update, queue it instead of saving immediately
           if (this.batchUpdateInProgress) {
             this.batchUpdateQueue.push({ type, data });
-            return; // Don't save yet, wait for batch to complete
+            return;
           }
-          
+
           // Save immediately
           await this.saveToGitHub();
         } else {
@@ -230,7 +171,7 @@ class GitHubDataManager {
         }
       } else {
         // Queue for offline sync
-        this.queueOfflineOperation(type, 'update', data);
+        this.offlineQueue.add(type, 'update', data);
       }
     } catch (error) {
       // Rollback on failure
@@ -240,19 +181,19 @@ class GitHubDataManager {
       throw error;
     }
   }
-  
-  // Start a batch update - multiple updates will be combined into one save
+
+  // Start a batch update
   startBatchUpdate(): void {
     this.batchUpdateInProgress = true;
     this.batchUpdateQueue = [];
   }
-  
+
   // End batch update and save all changes at once
   async endBatchUpdate(): Promise<void> {
     if (!this.batchUpdateInProgress) return;
-    
+
     this.batchUpdateInProgress = false;
-    
+
     // If we have pending updates, save them now
     if (this.batchUpdateQueue.length > 0 && this.isOnline) {
       try {
@@ -262,472 +203,226 @@ class GitHubDataManager {
         // Don't throw here - the data is already updated optimistically
       }
     }
-    
+
     this.batchUpdateQueue = [];
   }
-  
+
   // Save to GitHub
   private async saveToGitHub(): Promise<void> {
-    if (!this.token || !this.isOnline) {
-      throw new Error('Cannot save: not authenticated or offline');
+    if (!this.isOnline) {
+      throw new Error('Cannot save: offline');
     }
-    
+
     // Clear pending saves
     this.pendingSaves.clear();
-    
+
     try {
-      // Get current SHA
-      let sha = this.getFromCache<string>('github_sha');
-      
+      // Get current SHA from cache
+      let sha = this.cacheManager.get<string>('github_sha');
+
       // If no cached SHA, fetch it
       if (!sha) {
         await this.loadAllData(true);
-        sha = this.getFromCache<string>('github_sha');
+        sha = this.cacheManager.get<string>('github_sha');
       }
-      
-      // Prepare data
-      const fullData = {
-        ...this.memoryData,
-        metadata: {
-          lastUpdated: new Date().toISOString(),
-          version: '3.0.0' // New version for GitHub-first architecture
-        }
-      };
-      
-      const content = btoa(JSON.stringify(fullData, null, 2));
-      
-      const body: any = {
-        message: `Update data - ${new Date().toISOString()}`,
-        content: content,
-        branch: this.branch
-      };
-      
-      if (sha) {
-        body.sha = sha;
-      }
-      
-      // Save to GitHub
-      const response = await fetch(
-        `${this.apiBase}/repos/${this.owner}/${this.repo}/contents/${this.path}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${this.token}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(body)
-        }
-      );
-      
-      if (!response.ok) {
-        // Handle SHA mismatch by retrying with fresh SHA
-        if (response.status === 409) {
+
+      try {
+        const newSha = await this.githubAPI.saveData(this.memoryData, sha || undefined);
+        this.cacheManager.set('github_sha', newSha, Infinity);
+        console.log('Data saved to GitHub successfully');
+      } catch (error: any) {
+        // Handle SHA conflict
+        if (error.message === 'SHA_CONFLICT') {
           console.log('SHA mismatch detected, merging changes...');
-          
-          // Store current local changes
-          const localData = { ...this.memoryData };
-          
-          // Load fresh data from GitHub
-          await this.loadAllData(true);
-          const freshSha = this.getFromCache<string>('github_sha');
-          
-          // Merge local changes with remote data
-          // This is a simple merge strategy - you might want to make this more sophisticated
-          this.memoryData = {
-            ...this.memoryData, // Start with remote data
-            ...localData, // Override with local changes
-            // For arrays, we need to be more careful to avoid duplicates
-            products: this.mergeArrays(this.memoryData.products, localData.products, 'id'),
-            categories: this.mergeArrays(this.memoryData.categories, localData.categories, 'id'),
-            movements: this.mergeArrays(this.memoryData.movements, localData.movements, 'id'),
-            productionEntries: this.mergeArrays(this.memoryData.productionEntries, localData.productionEntries, 'id'),
-            customers: this.mergeArrays(this.memoryData.customers, localData.customers, 'id'),
-            sales: this.mergeArrays(this.memoryData.sales, localData.sales, 'id'),
-            ledgerEntries: this.mergeArrays(this.memoryData.ledgerEntries, localData.ledgerEntries, 'id'),
-            bookedStock: this.mergeArrays(this.memoryData.bookedStock, localData.bookedStock, 'id'),
-            loadings: this.mergeArrays(this.memoryData.loadings, localData.loadings, 'id'),
-            suppliers: this.mergeArrays(this.memoryData.suppliers, localData.suppliers, 'id'),
-            paddyTrucks: this.mergeArrays(this.memoryData.paddyTrucks, localData.paddyTrucks, 'id')
-          };
-          
-          // Update the content with merged data
-          const mergedData = {
-            ...this.memoryData,
-            metadata: {
-              lastUpdated: new Date().toISOString(),
-              version: '3.0.0'
-            }
-          };
-          const mergedContent = btoa(JSON.stringify(mergedData, null, 2));
-          
-          if (freshSha) {
-            const retryBody = {
-              message: `Update data (merged) - ${new Date().toISOString()}`,
-              content: mergedContent,
-              branch: this.branch,
-              sha: freshSha
-            };
-            
-            const retryResponse = await fetch(
-              `${this.apiBase}/repos/${this.owner}/${this.repo}/contents/${this.path}`,
-              {
-                method: 'PUT',
-                headers: {
-                  'Authorization': `Bearer ${this.token}`,
-                  'Accept': 'application/vnd.github.v3+json',
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(retryBody)
-              }
-            );
-            
-            if (!retryResponse.ok) {
-              throw new Error(`GitHub save failed after retry: ${retryResponse.status}`);
-            }
-            
-            const result = await retryResponse.json();
-            // Update cached SHA
-            this.setCache('github_sha', result.content.sha);
-            console.log('Data saved to GitHub successfully after merge');
-            return;
-          }
+          await this.handleShaConflict();
+        } else {
+          throw error;
         }
-        
-        throw new Error(`GitHub save failed: ${response.status}`);
       }
-      
-      const result = await response.json();
-      // Update cached SHA
-      this.setCache('github_sha', result.content.sha);
-      
-      console.log('Data saved to GitHub successfully');
     } catch (error) {
       console.error('Failed to save to GitHub:', error);
       throw error;
     }
   }
-  
+
+  // Handle SHA conflict by merging changes
+  private async handleShaConflict(): Promise<void> {
+    // Store current local changes
+    const localData = { ...this.memoryData };
+
+    // Load fresh data from GitHub
+    await this.loadAllData(true);
+    const freshSha = this.cacheManager.get<string>('github_sha');
+
+    // Merge local changes with remote data
+    this.memoryData = this.dataMerger.mergeDataStates(this.memoryData, localData);
+
+    // Try to save again with fresh SHA
+    if (freshSha) {
+      const newSha = await this.githubAPI.saveData(this.memoryData, freshSha || undefined);
+      this.cacheManager.set('github_sha', newSha, Infinity);
+      console.log('Data saved to GitHub successfully after merge');
+    }
+  }
+
   // Schedule debounced save
   private scheduleDebouncedSave(): void {
     if (this.saveDebounceTimer) {
       clearTimeout(this.saveDebounceTimer);
     }
-    
+
     this.saveDebounceTimer = setTimeout(() => {
       this.saveToGitHub().catch(error => {
         console.error('Debounced save failed:', error);
       });
     }, this.DEBOUNCE_DELAY);
   }
-  
-  // Queue offline operation
-  private queueOfflineOperation(
-    type: keyof DataState,
-    operation: 'create' | 'update' | 'delete',
-    data: any
-  ): void {
-    this.offlineQueue.push({
-      id: Date.now().toString(),
-      type,
-      operation,
-      data,
-      timestamp: Date.now()
-    });
-    
-    console.log(`Queued offline operation: ${operation} ${type}`);
-  }
-  
+
   // Process offline queue when back online
   private async processOfflineQueue(): Promise<void> {
-    if (this.offlineQueue.length === 0) return;
-    
-    console.log(`Processing ${this.offlineQueue.length} offline operations`);
-    
+    if (this.offlineQueue.isEmpty()) return;
+
+    console.log(`Processing ${this.offlineQueue.getSize()} offline operations`);
+
     try {
       // Save all pending changes at once
       await this.saveToGitHub();
-      
+
       // Clear the queue on success
-      this.offlineQueue = [];
+      this.offlineQueue.clear();
       console.log('Offline queue processed successfully');
     } catch (error) {
       console.error('Failed to process offline queue:', error);
     }
   }
-  
+
   // Handle online event
   private handleOnline = (): void => {
     console.log('Connection restored');
     this.isOnline = true;
     this.notifyConnectionListeners();
-    
+
     // Process offline queue
     this.processOfflineQueue();
   };
-  
+
   // Handle offline event
   private handleOffline = (): void => {
     console.log('Connection lost');
     this.isOnline = false;
     this.notifyConnectionListeners();
   };
-  
+
   // Check connection status
   private async checkConnection(): Promise<void> {
-    try {
-      // If we don't have a token, just check navigator.onLine
-      if (!this.token) {
-        const wasOffline = !this.isOnline;
-        this.isOnline = navigator.onLine;
-        
-        if (wasOffline && this.isOnline) {
-          this.handleOnline();
-        } else if (!wasOffline && !this.isOnline) {
-          this.handleOffline();
-        }
-        return;
-      }
-      
-      // Use authenticated request to check connection
-      const response = await fetch(`${this.apiBase}/user`, {
-        method: 'HEAD',
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Accept': 'application/vnd.github.v3+json'
-        },
-        cache: 'no-cache'
-      });
-      
-      const wasOffline = !this.isOnline;
-      this.isOnline = response.ok;
-      
-      if (wasOffline && this.isOnline) {
-        this.handleOnline();
-      } else if (!wasOffline && !this.isOnline) {
-        this.handleOffline();
-      }
-    } catch {
-      if (this.isOnline) {
-        this.handleOffline();
-      }
+    const wasOffline = !this.isOnline;
+    this.isOnline = await this.githubAPI.checkConnection();
+
+    if (wasOffline && this.isOnline) {
+      this.handleOnline();
+    } else if (!wasOffline && !this.isOnline) {
+      this.handleOffline();
     }
   }
-  
-  // Merge arrays by ID to avoid duplicates
-  private mergeArrays<T extends { id: string }>(remote: T[], local: T[], idField: keyof T = 'id' as keyof T): T[] {
-    const merged = new Map<string, T>();
-    
-    // Add all remote items first
-    remote.forEach(item => {
-      merged.set(item[idField] as string, item);
-    });
-    
-    // Override/add local items (local changes take precedence)
-    local.forEach(item => {
-      merged.set(item[idField] as string, item);
-    });
-    
-    return Array.from(merged.values());
-  }
-  
-  // Cache management
-  private getFromCache<T>(key: string): T | null {
-    const entry = this.cache.get(key);
-    if (!entry) return null;
-    
-    const now = Date.now();
-    if (now - entry.timestamp > entry.ttl) {
-      this.cache.delete(key);
-      return null;
-    }
-    
-    return entry.data as T;
-  }
-  
-  private setCache<T>(key: string, data: T, ttl: number = this.CACHE_TTL): void {
-    this.cache.set(key, {
-      data,
-      timestamp: Date.now(),
-      ttl
-    });
-  }
-  
-  // Get default data structure
-  private getDefaultData(): DataState {
-    return {
-      products: [],
-      categories: [],
-      movements: [],
-      productionEntries: [],
-      customers: [],
-      sales: [],
-      ledgerEntries: [],
-      bookedStock: [],
-      loadings: [],
-      suppliers: [],
-      paddyTrucks: []
-    };
-  }
-  
+
   // Subscribe to data changes
   subscribeToData(listener: DataListener): () => void {
     this.dataListeners.add(listener);
     // Immediately call with current data
     listener(this.memoryData);
-    
+
     return () => {
       this.dataListeners.delete(listener);
     };
   }
-  
+
   // Subscribe to connection changes
   subscribeToConnection(listener: ConnectionListener): () => void {
     this.connectionListeners.add(listener);
     // Immediately call with current status
     listener(this.isOnline);
-    
+
     return () => {
       this.connectionListeners.delete(listener);
     };
   }
-  
+
   // Notify data listeners
   private notifyDataListeners(): void {
     this.dataListeners.forEach(listener => listener(this.memoryData));
-    
+
     // Broadcast changes to other tabs
-    this.broadcastDataChange();
+    this.crossTabSync.broadcast(this.memoryData);
   }
-  
+
   // Notify connection listeners
   private notifyConnectionListeners(): void {
     this.connectionListeners.forEach(listener => listener(this.isOnline));
   }
-  
+
   // Check if authenticated
   isAuthenticated(): boolean {
-    return this.token !== null;
+    return this.githubAPI.verifyToken().then(valid => valid).catch(() => false) as unknown as boolean;
   }
-  
+
   // Get connection status
   getConnectionStatus(): boolean {
     return this.isOnline;
   }
-  
+
   // Get offline queue size
   getOfflineQueueSize(): number {
-    return this.offlineQueue.length;
+    return this.offlineQueue.getSize();
   }
-  
+
   // Force sync (user action)
   async forceSync(): Promise<void> {
     if (!this.isOnline) {
       throw new Error('Cannot sync while offline');
     }
-    
+
     // Clear debounce timer
     if (this.saveDebounceTimer) {
       clearTimeout(this.saveDebounceTimer);
       this.saveDebounceTimer = null;
     }
-    
+
     // Save immediately
     await this.saveToGitHub();
-    
+
     // Process offline queue if any
-    if (this.offlineQueue.length > 0) {
+    if (!this.offlineQueue.isEmpty()) {
       await this.processOfflineQueue();
     }
   }
-  
+
   // Clear all data
   async clearAllData(): Promise<void> {
-    this.memoryData = this.getDefaultData();
+    this.memoryData = this.dataMerger.getDefaultDataState();
     this.notifyDataListeners();
-    
+
     if (this.isOnline) {
       await this.saveToGitHub();
     }
   }
-  
-  // Setup cross-tab synchronization
-  private setupCrossTabSync(): void {
-    try {
-      // Use BroadcastChannel if available
-      if ('BroadcastChannel' in window) {
-        this.broadcastChannel = new BroadcastChannel('supreme_data_sync');
-        
-        this.broadcastChannel.onmessage = (event) => {
-          if (event.data.type === 'data_update') {
-            // Update local memory data from another tab's changes
-            this.memoryData = event.data.data;
-            // Notify listeners in this tab
-            this.dataListeners.forEach(listener => listener(this.memoryData));
-          }
-        };
-      }
-      
-      // Also setup localStorage fallback (always, as additional sync mechanism)
-      window.addEventListener('storage', (event: StorageEvent) => {
-        if (event.key === 'supreme_data_sync' && event.newValue) {
-          try {
-            const update = JSON.parse(event.newValue);
-            if (update.timestamp > Date.now() - 1000) { // Only process recent updates
-              this.memoryData = update.data;
-              // Notify listeners in this tab
-              this.dataListeners.forEach(listener => listener(this.memoryData));
-            }
-          } catch (error) {
-            console.error('Failed to parse cross-tab update:', error);
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Failed to setup cross-tab sync:', error);
-    }
-  }
-  
-  // Broadcast data changes to other tabs
-  private broadcastDataChange(): void {
-    try {
-      const updateMessage = {
-        type: 'data_update',
-        data: this.memoryData,
-        timestamp: Date.now()
-      };
-      
-      // Use BroadcastChannel if available
-      if (this.broadcastChannel) {
-        this.broadcastChannel.postMessage(updateMessage);
-      }
-      
-      // Also use localStorage for additional sync
-      localStorage.setItem('supreme_data_sync', JSON.stringify({
-        data: this.memoryData,
-        timestamp: Date.now()
-      }));
-      // Clean up after a short delay
-      setTimeout(() => {
-        localStorage.removeItem('supreme_data_sync');
-      }, 100);
-    } catch (error) {
-      console.error('Failed to broadcast data change:', error);
-    }
-  }
-  
+
   // Cleanup
   destroy(): void {
     window.removeEventListener('online', this.handleOnline);
     window.removeEventListener('offline', this.handleOffline);
-    
+
     if (this.saveDebounceTimer) {
       clearTimeout(this.saveDebounceTimer);
     }
-    
+
+    if (this.connectionCheckInterval) {
+      clearInterval(this.connectionCheckInterval);
+    }
+
     this.dataListeners.clear();
     this.connectionListeners.clear();
-    this.cache.clear();
+    this.cacheManager.clear();
+    this.crossTabSync.destroy();
   }
 }
 

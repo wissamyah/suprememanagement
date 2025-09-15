@@ -212,10 +212,10 @@ export const useSalesDirect = () => {
       updateLedgerEntries, updateCustomers]);
   
   // Update sale
-  const updateSale = useCallback((
+  const updateSale = useCallback(async (
     id: string,
     updates: Partial<Sale>
-  ): { success: boolean; error?: string; errors?: string[] } => {
+  ): Promise<{ success: boolean; error?: string; errors?: string[] }> => {
     try {
       const now = new Date();
       
@@ -511,9 +511,9 @@ export const useSalesDirect = () => {
         allUpdates.push(updateCustomers(updatedCustomersList));
       }
       
-      // Fire and forget all updates together
-      Promise.all(allUpdates).catch(console.error);
-      
+      // Wait for all updates to complete
+      await Promise.all(allUpdates);
+
       return { success: true };
     } catch (error) {
       console.error('Error updating sale:', error);

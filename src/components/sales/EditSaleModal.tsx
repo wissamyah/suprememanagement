@@ -28,7 +28,7 @@ interface EditSaleModalProps {
   onUpdate: (
     id: string,
     updates: Partial<Omit<Sale, 'id' | 'orderId' | 'createdAt' | 'updatedAt'>>
-  ) => { success: boolean; errors?: string[] };
+  ) => Promise<{ success: boolean; errors?: string[] }>;
   products: Product[];
 }
 
@@ -140,19 +140,19 @@ export const EditSaleModal = ({
     }
 
     // Update sale
-    const result = onUpdate(sale.id, {
+    const result = await onUpdate(sale.id, {
       date: new Date(date),
       items,
       paymentStatus,
       totalAmount: calculateGrandTotal()
     });
-    
+
     if (result.success) {
       handleClose();
     } else {
       setErrors(result.errors || ['Failed to update sale']);
     }
-    
+
     setIsSubmitting(false);
   };
 

@@ -78,11 +78,11 @@ export const Sales = () => {
     return result;
   };
 
-  const handleUpdateSale = (
+  const handleUpdateSale = async (
     id: string,
     updates: Partial<Omit<Sale, 'id' | 'orderId' | 'createdAt' | 'updatedAt'>>
   ) => {
-    const result = updateSale(id, updates);
+    const result = await updateSale(id, updates);
     if (result.success) {
       showSuccess('Sale updated successfully');
       setEditingSale(null);
