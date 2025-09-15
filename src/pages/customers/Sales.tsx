@@ -54,7 +54,7 @@ export const Sales = () => {
   // Calculate real-time statistics
   const stats = calculateSalesStats(sales);
   
-  const handleAddSale = (
+  const handleAddSale = async (
     customerId: string,
     date: Date,
     items: any[],
@@ -70,7 +70,7 @@ export const Sales = () => {
       total: item.total || (item.quantity * (item.price || item.unitPrice || 0))
     }));
     
-    const result = addSale(customerId, mappedItems, date, paymentStatus);
+    const result = await addSale(customerId, mappedItems, date, paymentStatus);
     if (result.success) {
       showSuccess('Sale created successfully');
       setShowAddModal(false);

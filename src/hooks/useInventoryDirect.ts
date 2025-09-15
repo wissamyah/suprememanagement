@@ -234,7 +234,7 @@ export const useInventoryDirect = () => {
     }
   }, [products, movements, updateProducts, updateMovements]);
   
-  const addMovement = useCallback((movement: Omit<InventoryMovement, 'id' | 'createdAt'>): { success: boolean } => {
+  const addMovement = useCallback(async (movement: Omit<InventoryMovement, 'id' | 'createdAt'>): Promise<{ success: boolean }> => {
     try {
       const product = products.find(p => p.id === movement.productId);
       if (!product) {

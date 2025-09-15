@@ -20,6 +20,7 @@ export const exportPaddyTrucksToCSV = (paddyTrucks: PaddyTruck[]) => {
     'Supplier',
     'Agent',
     'Waybill Number',
+    'Bags',
     'Net Weight (kg)',
     'Deduction (kg)',
     'Weight After Deduction (kg)',
@@ -27,13 +28,14 @@ export const exportPaddyTrucksToCSV = (paddyTrucks: PaddyTruck[]) => {
     'Price per Kg',
     'Total Amount'
   ];
-  
+
   const rows = paddyTrucks.map(truck => [
     new Date(truck.date).toLocaleDateString(),
     truck.truckPlate,
     truck.supplierName,
-    truck.agent,
+    truck.agent || '',
     truck.waybillNumber || '',
+    truck.bags?.toString() || '',
     truck.netWeight?.toString() || '',
     truck.deduction?.toString() || '',
     truck.weightAfterDeduction.toString(),
@@ -75,7 +77,7 @@ export const importPaddyTrucksFromJSON = (file: File): Promise<PaddyTruck[]> => 
         
         // Validate each truck
         const validatedTrucks = data.map((truck: any) => {
-          if (!truck.truckPlate || !truck.supplierName || !truck.agent) {
+          if (!truck.truckPlate || !truck.supplierName) {
             throw new Error('Invalid truck data. Missing required fields.');
           }
           
@@ -161,7 +163,7 @@ export const filterPaddyTrucks = (
     filtered = filtered.filter(truck =>
       truck.truckPlate.toLowerCase().includes(search) ||
       truck.supplierName.toLowerCase().includes(search) ||
-      truck.agent.toLowerCase().includes(search) ||
+      truck.agent?.toLowerCase().includes(search) ||
       truck.waybillNumber?.toLowerCase().includes(search)
     );
   }

@@ -104,7 +104,8 @@ export const PaddyTrucks = () => {
     moistureLevel: number,
     waybillNumber?: string,
     netWeight?: number,
-    deduction?: number
+    deduction?: number,
+    bags?: number
   ) => {
     const result = await addPaddyTruck(
       date,
@@ -116,7 +117,8 @@ export const PaddyTrucks = () => {
       moistureLevel,
       waybillNumber,
       netWeight,
-      deduction
+      deduction,
+      bags
     );
     if (result.success) {
       showSuccess(`Paddy truck "${truckPlate}" added successfully`);
@@ -182,7 +184,8 @@ export const PaddyTrucks = () => {
           truck.moistureLevel,
           truck.waybillNumber,
           truck.netWeight,
-          truck.deduction
+          truck.deduction,
+          truck.bags
         );
         
         if (result.success) {

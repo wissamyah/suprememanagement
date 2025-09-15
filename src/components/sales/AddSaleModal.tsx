@@ -29,7 +29,7 @@ interface AddSaleModalProps {
     date: Date,
     items: SaleItem[],
     paymentStatus: 'pending' | 'partial' | 'paid'
-  ) => { success: boolean; errors?: string[] };
+  ) => Promise<{ success: boolean; errors?: string[] }> | { success: boolean; errors?: string[] };
   products: Product[];
   customers: Customer[];
 }
@@ -138,7 +138,7 @@ export const AddSaleModal = ({
     }
 
     // Add sale
-    const result = onAdd(
+    const result = await onAdd(
       customerId,
       new Date(date),
       items,

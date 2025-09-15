@@ -29,7 +29,8 @@ export const usePaddyTrucksDirect = () => {
     moistureLevel: number,
     waybillNumber?: string,
     netWeight?: number,
-    deduction?: number
+    deduction?: number,
+    bags?: number
   ): Promise<{ success: boolean; truck?: PaddyTruck; errors?: string[] }> => {
     try {
       // Check for duplicate truck plate on the same date
@@ -59,13 +60,14 @@ export const usePaddyTrucksDirect = () => {
         supplierName,
         waybillNumber,
         truckPlate,
+        bags,
         netWeight,
         deduction,
         weightAfterDeduction,
         moistureLevel,
         pricePerKg,
         totalAmount,
-        agent,
+        agent: agent.trim() || undefined,
         createdAt: now,
         updatedAt: now
       };

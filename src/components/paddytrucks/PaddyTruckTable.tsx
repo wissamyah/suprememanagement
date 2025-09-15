@@ -205,7 +205,11 @@ export const PaddyTruckTable = ({
                   </div>
                   <div>
                     <span className="text-muted text-xs">Agent:</span>
-                    <p>{truck.agent}</p>
+                    <p>{truck.agent || '-'}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted text-xs">Bags:</span>
+                    <p>{truck.bags || '-'}</p>
                   </div>
                   <div>
                     <span className="text-muted text-xs">Weight:</span>
@@ -316,6 +320,7 @@ export const PaddyTruckTable = ({
                 </button>
               </th>
               <th className="text-left py-3 px-3">Waybill</th>
+              <th className="text-center py-3 px-3">Bags</th>
               <th className="text-right py-3 px-3">
                 <button
                   onClick={() => handleSort('weight')}
@@ -343,7 +348,7 @@ export const PaddyTruckTable = ({
           <tbody>
             {filteredAndSortedTrucks.length === 0 ? (
               <tr>
-                <td colSpan={11} className="p-8 text-center text-muted">
+                <td colSpan={12} className="p-8 text-center text-muted">
                   {searchTerm || supplierFilter !== 'all' ? 
                     'No trucks found matching your filters' : 
                     'No paddy trucks yet'}
@@ -381,6 +386,9 @@ export const PaddyTruckTable = ({
                   <td className="py-3 px-3">
                     <span className="text-sm text-muted">{truck.waybillNumber || '-'}</span>
                   </td>
+                  <td className="py-3 px-3 text-center">
+                    <span className="text-sm">{truck.bags || '-'}</span>
+                  </td>
                   <td className="py-3 px-3 text-right">
                     <div className="text-sm">
                       {truck.netWeight && truck.deduction ? (
@@ -405,7 +413,7 @@ export const PaddyTruckTable = ({
                     <span className="font-medium text-green-400 text-sm">{formatCurrency(truck.totalAmount)}</span>
                   </td>
                   <td className="py-3 px-3">
-                    <span className="text-sm">{truck.agent}</span>
+                    <span className="text-sm">{truck.agent || '-'}</span>
                   </td>
                   <td className="py-3 px-3">
                     <div className="flex justify-center gap-0.5 sm:gap-1">

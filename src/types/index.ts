@@ -121,13 +121,14 @@ export interface PaddyTruck {
   supplierName: string;
   waybillNumber?: string;
   truckPlate: string;
+  bags?: number;
   netWeight?: number;
   deduction?: number;
   weightAfterDeduction: number;
   moistureLevel: number;
   pricePerKg: number;
   totalAmount: number;
-  agent: string;
+  agent?: string;
   createdAt: Date;
   updatedAt: Date;
 }

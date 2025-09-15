@@ -108,12 +108,12 @@ export const Inventory = () => {
     } else {
       showError('Failed to add production entries');
     }
-    
-    return result.success;
+
+    return result;
   };
   
-  const handleAdjustStock = (productId: string, newQuantity: number, reason: string, notes?: string) => {
-    const result = adjustStock(productId, newQuantity, reason, notes);
+  const handleAdjustStock = async (productId: string, newQuantity: number, reason: string, notes?: string) => {
+    const result = await adjustStock(productId, newQuantity, reason, notes);
     if (result.success) {
       showSuccess('Stock adjusted successfully');
       // Force refresh after a small delay to ensure batch update completes

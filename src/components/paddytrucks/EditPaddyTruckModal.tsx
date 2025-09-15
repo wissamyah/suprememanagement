@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { 
-  Truck, 
-  AlertCircle, 
-  Calendar, 
-  User, 
+import {
+  Truck,
+  AlertCircle,
+  Calendar,
+  User,
   FileText,
   Weight,
   Droplets,
   DollarSign,
-  UserCheck
+  UserCheck,
+  Package
 } from 'lucide-react';
 import { useSuppliers } from '../../hooks/useSuppliers';
 import { calculateWeightAfterDeduction } from '../../utils/paddyTrucks';
@@ -34,6 +35,7 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
   const [supplierId, setSupplierId] = useState('');
   const [waybillNumber, setWaybillNumber] = useState('');
   const [truckPlate, setTruckPlate] = useState('');
+  const [bags, setBags] = useState('');
   const [netWeight, setNetWeight] = useState('');
   const [deduction, setDeduction] = useState('');
   const [moistureLevel, setMoistureLevel] = useState('');
@@ -49,11 +51,12 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
       setSupplierId(truck.supplierId);
       setWaybillNumber(truck.waybillNumber || '');
       setTruckPlate(truck.truckPlate);
+      setBags(truck.bags?.toString() || '');
       setNetWeight(truck.netWeight?.toString() || '');
       setDeduction(truck.deduction?.toString() || '');
       setMoistureLevel(truck.moistureLevel.toString());
       setPricePerKg(truck.pricePerKg.toString());
-      setAgent(truck.agent);
+      setAgent(truck.agent || '');
     }
   }, [truck]);
   
@@ -93,9 +96,7 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
       validationErrors.push('Price per kg must be greater than 0');
     }
     
-    if (!agent.trim()) {
-      validationErrors.push('Agent name is required');
-    }
+    // Agent is now optional, no validation needed
     
     if (netWeight && parseFloat(netWeight) < 0) {
       validationErrors.push('Net weight cannot be negative');
@@ -104,9 +105,13 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
     if (deduction && parseFloat(deduction) < 0) {
       validationErrors.push('Deduction cannot be negative');
     }
-    
+
     if (deduction && netWeight && parseFloat(deduction) > parseFloat(netWeight)) {
       validationErrors.push('Deduction cannot be greater than net weight');
+    }
+
+    if (bags && parseFloat(bags) < 0) {
+      validationErrors.push('Number of bags cannot be negative');
     }
 
     if (validationErrors.length > 0) {
@@ -139,6 +144,7 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
       agent: agent.trim(),
       moistureLevel: parseFloat(moistureLevel),
       waybillNumber: waybillNumber.trim() || undefined,
+      bags: bags ? parseFloat(bags) : undefined,
       netWeight: calculatedNetWeight,
       deduction: calculatedDeduction,
       weightAfterDeduction: calculatedWeightAfterDeduction,
@@ -273,6 +279,25 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
             </div>
           </div>
 
+          {/* Number of Bags */}
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Number of Bags
+            </label>
+            <div className="relative">
+              <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={18} />
+              <input
+                type="number"
+                value={bags}
+                onChange={(e) => setBags(e.target.value)}
+                placeholder="Optional"
+                className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+                min="0"
+                step="1"
+              />
+            </div>
+          </div>
+
           {/* Net Weight */}
           <div>
             <label className="block text-sm font-medium mb-2">
@@ -372,7 +397,7 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
           {/* Agent */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Agent <span className="text-red-400">*</span>
+              Agent
             </label>
             <div className="relative">
               <UserCheck className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={18} />
@@ -380,9 +405,8 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
                 type="text"
                 value={agent}
                 onChange={(e) => setAgent(e.target.value)}
-                placeholder="Enter agent name"
+                placeholder="Optional"
                 className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-                required
               />
             </div>
           </div>
