@@ -474,7 +474,7 @@ export const useLoadingsDirect = () => {
   const getCustomersWithBookedStock = useCallback(() => {
     const customersWithBookings = new Set<string>();
     bookedStock.forEach(booking => {
-      if (booking.status === 'pending' || booking.status === 'confirmed') {
+      if (booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'partial-loaded') {
         customersWithBookings.add(booking.customerId);
       }
     });
