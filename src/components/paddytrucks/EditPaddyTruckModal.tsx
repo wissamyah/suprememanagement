@@ -129,9 +129,9 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
     }
 
     // Calculate weight after deduction and total amount for the update
-    const calculatedNetWeight = netWeight ? parseFloat(netWeight) : undefined;
-    const calculatedDeduction = deduction ? parseFloat(deduction) : undefined;
-    const calculatedWeightAfterDeduction = (calculatedNetWeight || 0) - (calculatedDeduction || 0);
+    const calculatedNetWeight = netWeight ? Math.round(parseFloat(netWeight)) : undefined;
+    const calculatedDeduction = deduction ? Math.round(parseFloat(deduction)) : undefined;
+    const calculatedWeightAfterDeduction = Math.round((calculatedNetWeight || 0) - (calculatedDeduction || 0));
     const calculatedTotalAmount = calculatedWeightAfterDeduction * parseFloat(pricePerKg);
     
     // Update paddy truck with calculated values
@@ -311,7 +311,7 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
                 onChange={(e) => setNetWeight(e.target.value)}
                 placeholder="Optional"
                 className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-                step="0.01"
+                step="1"
                 min="0"
               />
             </div>
@@ -330,7 +330,7 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
                 onChange={(e) => setDeduction(e.target.value)}
                 placeholder="Optional"
                 className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-                step="0.01"
+                step="1"
                 min="0"
               />
             </div>
@@ -345,7 +345,7 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
               <Weight className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={18} />
               <input
                 type="text"
-                value={weightAfterDeduction.toFixed(2)}
+                value={Math.round(weightAfterDeduction).toString()}
                 readOnly
                 className="w-full pl-10 pr-4 py-2 glass rounded-lg bg-white/5 cursor-not-allowed"
               />

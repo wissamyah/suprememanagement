@@ -180,7 +180,7 @@ export const PaddyTrucks = () => {
           truck.supplierName,
           truck.truckPlate,
           truck.pricePerKg,
-          truck.agent,
+          truck.agent || '',
           truck.moistureLevel,
           truck.waybillNumber,
           truck.netWeight,

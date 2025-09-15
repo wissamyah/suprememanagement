@@ -106,7 +106,7 @@ export const importPaddyTrucksFromJSON = (file: File): Promise<PaddyTruck[]> => 
 // Formatting functions
 export const formatWeight = (weight: number | undefined): string => {
   if (weight === undefined || weight === null) return '-';
-  return `${weight.toLocaleString()} kg`;
+  return `${Math.round(weight).toLocaleString()} kg`;
 };
 
 export const formatMoistureLevel = (moisture: number): string => {
@@ -119,7 +119,7 @@ export const formatCurrency = (amount: number): string => {
 
 // Calculation functions
 export const calculateWeightAfterDeduction = (netWeight?: number, deduction?: number): number => {
-  return (netWeight || 0) - (deduction || 0);
+  return Math.round((netWeight || 0) - (deduction || 0));
 };
 
 export const calculateTotalAmount = (weightAfterDeduction: number, pricePerKg: number): number => {
@@ -134,14 +134,14 @@ export const formatTruckDetailsForCopy = (truck: PaddyTruck): string => {
   const formatNumber = (num: number) => num.toLocaleString();
   
   // First line: @Price/kg - Net weight after deduction Kgs
-  lines.push(`@${formatNumber(truck.pricePerKg)}/kg - ${formatNumber(truck.weightAfterDeduction)} Kgs`);
+  lines.push(`@${formatNumber(truck.pricePerKg)}/kg - ${formatNumber(Math.round(truck.weightAfterDeduction))} Kgs`);
   
   // Second line: Supplier Name *Truck details* (moisture level%)
   lines.push(`${truck.supplierName} *${truck.truckPlate}* (${truck.moistureLevel}%)`);
   
   // Third line: Deduction (only if it exists)
   if (truck.deduction && truck.deduction > 0) {
-    lines.push(`Deduction: ${formatNumber(truck.deduction)} Kgs`);
+    lines.push(`Deduction: ${formatNumber(Math.round(truck.deduction))} Kgs`);
   }
   
   return lines.join('\n');

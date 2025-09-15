@@ -46,8 +46,8 @@ export const usePaddyTrucksDirect = () => {
         };
       }
       
-      // Calculate weight after deduction
-      const weightAfterDeduction = (netWeight || 0) - (deduction || 0);
+      // Calculate weight after deduction (rounded to whole number)
+      const weightAfterDeduction = Math.round((netWeight || 0) - (deduction || 0));
       
       // Calculate total amount
       const totalAmount = weightAfterDeduction * pricePerKg;
@@ -120,8 +120,8 @@ export const usePaddyTrucksDirect = () => {
             const netWeight = updates.netWeight !== undefined ? updates.netWeight : truck.netWeight;
             const deduction = updates.deduction !== undefined ? updates.deduction : truck.deduction;
             const pricePerKg = updates.pricePerKg !== undefined ? updates.pricePerKg : truck.pricePerKg;
-            
-            weightAfterDeduction = (netWeight || 0) - (deduction || 0);
+
+            weightAfterDeduction = Math.round((netWeight || 0) - (deduction || 0));
             totalAmount = weightAfterDeduction * pricePerKg;
           }
           
