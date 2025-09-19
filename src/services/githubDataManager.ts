@@ -155,14 +155,14 @@ class GitHubDataManager {
     this.pendingSaves.add(type);
 
     try {
+      // If we're in a batch update, queue it instead of saving
+      if (this.batchUpdateInProgress) {
+        this.batchUpdateQueue.push({ type, data });
+        return;
+      }
+
       if (this.isOnline) {
         if (immediate) {
-          // If we're in a batch update, queue it instead of saving immediately
-          if (this.batchUpdateInProgress) {
-            this.batchUpdateQueue.push({ type, data });
-            return;
-          }
-
           // Save immediately
           await this.saveToGitHub();
         } else {
