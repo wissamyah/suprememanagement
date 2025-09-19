@@ -27,6 +27,8 @@ class GitHubDataManager {
   private pendingSaves: Set<keyof DataState> = new Set();
   private batchUpdateInProgress: boolean = false;
   private batchUpdateQueue: Array<{ type: keyof DataState; data: any }> = [];
+  private saveLock: boolean = false;
+  private saveQueue: Promise<void> = Promise.resolve();
 
   // Configuration
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -194,8 +196,15 @@ class GitHubDataManager {
 
     this.batchUpdateInProgress = false;
 
+    // Clear the queue
+    const hadUpdates = this.batchUpdateQueue.length > 0;
+    this.batchUpdateQueue = [];
+
+    // Wait for any in-progress saves to complete
+    await this.saveQueue;
+
     // If we have pending updates, save them now
-    if (this.batchUpdateQueue.length > 0 && this.isOnline) {
+    if (hadUpdates && this.isOnline) {
       try {
         await this.saveToGitHub();
       } catch (error) {
@@ -203,46 +212,68 @@ class GitHubDataManager {
         // Don't throw here - the data is already updated optimistically
       }
     }
-
-    this.batchUpdateQueue = [];
   }
 
-  // Save to GitHub
+  // Save to GitHub with lock mechanism
   private async saveToGitHub(): Promise<void> {
     if (!this.isOnline) {
       throw new Error('Cannot save: offline');
     }
 
-    // Clear pending saves
-    this.pendingSaves.clear();
+    // If batch update is in progress, don't save
+    if (this.batchUpdateInProgress) {
+      return;
+    }
 
-    try {
-      // Get current SHA from cache
-      let sha = this.cacheManager.get<string>('github_sha');
-
-      // If no cached SHA, fetch it
-      if (!sha) {
-        await this.loadAllData(true);
-        sha = this.cacheManager.get<string>('github_sha');
+    // Queue this save operation to prevent concurrent saves
+    this.saveQueue = this.saveQueue.then(async () => {
+      // Double-check batch mode in case it changed while waiting
+      if (this.batchUpdateInProgress) {
+        return;
       }
+
+      // Acquire lock
+      if (this.saveLock) {
+        return; // Another save is in progress
+      }
+      this.saveLock = true;
 
       try {
-        const newSha = await this.githubAPI.saveData(this.memoryData, sha || undefined);
-        this.cacheManager.set('github_sha', newSha, Infinity);
-        console.log('Data saved to GitHub successfully');
-      } catch (error: any) {
-        // Handle SHA conflict
-        if (error.message === 'SHA_CONFLICT') {
-          console.log('SHA mismatch detected, merging changes...');
-          await this.handleShaConflict();
-        } else {
-          throw error;
+        // Clear pending saves
+        this.pendingSaves.clear();
+
+        // Get current SHA from cache
+        let sha = this.cacheManager.get<string>('github_sha');
+
+        // If no cached SHA, fetch it
+        if (!sha) {
+          await this.loadAllData(true);
+          sha = this.cacheManager.get<string>('github_sha');
         }
+
+        try {
+          const newSha = await this.githubAPI.saveData(this.memoryData, sha || undefined);
+          this.cacheManager.set('github_sha', newSha, Infinity);
+          console.log('Data saved to GitHub successfully');
+        } catch (error: any) {
+          // Handle SHA conflict
+          if (error.message === 'SHA_CONFLICT') {
+            console.log('SHA mismatch detected, merging changes...');
+            await this.handleShaConflict();
+          } else {
+            throw error;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to save to GitHub:', error);
+        throw error;
+      } finally {
+        // Release lock
+        this.saveLock = false;
       }
-    } catch (error) {
-      console.error('Failed to save to GitHub:', error);
-      throw error;
-    }
+    });
+
+    return this.saveQueue;
   }
 
   // Handle SHA conflict by merging changes
