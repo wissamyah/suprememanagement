@@ -380,11 +380,11 @@ export const useLoadingsDirect = () => {
       if (!loadingToDelete) {
         return { success: false, error: 'Loading not found' };
       }
-      
+
       // Revert product quantities and booked stock
       const updatedProductsList = [...products];
       const updatedBookedStockList = [...bookedStock];
-      
+
       loadingToDelete.items.forEach(item => {
         // Revert product quantities
         const productIndex = updatedProductsList.findIndex(p => p.id === item.productId);
@@ -398,7 +398,7 @@ export const useLoadingsDirect = () => {
             updatedAt: new Date()
           };
         }
-        
+
         // Revert booked stock
         if (item.bookedStockId) {
           const bookedIndex = updatedBookedStockList.findIndex(b => b.id === item.bookedStockId);
@@ -414,21 +414,35 @@ export const useLoadingsDirect = () => {
           }
         }
       });
-      
+
       // Remove loading
       const updatedLoadingsList = loadings.filter(l => l.id !== id);
-      
+
       // Remove related movements
       const updatedMovementsList = movements.filter(m => m.referenceId !== id);
-      
-      // Fire and forget - update all
-      updateLoadings(updatedLoadingsList).catch(console.error);
-      updateMovements(updatedMovementsList).catch(console.error);
-      updateProducts(updatedProductsList).catch(console.error);
+
+      // Start batch update to ensure all changes are committed together
+      githubDataManager.startBatchUpdate();
+
+      // Update all data in batch
+      const updates = [
+        updateLoadings(updatedLoadingsList),
+        updateMovements(updatedMovementsList),
+        updateProducts(updatedProductsList)
+      ];
+
       if (loadingToDelete.items.some(item => item.bookedStockId)) {
-        updateBookedStock(updatedBookedStockList).catch(console.error);
+        updates.push(updateBookedStock(updatedBookedStockList));
       }
-      
+
+      // Execute all updates together
+      Promise.all(updates).then(() => {
+        githubDataManager.endBatchUpdate();
+      }).catch(error => {
+        console.error('Error in batch update during deletion:', error);
+        githubDataManager.endBatchUpdate();
+      });
+
       return { success: true };
     } catch (error) {
       console.error('Error deleting loading:', error);
@@ -520,6 +534,90 @@ export const useLoadingsDirect = () => {
     return Promise.resolve(false);
   }, [loadings, updateLoadings]);
 
+  // Fix orphaned booked stock (marked as loaded but no corresponding loading)
+  const fixOrphanedBookedStock = useCallback(async (): Promise<{ fixed: number; details: string[] }> => {
+    const orphanedBookings: BookedStock[] = [];
+    const details: string[] = [];
+
+    // Find all booked stock that's marked as loaded
+    const loadedBookings = bookedStock.filter(
+      booking => booking.status === 'fully-loaded' || booking.status === 'partial-loaded'
+    );
+
+    // Check each loaded booking for a corresponding loading entry
+    loadedBookings.forEach(booking => {
+      let foundInLoading = false;
+
+      for (const loading of loadings) {
+        for (const item of loading.items) {
+          if (item.bookedStockId === booking.id) {
+            foundInLoading = true;
+            break;
+          }
+        }
+        if (foundInLoading) break;
+      }
+
+      if (!foundInLoading) {
+        orphanedBookings.push(booking);
+        details.push(`Found orphaned booking: ${booking.productName} for ${booking.customerName} (${booking.quantity} ${booking.unit})`);
+      }
+    });
+
+    if (orphanedBookings.length === 0) {
+      return { fixed: 0, details: ['No orphaned booked stock found'] };
+    }
+
+    // Fix orphaned bookings by resetting them to pending
+    const updatedBookedStockList = [...bookedStock];
+    const updatedProductsList = [...products];
+
+    orphanedBookings.forEach(orphaned => {
+      const bookedIndex = updatedBookedStockList.findIndex(b => b.id === orphaned.id);
+      if (bookedIndex !== -1) {
+        // Reset to pending status
+        updatedBookedStockList[bookedIndex] = {
+          ...orphaned,
+          quantityLoaded: 0,
+          status: 'pending',
+          updatedAt: new Date()
+        };
+
+        // Also restore the booked quantity in products
+        const productIndex = updatedProductsList.findIndex(p => p.id === orphaned.productId);
+        if (productIndex !== -1) {
+          const product = updatedProductsList[productIndex];
+          const restoredBookedQty = (product.quantityBooked || 0) + orphaned.quantity;
+          updatedProductsList[productIndex] = {
+            ...product,
+            quantityBooked: restoredBookedQty,
+            availableQuantity: product.quantityOnHand - restoredBookedQty,
+            updatedAt: new Date()
+          };
+        }
+      }
+    });
+
+    // Apply the fix using batch update
+    githubDataManager.startBatchUpdate();
+
+    try {
+      await Promise.all([
+        updateBookedStock(updatedBookedStockList),
+        updateProducts(updatedProductsList)
+      ]);
+      await githubDataManager.endBatchUpdate();
+
+      details.push(`Successfully fixed ${orphanedBookings.length} orphaned booked stock entries`);
+      return { fixed: orphanedBookings.length, details };
+    } catch (error) {
+      console.error('Error fixing orphaned booked stock:', error);
+      await githubDataManager.endBatchUpdate();
+      details.push(`Error occurred while fixing: ${error}`);
+      return { fixed: 0, details };
+    }
+  }, [bookedStock, loadings, products, updateBookedStock, updateProducts]);
+
   return {
     // Data
     loadings,
@@ -546,6 +644,7 @@ export const useLoadingsDirect = () => {
     getCustomersWithBookedStock,
     getCustomerBookedProducts,
     fixDuplicateIds,
+    fixOrphanedBookedStock,
 
     // Sync operations
     forceSync,

@@ -50,7 +50,8 @@ export const Loadings = () => {
     getCustomersWithBookedStock,
     getCustomerBookedProducts,
     forceSync,
-    fixDuplicateIds
+    fixDuplicateIds,
+    fixOrphanedBookedStock
   } = useLoadings();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
@@ -152,6 +153,22 @@ export const Loadings = () => {
       showSuccess('No duplicate loading IDs found');
     }
   };
+
+  const handleFixOrphanedStock = async () => {
+    try {
+      const result = await fixOrphanedBookedStock();
+
+      if (result.fixed > 0) {
+        showSuccess(`Fixed ${result.fixed} orphaned booked stock entries`);
+        console.log('Orphaned stock fix details:', result.details);
+      } else {
+        showSuccess('No orphaned booked stock found');
+      }
+    } catch (error: any) {
+      showError('Failed to fix orphaned booked stock');
+      console.error('Error fixing orphaned stock:', error);
+    }
+  };
   
   return (
     <div className="space-y-6">
@@ -237,6 +254,17 @@ export const Loadings = () => {
                     <Wrench size={16} />
                     Fix Duplicate IDs
                   </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFixOrphanedStock();
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-2 text-orange-400"
+                  >
+                    <Wrench size={16} />
+                    Fix Orphaned Stock
+                  </button>
                 </div>
               </div>
             )}
@@ -302,6 +330,13 @@ export const Loadings = () => {
                     >
                       <Wrench size={16} />
                       Fix Duplicate IDs
+                    </button>
+                    <button
+                      onClick={handleFixOrphanedStock}
+                      className="w-full px-4 py-2 text-left hover:bg-glass flex items-center gap-2 text-orange-400"
+                    >
+                      <Wrench size={16} />
+                      Fix Orphaned Stock
                     </button>
                   </div>
                 </div>

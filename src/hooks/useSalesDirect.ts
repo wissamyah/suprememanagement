@@ -506,8 +506,14 @@ export const useSalesDirect = () => {
         allUpdates.push(updateCustomers(updatedCustomersList));
       }
       
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
       // Wait for all updates to complete
       await Promise.all(allUpdates);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
 
       return { success: true };
     } catch (error) {
