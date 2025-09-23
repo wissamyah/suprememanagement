@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
 import { ToastContainer } from '../../components/ui/Toast';
+import { Pagination } from '../../components/ui/Pagination';
 import {
   Plus,
   Search,
@@ -38,6 +39,8 @@ export const Loadings = () => {
   const [editingLoading, setEditingLoading] = useState<Loading | null>(null);
   const [showImportExportMenu, setShowImportExportMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
   
   const {
     loadings,
@@ -58,6 +61,55 @@ export const Loadings = () => {
   
   // Calculate real-time statistics
   const stats = calculateLoadingStats(loadings);
+
+  // Filter loadings based on search and date
+  const filteredLoadings = useMemo(() => {
+    let filtered = [...loadings];
+
+    // Apply search filter
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(loading =>
+        loading.loadingId.toLowerCase().includes(search) ||
+        loading.customerName.toLowerCase().includes(search) ||
+        loading.truckPlateNumber.toLowerCase().includes(search) ||
+        (loading.wayBillNumber && loading.wayBillNumber.toLowerCase().includes(search))
+      );
+    }
+
+    // Apply date filter
+    const now = new Date();
+    const startOfToday = new Date(now.setHours(0, 0, 0, 0));
+    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    if (dateFilter === 'today') {
+      filtered = filtered.filter(loading => new Date(loading.date) >= startOfToday);
+    } else if (dateFilter === 'week') {
+      filtered = filtered.filter(loading => new Date(loading.date) >= startOfWeek);
+    } else if (dateFilter === 'month') {
+      filtered = filtered.filter(loading => new Date(loading.date) >= startOfMonth);
+    }
+
+    // Sort by date - most recent first
+    filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return filtered;
+  }, [loadings, searchTerm, dateFilter]);
+
+  // Paginate filtered loadings
+  const paginatedLoadings = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredLoadings.slice(start, end);
+  }, [filteredLoadings, currentPage]);
+
+  const totalPages = Math.ceil(filteredLoadings.length / itemsPerPage);
+
+  // Reset to page 1 when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchTerm, dateFilter]);
   
   const handleAddLoading = (
     date: string,
@@ -455,13 +507,24 @@ export const Loadings = () => {
             </div>
           </div>
         ) : (
-          <LoadingTable
-            loadings={loadings}
-            searchTerm={searchTerm}
-            dateFilter={dateFilter}
-            onEditLoading={setEditingLoading}
-            onDeleteLoading={handleDeleteLoading}
-          />
+          <>
+            <LoadingTable
+              loadings={paginatedLoadings}
+              searchTerm=""
+              dateFilter="all"
+              onEditLoading={setEditingLoading}
+              onDeleteLoading={handleDeleteLoading}
+            />
+
+            {/* Pagination */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={filteredLoadings.length}
+              onPageChange={setCurrentPage}
+            />
+          </>
         )}
       </GlassCard>
       

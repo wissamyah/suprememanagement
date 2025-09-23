@@ -163,11 +163,8 @@ export const AddSaleModal = ({
     onClose();
   };
 
-  // Get available products (with stock)
-  const availableProducts = products.filter(p => {
-    const available = p.quantityOnHand - (p.quantityBooked || 0);
-    return available > 0;
-  });
+  // Get all products (allow negative stock since production is continuous)
+  const availableProducts = products;
 
   return (
     <Modal
@@ -284,9 +281,16 @@ export const AddSaleModal = ({
                       <option value="">Select product</option>
                       {availableProducts.map(product => {
                         const available = product.quantityOnHand - (product.quantityBooked || 0);
+                        // Show all products, even with negative stock
+                        // Indicate stock status but allow selection
+                        const stockIndicator = available < 0
+                          ? `⚠️ ${available}`
+                          : available === 0
+                          ? '📦 0'
+                          : `✅ ${available}`;
                         return (
                           <option key={product.id} value={product.id}>
-                            {product.name} (Available: {available} {product.unit})
+                            {product.name} ({stockIndicator} {product.unit})
                           </option>
                         );
                       })}

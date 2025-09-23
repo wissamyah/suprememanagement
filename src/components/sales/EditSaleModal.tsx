@@ -165,12 +165,8 @@ export const EditSaleModal = ({
     onClose();
   };
 
-  // Get available products (with stock)
-  const availableProducts = products.filter(p => {
-    const available = p.quantityOnHand - (p.quantityBooked || 0);
-    // Include products that are already in this sale or have available stock
-    return available > 0 || items.some(item => item.productId === p.id);
-  });
+  // Get all products (allow negative stock since production is continuous)
+  const availableProducts = products;
 
   if (!sale) return null;
 
@@ -279,9 +275,17 @@ export const EditSaleModal = ({
                       {availableProducts.map(product => {
                         const available = product.quantityOnHand - (product.quantityBooked || 0);
                         const isCurrentItem = item.productId === product.id;
+                        // When editing, add back the current item's quantity to show true available
+                        const adjustedAvailable = available + (isCurrentItem ? item.quantity : 0);
+                        // Show all products with clear stock indicators
+                        const stockIndicator = adjustedAvailable < 0
+                          ? `⚠️ ${adjustedAvailable}`
+                          : adjustedAvailable === 0
+                          ? '📦 0'
+                          : `✅ ${adjustedAvailable}`;
                         return (
                           <option key={product.id} value={product.id}>
-                            {product.name} (Available: {available + (isCurrentItem ? item.quantity : 0)} {product.unit})
+                            {product.name} ({stockIndicator} {product.unit})
                           </option>
                         );
                       })}

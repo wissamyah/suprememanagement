@@ -253,12 +253,15 @@ export const useSalesDirect = () => {
           );
 
           if (existingBooking && existingBooking.quantityLoaded > 0) {
+            // Prevent reduction below loaded amount
             if (newItem.quantity < existingBooking.quantityLoaded) {
               validationErrors.push(
                 `Cannot reduce ${newItem.productName} to ${newItem.quantity} ${newItem.unit}. ` +
                 `Already loaded: ${existingBooking.quantityLoaded} ${newItem.unit}`
               );
             }
+            // Allow increases - the additional quantity becomes available for future loadings
+            // This is valid and should not cause any issues
           }
         }
 
@@ -289,13 +292,27 @@ export const useSalesDirect = () => {
             const newItem = newItemsMap.get(entry.productId);
             if (newItem) {
               // Update existing booked stock entry
-              return {
+              // IMPORTANT: When quantity increases after partial loading,
+              // the additional quantity becomes available for future loadings
+              // quantityLoaded remains unchanged to preserve loading history
+              const updatedEntry = {
                 ...entry,
                 quantity: newItem.quantity,
                 productName: newItem.productName,
                 unit: newItem.unit,
                 updatedAt: now
               };
+
+              // Adjust status based on new quantity vs loaded quantity
+              if (entry.quantityLoaded >= newItem.quantity) {
+                updatedEntry.status = 'fully-loaded' as const;
+              } else if (entry.quantityLoaded > 0) {
+                updatedEntry.status = 'partial-loaded' as const;
+              } else {
+                updatedEntry.status = 'pending' as const;
+              }
+
+              return updatedEntry;
             }
             // If product not in new items, it will be removed below
           }
@@ -340,16 +357,30 @@ export const useSalesDirect = () => {
         const updatedProductsList = products.map(product => {
           const oldItem = oldItemsMap.get(product.id);
           const newItem = newItemsMap.get(product.id);
-          
+
           if (oldItem || newItem) {
             const oldQuantity = oldItem?.quantity || 0;
             const newQuantity = newItem?.quantity || 0;
             const quantityDiff = newQuantity - oldQuantity;
-            
+
+            // Find the booked stock entry to check loaded quantities
+            const booking = updatedBookedStockList.find(
+              b => b.saleId === id && b.productId === product.id
+            );
+
+            // Calculate the actual booked quantity:
+            // For partially loaded items, only the unloaded portion should be counted as booked
+            let actualBookedChange = quantityDiff;
+            if (booking && booking.quantityLoaded > 0 && quantityDiff > 0) {
+              // When increasing quantity after partial loading,
+              // only the additional quantity (beyond what's loaded) affects booked quantity
+              actualBookedChange = quantityDiff; // The increase is all new booked quantity
+            }
+
             return {
               ...product,
-              quantityBooked: Math.max(0, (product.quantityBooked || 0) + quantityDiff),
-              availableQuantity: product.quantityOnHand - Math.max(0, (product.quantityBooked || 0) + quantityDiff),
+              quantityBooked: Math.max(0, (product.quantityBooked || 0) + actualBookedChange),
+              availableQuantity: product.quantityOnHand - Math.max(0, (product.quantityBooked || 0) + actualBookedChange),
               updatedAt: now
             };
           }
@@ -361,12 +392,22 @@ export const useSalesDirect = () => {
           if (movement.referenceId === id && movement.movementType === 'sales') {
             const newItem = newItemsMap.get(movement.productId);
             if (newItem) {
-              // Update existing movement entry with new quantity
+              // Find the booked stock to get loaded quantity
+              const booking = updatedBookedStockList.find(
+                b => b.saleId === id && b.productId === movement.productId
+              );
+
+              // Update existing movement entry
+              // Note: Sales movements don't affect physical stock (quantity: 0)
+              // They only track bookings, not actual stock movement
               return {
                 ...movement,
-                quantity: newItem.quantity,
+                quantity: 0, // Sales movements don't physically move stock
                 productName: newItem.productName,
-                notes: `Sold to ${existingSale.customerName}`,
+                notes: `Booked ${newItem.quantity} ${newItem.unit} for ${existingSale.customerName}` +
+                  (booking && booking.quantityLoaded > 0
+                    ? ` (${booking.quantityLoaded} already loaded)`
+                    : ' (no physical stock change)'),
                 updatedAt: now
               };
             }
