@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useSwipeFromEdge, useSwipeGesture } from '../../hooks/useSwipeGesture';
 import {
   LayoutDashboard,
   Package,
@@ -70,6 +71,7 @@ export const Sidebar = () => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [justExpandedItem, setJustExpandedItem] = useState<string | null>(null);
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
   const location = useLocation();
 
   // Close mobile menu on route change
@@ -99,6 +101,44 @@ export const Sidebar = () => {
       return () => clearTimeout(timer);
     }
   }, [justExpandedItem]);
+
+  // Enable swipe-from-left-edge to open mobile menu
+  useSwipeFromEdge(() => {
+    if (!isMobileMenuOpen) {
+      setIsMobileMenuOpen(true);
+    }
+  }, {
+    edgeWidth: 30, // Trigger zone from left edge
+    enabled: !isMobileMenuOpen && window.innerWidth < 1024 // Only on mobile and when menu is closed
+  });
+
+  // Enable swipe-left on menu content to close it
+  useSwipeGesture({
+    onSwipeLeft: () => {
+      if (isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+      }
+    }
+  }, {
+    threshold: 80, // Higher threshold for closing
+    enabled: isMobileMenuOpen && window.innerWidth < 1024
+  });
+
+  // Show swipe hint briefly on mobile when component mounts
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      // Check if user has seen the hint before
+      const hasSeenHint = localStorage.getItem('swipeHintShown');
+      if (!hasSeenHint) {
+        setShowSwipeHint(true);
+        const timer = setTimeout(() => {
+          setShowSwipeHint(false);
+          localStorage.setItem('swipeHintShown', 'true');
+        }, 3000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
 
   const toggleExpanded = (title: string) => {
     setExpandedItems(prev => {
@@ -348,6 +388,18 @@ export const Sidebar = () => {
           </div>
         </div>
       </div>
+
+      {/* Swipe Hint Indicator */}
+      {showSwipeHint && (
+        <div className="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 pointer-events-none animate-pulse">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-16 bg-gradient-to-r from-white/60 to-transparent rounded-r-full" />
+            <div className="bg-black/80 backdrop-blur-sm px-3 py-2 rounded-full">
+              <p className="text-xs text-white/90 whitespace-nowrap">Swipe from edge →</p>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
