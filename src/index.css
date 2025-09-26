@@ -227,3 +227,45 @@ input[type="date"]::-webkit-datetime-edit-year-field:focus {
   color: white;
   outline: none;
 }
+
+/* Hide native time picker icon */
+input[type="time"]::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+/* For Firefox and other browsers */
+input[type="time"]::-moz-calendar-picker-indicator {
+  display: none;
+}
+
+/* Ensure time input text remains visible and styled */
+input[type="time"] {
+  color-scheme: dark;
+}
+
+input[type="time"]::-webkit-datetime-edit {
+  color: #e5e7eb;
+}
+
+input[type="time"]::-webkit-datetime-edit-fields-wrapper {
+  color: #e5e7eb;
+}
+
+input[type="time"]::-webkit-datetime-edit-text {
+  color: #9ca3af;
+}
+
+input[type="time"]::-webkit-datetime-edit-hour-field,
+input[type="time"]::-webkit-datetime-edit-minute-field,
+input[type="time"]::-webkit-datetime-edit-ampm-field {
+  color: #e5e7eb;
+}
+
+input[type="time"]::-webkit-datetime-edit-hour-field:focus,
+input[type="time"]::-webkit-datetime-edit-minute-field:focus,
+input[type="time"]::-webkit-datetime-edit-ampm-field:focus {
+  background-color: rgba(59, 130, 246, 0.5);
+  color: white;
+  outline: none;
+}

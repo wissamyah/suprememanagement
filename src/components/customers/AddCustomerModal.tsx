@@ -211,12 +211,6 @@ export const AddCustomerModal = ({ isOpen, onClose, onAdd }: AddCustomerModalPro
           </p>
         </div>
 
-        {/* Info Box */}
-        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-          <p className="text-sm text-blue-300">
-            The balance will be managed automatically through sales and payment transactions in the ledger.
-          </p>
-        </div>
       </form>
     </Modal>
   );

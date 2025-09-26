@@ -77,7 +77,7 @@ export const CustomerBookingsModal = ({ isOpen, customer, onClose }: CustomerBoo
           {/* Pending/Partial Summary */}
           <div className="glass rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <Clock className="text-yellow-400" size={20} />
+              <Clock className="text-gray-400" size={20} />
               <span className="text-xs text-muted">Pending</span>
             </div>
             <p className="text-xl font-bold">{pendingBookings.length}</p>
@@ -147,7 +147,7 @@ export const CustomerBookingsModal = ({ isOpen, customer, onClose }: CustomerBoo
             {pendingBookings.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-muted mb-2 flex items-center gap-2">
-                  <Clock size={14} />
+                  <Clock className="text-gray-400" size={14} />
                   Pending & Partially Loaded ({pendingBookings.length})
                 </h4>
                 <div className="space-y-3">

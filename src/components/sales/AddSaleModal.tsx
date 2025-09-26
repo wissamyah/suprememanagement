@@ -59,7 +59,7 @@ export const AddSaleModal = ({
     setItems([...items, {
       productId: '',
       productName: '',
-      quantity: 1,
+      quantity: 0,
       unit: '',
       price: 0,
       total: 0
@@ -271,7 +271,7 @@ export const AddSaleModal = ({
               <div key={index} className="glass rounded-lg p-3">
                 <div className="grid grid-cols-12 gap-2">
                   {/* Product Select */}
-                  <div className="col-span-4">
+                  <div className="col-span-12 md:col-span-4">
                     <select
                       value={item.productId}
                       onChange={(e) => updateItem(index, 'productId', e.target.value)}
@@ -279,30 +279,33 @@ export const AddSaleModal = ({
                       required
                     >
                       <option value="">Select product</option>
-                      {availableProducts.map(product => {
-                        const available = product.quantityOnHand - (product.quantityBooked || 0);
-                        // Show all products, even with negative stock
-                        // Indicate stock status but allow selection
-                        const stockIndicator = available < 0
-                          ? `⚠️ ${available}`
-                          : available === 0
-                          ? '📦 0'
-                          : `✅ ${available}`;
-                        return (
-                          <option key={product.id} value={product.id}>
-                            {product.name} ({stockIndicator} {product.unit})
-                          </option>
-                        );
-                      })}
+                      {availableProducts
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map(product => {
+                          const available = product.quantityOnHand - (product.quantityBooked || 0);
+                          // Show all products, even with negative stock
+                          // Indicate stock status but allow selection
+                          const stockIndicator = available < 0
+                            ? `⚠️ ${available}`
+                            : available === 0
+                            ? '📦 0'
+                            : `✅ ${available}`;
+                          return (
+                            <option key={product.id} value={product.id}>
+                              {product.name} ({stockIndicator} {product.unit})
+                            </option>
+                          );
+                        })}
                     </select>
                   </div>
 
                   {/* Quantity */}
-                  <div className="col-span-2">
+                  <div className="col-span-4 md:col-span-2">
                     <input
                       type="number"
                       value={item.quantity}
                       onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                      onFocus={(e) => e.target.select()}
                       placeholder="Qty"
                       min="1"
                       className="w-full px-2 py-1.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-sm text-center"
@@ -311,7 +314,7 @@ export const AddSaleModal = ({
                   </div>
 
                   {/* Unit Price */}
-                  <div className="col-span-2">
+                  <div className="col-span-4 md:col-span-2">
                     <input
                       type="number"
                       value={item.price || ''}
@@ -325,14 +328,14 @@ export const AddSaleModal = ({
                   </div>
 
                   {/* Line Total */}
-                  <div className="col-span-3 flex items-center">
+                  <div className="col-span-3 md:col-span-3 flex items-center">
                     <span className="text-sm font-medium">
                       {formatCurrency(item.total)}
                     </span>
                   </div>
 
                   {/* Remove Button */}
-                  <div className="col-span-1 flex items-center justify-end">
+                  <div className="col-span-1 md:col-span-1 flex items-center justify-end">
                     <Button
                       type="button"
                       variant="ghost"
@@ -378,13 +381,6 @@ export const AddSaleModal = ({
           </select>
         </div>
 
-        {/* Info Box */}
-        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-          <p className="text-sm text-blue-300">
-            New sales are created as 'Pending' and will automatically update to 'Completed' when fully delivered through loadings.
-            Make sure to enter the correct unit prices for each product.
-          </p>
-        </div>
       </form>
     </Modal>
   );

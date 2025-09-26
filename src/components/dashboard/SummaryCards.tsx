@@ -25,7 +25,7 @@ export const SummaryCards = ({ todaySummary, customerDebtSummary, supplierSummar
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <GlassCard>
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <Clock size={20} />
+          <Clock className="text-gray-400" size={20} />
           Today's Summary
         </h2>
         <div className="space-y-3">
