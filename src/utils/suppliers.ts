@@ -114,12 +114,13 @@ export const exportSuppliersToJSON = (suppliers: Supplier[]): void => {
 
 // Export suppliers to CSV
 export const exportSuppliersToCSV = (suppliers: Supplier[]): void => {
-  const headers = ['ID', 'Name', 'Phone', 'Agent', 'Created At', 'Updated At'];
+  const headers = ['ID', 'Name', 'Phone', 'Agent', 'Notes', 'Created At', 'Updated At'];
   const rows = suppliers.map(supplier => [
     supplier.id,
     supplier.name,
     supplier.phone,
     supplier.agent,
+    supplier.notes || '',
     formatDate(supplier.createdAt),
     formatDate(supplier.updatedAt)
   ]);
@@ -162,9 +163,10 @@ export const importSuppliersFromJSON = async (file: File): Promise<Supplier[]> =
           if (!supplier.name || !supplier.phone || !supplier.agent) {
             throw new Error(`Invalid supplier at position ${index + 1}: Missing required fields`);
           }
-          
+
           return {
             ...supplier,
+            notes: supplier.notes || '',
             createdAt: supplier.createdAt ? new Date(supplier.createdAt) : new Date(),
             updatedAt: supplier.updatedAt ? new Date(supplier.updatedAt) : new Date()
           };

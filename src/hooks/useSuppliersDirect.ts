@@ -22,35 +22,37 @@ export const useSuppliersDirect = () => {
   const addSupplier = useCallback(async (
     name: string,
     phone: string,
-    agent: string
+    agent: string,
+    notes?: string
   ): Promise<{ success: boolean; supplier?: Supplier; errors?: string[] }> => {
     try {
       // Check for duplicate
-      const existing = suppliers.find(s => 
-        s.name.toLowerCase() === name.toLowerCase() || 
+      const existing = suppliers.find(s =>
+        s.name.toLowerCase() === name.toLowerCase() ||
         s.phone === phone
       );
-      
+
       if (existing) {
-        return { 
-          success: false, 
-          errors: ['Supplier with this name or phone already exists'] 
+        return {
+          success: false,
+          errors: ['Supplier with this name or phone already exists']
         };
       }
-      
+
       const now = new Date();
       const newSupplier: Supplier = {
         id: generateId(),
         name,
         phone,
         agent,
+        notes: notes || undefined,
         createdAt: now,
         updatedAt: now
       };
-      
+
       // Await update to ensure data is persisted
       await updateSuppliers([...suppliers, newSupplier]);
-      
+
       return { success: true, supplier: newSupplier };
     } catch (error) {
       console.error('Error adding supplier:', error);

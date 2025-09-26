@@ -1,16 +1,17 @@
 import { useState, useMemo } from 'react';
 import { Button } from '../ui/Button';
 import { ConfirmModal } from '../ui/ConfirmModal';
-import { 
+import {
   User,
-  Edit2, 
-  Trash2, 
-  ChevronDown, 
+  Edit2,
+  Trash2,
+  ChevronDown,
   ChevronUp,
   CheckSquare,
   Square,
   Users,
-  RefreshCw
+  RefreshCw,
+  StickyNote
 } from 'lucide-react';
 import { filterSuppliers, sortSuppliers, formatPhoneNumber } from '../../utils/suppliers';
 import type { Supplier } from '../../types';
@@ -22,6 +23,7 @@ interface SupplierTableProps {
   loading: boolean;
   onEditSupplier: (supplier: Supplier) => void;
   onDeleteSupplier: (supplierId: string) => void;
+  onNotesSupplier: (supplier: Supplier) => void;
   refreshData: () => void;
 }
 
@@ -35,6 +37,7 @@ export const SupplierTable = ({
   loading,
   onEditSupplier,
   onDeleteSupplier,
+  onNotesSupplier,
   refreshData
 }: SupplierTableProps) => {
   const [sortField, setSortField] = useState<SortField>('name');
@@ -196,6 +199,13 @@ export const SupplierTable = ({
                 
                 <div className="flex gap-1 justify-end border-t border-white/5 pt-3">
                   <button
+                    onClick={() => onNotesSupplier(supplier)}
+                    className="p-1.5 rounded-lg hover:bg-white/10 transition-all duration-200"
+                    title="View Notes"
+                  >
+                    <StickyNote size={16} className={supplier.notes ? 'text-blue-400' : ''} />
+                  </button>
+                  <button
                     onClick={() => onEditSupplier(supplier)}
                     className="p-1.5 rounded-lg hover:bg-white/10 transition-all duration-200"
                     title="Edit Supplier"
@@ -303,6 +313,16 @@ export const SupplierTable = ({
                   </td>
                   <td className="py-3 px-3">
                     <div className="flex justify-center gap-0.5 sm:gap-1">
+                      <button
+                        onClick={() => onNotesSupplier(supplier)}
+                        className="p-1.5 sm:p-2 rounded-lg hover:bg-white/10 transition-all duration-200 relative"
+                        title="View Notes"
+                      >
+                        <StickyNote size={14} className={`sm:w-4 sm:h-4 ${supplier.notes ? 'text-blue-400' : ''}`} />
+                        {supplier.notes && (
+                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full"></span>
+                        )}
+                      </button>
                       <button
                         onClick={() => onEditSupplier(supplier)}
                         className="p-1.5 sm:p-2 rounded-lg hover:bg-white/10 transition-all duration-200"

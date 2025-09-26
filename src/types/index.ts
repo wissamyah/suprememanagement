@@ -13,6 +13,7 @@ export interface Supplier {
   name: string;
   phone: string;
   agent: string;
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }

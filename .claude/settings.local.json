@@ -39,7 +39,8 @@
       "Bash(pkill:*)",
       "Bash(true)",
       "Bash(grep:*)",
-      "Bash(npm run deploy:*)"
+      "Bash(npm run deploy:*)",
+      "Bash(gh workflow view:*)"
     ],
     "deny": []
   }

@@ -18,6 +18,7 @@ import { SupplierFilters } from '../../components/suppliers/SupplierFilters';
 import { SupplierTable } from '../../components/suppliers/SupplierTable';
 import { AddSupplierModal } from '../../components/suppliers/AddSupplierModal';
 import { EditSupplierModal } from '../../components/suppliers/EditSupplierModal';
+import { NotesModal } from '../../components/suppliers/NotesModal';
 import { 
   exportSuppliersToJSON, 
   exportSuppliersToCSV,
@@ -30,6 +31,7 @@ export const SupplierList = () => {
   const [agentFilter, setAgentFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [notesSupplier, setNotesSupplier] = useState<Supplier | null>(null);
   const [showImportExportMenu, setShowImportExportMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   
@@ -56,9 +58,10 @@ export const SupplierList = () => {
   const handleAddSupplier = async (
     name: string,
     phone: string,
-    agent: string
+    agent: string,
+    notes?: string
   ) => {
-    const result = await addSupplier(name, phone, agent);
+    const result = await addSupplier(name, phone, agent, notes);
     if (result.success) {
       showSuccess(`Supplier "${name}" added successfully`);
       setShowAddModal(false);
@@ -120,9 +123,10 @@ export const SupplierList = () => {
         const result = await addSupplier(
           supplier.name,
           supplier.phone,
-          supplier.agent
+          supplier.agent,
+          supplier.notes
         );
-        
+
         if (result.success) {
           successCount++;
         } else {
@@ -343,6 +347,7 @@ export const SupplierList = () => {
             loading={false}
             onEditSupplier={setEditingSupplier}
             onDeleteSupplier={handleDeleteSupplier}
+            onNotesSupplier={setNotesSupplier}
             refreshData={refreshData}
           />
         )}
@@ -359,6 +364,13 @@ export const SupplierList = () => {
         isOpen={!!editingSupplier}
         supplier={editingSupplier}
         onClose={() => setEditingSupplier(null)}
+        onUpdate={handleUpdateSupplier}
+      />
+
+      <NotesModal
+        isOpen={!!notesSupplier}
+        supplier={notesSupplier}
+        onClose={() => setNotesSupplier(null)}
         onUpdate={handleUpdateSupplier}
       />
       
