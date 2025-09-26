@@ -14,7 +14,6 @@ import {
   Truck,
   Weight,
   DollarSign,
-  Clock,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -372,7 +371,7 @@ export const PaddyTrucks = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <GlassCard>
             <div className="flex items-center justify-between">
               <div>
@@ -404,11 +403,16 @@ export const PaddyTrucks = () => {
           <GlassCard>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted">Today's Trucks</p>
-                <p className="text-2xl font-bold">{statistics.todayTrucks}</p>
-                <p className="text-xs text-muted mt-1">Deliveries today</p>
+                <p className="text-sm text-muted">Avg Price/Kg</p>
+                <p className="text-2xl font-bold">
+                  {statistics.totalWeight > 0
+                    ? formatCurrency(statistics.totalValue / statistics.totalWeight)
+                    : formatCurrency(0)
+                  }
+                </p>
+                <p className="text-xs text-muted mt-1">Weighted average</p>
               </div>
-              <Clock className="text-yellow-400" size={24} />
+              <DollarSign className="text-orange-400" size={24} />
             </div>
           </GlassCard>
         </div>

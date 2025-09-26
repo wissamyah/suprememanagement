@@ -6,6 +6,7 @@ import { Tooltip, ProductTooltip } from '../ui/Tooltip';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import type { Sale } from '../../types';
 import { formatCurrency, getDateRangeSales } from '../../utils/sales';
+import { formatDate } from '../../utils/dateFormatting';
 
 interface SaleTableProps {
   sales: Sale[];
@@ -139,7 +140,7 @@ export const SaleTable = ({
                   <div className="text-right">
                     <p className="font-bold text-lg">{formatCurrency(sale.totalAmount)}</p>
                     <p className="text-xs text-muted mt-1">
-                      {new Date(sale.date).toLocaleDateString('en-NG')}
+                      {formatDate(sale.date)}
                     </p>
                   </div>
                 </div>
@@ -236,7 +237,7 @@ export const SaleTable = ({
                   <td className="py-3 px-4 font-medium">{sale.orderId}</td>
                   <td className="py-3 px-4">{sale.customerName}</td>
                   <td className="py-3 px-4">
-                    {new Date(sale.date).toLocaleDateString('en-NG')}
+                    {formatDate(sale.date)}
                   </td>
                   <td className="py-3 px-4">
                     <Tooltip

@@ -1,4 +1,5 @@
 import type { Customer } from '../types';
+import { formatDate } from './dateFormatting';
 
 // Format Nigerian phone number
 export const formatPhoneNumber = (phone: string): string => {
@@ -153,8 +154,8 @@ export const exportCustomersToCSV = (customers: Customer[]): void => {
     customer.phone,
     customer.state,
     customer.balance.toString(),
-    new Date(customer.createdAt).toLocaleDateString(),
-    new Date(customer.updatedAt).toLocaleDateString()
+    formatDate(customer.createdAt),
+    formatDate(customer.updatedAt)
   ]);
   
   const csvContent = [

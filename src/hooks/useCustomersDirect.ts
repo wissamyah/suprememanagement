@@ -155,26 +155,7 @@ export const useCustomersDirect = () => {
       if (!customer) {
         return { success: false, error: 'Customer not found' };
       }
-      
-      // Get all existing entries for this customer to find the previous balance
-      const customerEntries = ledgerEntries.filter(e => e.customerId === customerId);
-      
-      // Sort entries by date and creation time to find the most recent one
-      const sortedEntries = customerEntries.sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        if (dateA !== dateB) return dateB - dateA; // Most recent first
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-      
-      // Calculate running balance
-      // Balance is negative when customer owes money, positive when they have credit
-      // Debit increases what they owe (makes balance more negative)
-      // Credit reduces what they owe (makes balance more positive)
-      // Use the running balance from the most recent entry, or 0 if no entries exist
-      const prevBalance = sortedEntries.length > 0 ? sortedEntries[0].runningBalance : 0;
-      const runningBalance = prevBalance - debit + credit;
-      
+
       const now = new Date();
       const newEntry: LedgerEntry = {
         id: generateId(),
@@ -187,36 +168,68 @@ export const useCustomersDirect = () => {
         description,
         debit,
         credit,
-        runningBalance,
+        runningBalance: 0, // Will be calculated below
         notes,
         createdAt: now,
         updatedAt: now
       };
-      
-      // Update customer balance
+
+      // Get all entries for this customer including the new one
+      const allCustomerEntries = [
+        ...ledgerEntries.filter(e => e.customerId === customerId),
+        newEntry
+      ];
+
+      // Sort all entries chronologically (oldest first)
+      allCustomerEntries.sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
+
+      // Recalculate running balances for all entries
+      let runningBalance = 0;
+      const recalculatedEntries = allCustomerEntries.map(entry => {
+        runningBalance = runningBalance - entry.debit + entry.credit;
+        return {
+          ...entry,
+          runningBalance,
+          updatedAt: entry.id === newEntry.id ? now : entry.updatedAt
+        };
+      });
+
+      // Update all ledger entries (replacing the customer's entries with recalculated ones)
+      const otherEntries = ledgerEntries.filter(e => e.customerId !== customerId);
+      const finalLedgerList = [...otherEntries, ...recalculatedEntries];
+
+      // Update customer balance (should be the last entry's running balance)
+      const lastEntry = recalculatedEntries[recalculatedEntries.length - 1];
+      const customerBalance = lastEntry ? lastEntry.runningBalance : 0;
+
       const updatedCustomersList = customers.map(c => {
         if (c.id === customerId) {
           return {
             ...c,
-            balance: runningBalance,
+            balance: customerBalance,
             updatedAt: now
           };
         }
         return c;
       });
-      
+
       // Start batch update to avoid conflicts
       githubDataManager.startBatchUpdate();
 
       // Await all updates to ensure data is persisted before returning
       await Promise.all([
-        updateLedgerEntries([...ledgerEntries, newEntry]),
+        updateLedgerEntries(finalLedgerList),
         updateCustomers(updatedCustomersList)
       ]);
 
       // End batch and save once
       await githubDataManager.endBatchUpdate();
-      
+
       return { success: true };
     } catch (error) {
       console.error('Error adding ledger entry:', error);

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import type { PaddyTruck } from '../../types';
 import { Button } from '../ui/Button';
 import { ConfirmModal } from '../ui/ConfirmModal';
-import { 
+import {
   Truck,
   Edit2,
   Trash2,
@@ -13,16 +13,19 @@ import {
   RefreshCw,
   Weight,
   Copy,
-  Check
+  Check,
+  DollarSign,
+  Droplets
 } from 'lucide-react';
-import { 
-  formatWeight, 
-  formatMoistureLevel, 
+import {
+  formatWeight,
+  formatMoistureLevel,
   formatCurrency,
   sortPaddyTrucks,
   filterPaddyTrucks,
   formatTruckDetailsForCopy
 } from '../../utils/paddyTrucks';
+import { formatDate } from '../../utils/dateFormatting';
 
 interface PaddyTruckTableProps {
   paddyTrucks: PaddyTruck[];
@@ -201,7 +204,7 @@ export const PaddyTruckTable = ({
                 <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                   <div>
                     <span className="text-muted text-xs">Date:</span>
-                    <p>{new Date(truck.date).toLocaleDateString()}</p>
+                    <p>{formatDate(truck.date)}</p>
                   </div>
                   <div>
                     <span className="text-muted text-xs">Agent:</span>
@@ -375,7 +378,7 @@ export const PaddyTruckTable = ({
                     </button>
                   </td>
                   <td className="py-3 px-3">
-                    <span className="text-sm">{new Date(truck.date).toLocaleDateString()}</span>
+                    <span className="text-sm">{formatDate(truck.date)}</span>
                   </td>
                   <td className="py-3 px-3">
                     <span className="font-medium text-sm">{truck.truckPlate}</span>
@@ -464,17 +467,41 @@ export const PaddyTruckTable = ({
       )}
       
       {/* Footer Actions */}
-      {!loading && paddyTrucks.length > 0 && (
-        <div className="mt-4 flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            <Truck size={16} className="text-muted-text" />
-            <span>Total: {paddyTrucks.length} trucks</span>
-            <Weight size={16} className="text-muted-text ml-4" />
-            <span>
-              Total Weight: {formatWeight(
-                paddyTrucks.reduce((sum, t) => sum + t.weightAfterDeduction, 0)
-              )}
-            </span>
+      {!loading && filteredAndSortedTrucks.length > 0 && (
+        <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between text-sm gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2">
+              <Truck size={16} className="text-muted-text" />
+              <span>Total: {filteredAndSortedTrucks.length} trucks</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Weight size={16} className="text-muted-text" />
+              <span>
+                Total Weight: {formatWeight(
+                  filteredAndSortedTrucks.reduce((sum, t) => sum + t.weightAfterDeduction, 0)
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <DollarSign size={16} className="text-muted-text" />
+              <span>
+                Avg Price: {(() => {
+                  const totalWeight = filteredAndSortedTrucks.reduce((sum, t) => sum + t.weightAfterDeduction, 0);
+                  const totalValue = filteredAndSortedTrucks.reduce((sum, t) => sum + t.totalAmount, 0);
+                  return totalWeight > 0 ? formatCurrency(totalValue / totalWeight) : formatCurrency(0);
+                })()}/kg
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Droplets size={16} className="text-muted-text" />
+              <span>
+                Avg Moisture: {(() => {
+                  const totalWeight = filteredAndSortedTrucks.reduce((sum, t) => sum + t.weightAfterDeduction, 0);
+                  const weightedMoisture = filteredAndSortedTrucks.reduce((sum, t) => sum + (t.moistureLevel * t.weightAfterDeduction), 0);
+                  return totalWeight > 0 ? formatMoistureLevel(weightedMoisture / totalWeight) : '0%';
+                })()}
+              </span>
+            </div>
           </div>
           {refreshData && (
             <Button variant="ghost" size="sm" onClick={refreshData}>
@@ -503,7 +530,7 @@ export const PaddyTruckTable = ({
                   <strong>Supplier:</strong> {deleteConfirm.truck.supplierName}
                 </p>
                 <p className="text-sm">
-                  <strong>Date:</strong> {new Date(deleteConfirm.truck.date).toLocaleDateString()}
+                  <strong>Date:</strong> {formatDate(deleteConfirm.truck.date)}
                 </p>
               </div>
             </div>

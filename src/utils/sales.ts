@@ -1,4 +1,5 @@
 import type { Sale, SaleItem } from '../types';
+import { formatDate } from './dateFormatting';
 
 /**
  * Generate a unique order ID in the format ORD-YYYY-XXX
@@ -184,7 +185,7 @@ export const exportSalesToCSV = (sales: Sale[]) => {
   
   const rows = sales.map(sale => [
     sale.orderId,
-    new Date(sale.date).toLocaleDateString('en-NG'),
+    formatDate(sale.date),
     sale.customerName,
     sale.items.reduce((sum, item) => sum + item.quantity, 0),
     formatCurrency(sale.totalAmount),

@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { GitHubContext } from '../App';
 import { LogOut, RefreshCw, Check, AlertCircle, Github, Cloud, CloudOff } from 'lucide-react';
+import { formatDate } from '../utils/dateFormatting';
 
 export const SyncStatus: React.FC = () => {
     const { isAuthenticated, syncStatus, lastSync, syncData, logout } = useContext(GitHubContext);
@@ -16,7 +17,7 @@ export const SyncStatus: React.FC = () => {
         if (diff < 60) return 'Just now';
         if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
         if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-        return date.toLocaleDateString();
+        return formatDate(date);
     };
 
     if (!isAuthenticated) {

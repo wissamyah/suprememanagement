@@ -23,6 +23,7 @@ import { ManualEntryModal } from '../../components/ledger/ManualEntryModal';
 import { LedgerStatistics } from '../../components/ledger/LedgerStatistics';
 import { LedgerFilters } from '../../components/ledger/LedgerFilters';
 import { LedgerTable } from '../../components/ledger/LedgerTable';
+import { formatDate } from '../../utils/dateFormatting';
 
 export const CustomerLedger = () => {
   const { customerId } = useParams();
@@ -460,7 +461,7 @@ export const CustomerLedger = () => {
               <div className="mt-2 p-2 rounded bg-gray-800/50">
                 <p className="text-sm">{deletingEntry.description}</p>
                 <p className="text-xs text-muted mt-1">
-                  Date: {new Date(deletingEntry.date).toLocaleDateString()}
+                  Date: {formatDate(deletingEntry.date)}
                 </p>
               </div>
               <p className="text-sm text-yellow-400 mt-2">

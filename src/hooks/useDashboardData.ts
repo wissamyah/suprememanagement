@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Sale, Product, Customer, Loading, PaddyTruck, Supplier, BookedStock } from '../types';
+import { formatDate } from '../utils/dateFormatting';
 
 interface DashboardDataProps {
   sales: Sale[];
@@ -291,5 +292,5 @@ function getRelativeTime(date: Date): string {
   if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
   if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
   if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-  return date.toLocaleDateString();
+  return formatDate(date);
 }

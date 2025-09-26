@@ -1,4 +1,5 @@
 import type { Loading } from '../types';
+import { formatDate } from './dateFormatting';
 
 export const fixDuplicateLoadingIds = (loadings: Loading[]): Loading[] => {
   // Create a map to track loading IDs and their occurrences
@@ -49,7 +50,7 @@ export const fixDuplicateLoadingIds = (loadings: Loading[]): Loading[] => {
           };
 
           duplicateReport.push(
-            `Fixed duplicate: ${loadingId} (${duplicates[i].customerName}, ${new Date(duplicates[i].date).toLocaleDateString()}) → ${newLoadingId}`
+            `Fixed duplicate: ${loadingId} (${duplicates[i].customerName}, ${formatDate(duplicates[i].date)}) → ${newLoadingId}`
           );
         }
       }

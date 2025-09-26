@@ -3,6 +3,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import type { Product } from '../../types';
 import { Plus, Trash2, Package } from 'lucide-react';
+import { formatDate } from '../../utils/dateFormatting';
 
 interface ProductionEntry {
   productId: string;
@@ -93,7 +94,7 @@ export const ProductionModal = ({
     const productionEntries = validEntries.map(entry => ({
       productId: entry.productId,
       quantity: entry.quantity,
-      notes: entry.notes || `Production on ${productionDate.toLocaleDateString()}`
+      notes: entry.notes || `Production on ${formatDate(productionDate)}`
     }));
     
     // Call onAddProduction with all entries at once

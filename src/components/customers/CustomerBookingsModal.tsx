@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { AlertCircle, TrendingUp, Eye, EyeOff, CheckCircle, Clock } from 'lucide-react';
 import { useBookedStock } from '../../hooks/useBookedStock';
 import type { Customer, BookedStock } from '../../types';
+import { formatDate } from '../../utils/dateFormatting';
 
 interface CustomerBookingsModalProps {
   isOpen: boolean;
@@ -181,7 +182,7 @@ export const CustomerBookingsModal = ({ isOpen, customer, onClose }: CustomerBoo
                   <div>
                     <span className="text-muted">Booking Date:</span>
                     <p className="font-medium">
-                      {new Date(booking.bookingDate).toLocaleDateString()}
+                      {formatDate(booking.bookingDate)}
                     </p>
                   </div>
                 </div>
@@ -238,7 +239,7 @@ export const CustomerBookingsModal = ({ isOpen, customer, onClose }: CustomerBoo
                         <div>
                           <span className="text-muted">Completion Date:</span>
                           <p className="font-medium">
-                            {new Date(booking.updatedAt).toLocaleDateString()}
+                            {formatDate(booking.updatedAt)}
                           </p>
                         </div>
                       </div>

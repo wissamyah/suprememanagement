@@ -3,6 +3,7 @@ import { GlassCard } from '../ui/GlassCard';
 import { Package, Users, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import { useBookedStock } from '../../hooks/useBookedStock';
 import type { BookedStock } from '../../types';
+import { formatDate } from '../../utils/dateFormatting';
 
 export const BookedStockSummary = () => {
   const { bookedStock } = useBookedStock();
@@ -145,7 +146,7 @@ export const BookedStockSummary = () => {
                         <span>Order: {booking.orderId}</span>
                         <span className="flex items-center gap-1">
                           <Calendar className="text-gray-400" size={12} />
-                          {new Date(booking.bookingDate).toLocaleDateString()}
+                          {formatDate(booking.bookingDate)}
                         </span>
                       </div>
                     </div>

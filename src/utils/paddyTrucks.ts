@@ -1,4 +1,5 @@
 import type { PaddyTruck } from '../types';
+import { formatDate } from './dateFormatting';
 
 // Export functions
 export const exportPaddyTrucksToJSON = (paddyTrucks: PaddyTruck[]) => {
@@ -30,7 +31,7 @@ export const exportPaddyTrucksToCSV = (paddyTrucks: PaddyTruck[]) => {
   ];
 
   const rows = paddyTrucks.map(truck => [
-    new Date(truck.date).toLocaleDateString(),
+    formatDate(truck.date),
     truck.truckPlate,
     truck.supplierName,
     truck.agent || '',
@@ -129,21 +130,25 @@ export const calculateTotalAmount = (weightAfterDeduction: number, pricePerKg: n
 // Copy text formatting
 export const formatTruckDetailsForCopy = (truck: PaddyTruck): string => {
   const lines: string[] = [];
-  
+
   // Format number with thousand separators
   const formatNumber = (num: number) => num.toLocaleString();
-  
-  // First line: @Price/kg - Net weight after deduction Kgs
-  lines.push(`@${formatNumber(truck.pricePerKg)}/kg - ${formatNumber(Math.round(truck.weightAfterDeduction))} Kgs`);
-  
-  // Second line: Supplier Name *Truck details* (moisture level%)
-  lines.push(`${truck.supplierName} *${truck.truckPlate}* (${truck.moistureLevel}%)`);
-  
-  // Third line: Deduction (only if it exists)
+
+  // First line: ₦Price/kg - Net weight after deduction Kgs
+  lines.push(`₦${formatNumber(truck.pricePerKg)}/kg - ${formatNumber(Math.round(truck.weightAfterDeduction))} Kgs`);
+
+  // Second line: Supplier Name Bags (moisture level%)
+  const bagsText = truck.bags ? `${truck.bags} Bags` : '';
+  lines.push(`${truck.supplierName} ${bagsText} (${truck.moistureLevel}%)`);
+
+  // Third line: *Truck Plate* (bold formatting for WhatsApp)
+  lines.push(`*${truck.truckPlate}*`);
+
+  // Fourth line: Deduction (only if it exists)
   if (truck.deduction && truck.deduction > 0) {
     lines.push(`Deduction: ${formatNumber(Math.round(truck.deduction))} Kgs`);
   }
-  
+
   return lines.join('\n');
 };
 
@@ -191,14 +196,24 @@ export const sortPaddyTrucks = (
   sortDirection: 'asc' | 'desc'
 ): PaddyTruck[] => {
   const sorted = [...trucks];
-  
+
   sorted.sort((a, b) => {
     let comparison = 0;
-    
+
     switch (sortField) {
       case 'date':
+        // Primary sort by date
         comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
-        break;
+
+        // If dates are the same, always sort by createdAt with most recent first
+        // This secondary sort should NOT be affected by sortDirection
+        if (comparison === 0) {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+
+        // Only apply sortDirection to the primary date comparison
+        return sortDirection === 'asc' ? comparison : -comparison;
+
       case 'truckPlate':
         comparison = a.truckPlate.localeCompare(b.truckPlate);
         break;
@@ -214,9 +229,9 @@ export const sortPaddyTrucks = (
       default:
         comparison = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }
-    
+
     return sortDirection === 'asc' ? comparison : -comparison;
   });
-  
+
   return sorted;
 };

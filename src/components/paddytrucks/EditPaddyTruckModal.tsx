@@ -29,7 +29,12 @@ interface EditPaddyTruckModalProps {
 
 export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPaddyTruckModalProps) => {
   const { suppliers } = useSuppliers();
-  
+
+  // Sort suppliers alphabetically by name
+  const sortedSuppliers = [...suppliers].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+
   // Form state
   const [date, setDate] = useState('');
   const [supplierId, setSupplierId] = useState('');
@@ -121,7 +126,7 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
     }
 
     // Get supplier name
-    const supplier = suppliers.find(s => s.id === supplierId);
+    const supplier = sortedSuppliers.find(s => s.id === supplierId);
     if (!supplier) {
       setErrors(['Selected supplier not found']);
       setIsSubmitting(false);
@@ -237,7 +242,7 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
                 required
               >
                 <option value="">Select a supplier</option>
-                {suppliers.map(s => (
+                {sortedSuppliers.map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
@@ -254,8 +259,8 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
               <input
                 type="text"
                 value={truckPlate}
-                onChange={(e) => setTruckPlate(e.target.value.toUpperCase())}
-                placeholder="e.g., ABC-123-XY"
+                onChange={(e) => setTruckPlate(e.target.value)}
+                placeholder="e.g., DDM 250 XA"
                 className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
                 required
               />

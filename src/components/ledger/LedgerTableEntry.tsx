@@ -1,6 +1,7 @@
 import { Edit2, Trash2, RefreshCw } from 'lucide-react';
 import { Tooltip, ProductTooltip } from '../ui/Tooltip';
 import type { LedgerEntry, Sale } from '../../types';
+import { formatDate } from '../../utils/dateFormatting';
 
 interface LedgerTableEntryProps {
   entry: LedgerEntry;
@@ -130,7 +131,7 @@ export const LedgerTableEntry = ({
               {!customerId && entry.customerName}
             </p>
             <p className="text-sm text-muted">
-              {new Date(entry.date).toLocaleDateString()}
+              {formatDate(entry.date)}
             </p>
           </div>
           <span className={`px-2 py-0.5 text-xs rounded ${
@@ -195,7 +196,7 @@ export const LedgerTableEntry = ({
       }`}
     >
       <td className="py-3 px-4">
-        {new Date(entry.date).toLocaleDateString()}
+        {formatDate(entry.date)}
       </td>
       {!customerId && (
         <td className="py-3 px-4 font-medium">{entry.customerName}</td>

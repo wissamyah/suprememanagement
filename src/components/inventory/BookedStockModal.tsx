@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Users, Package, Calendar, AlertCircle } from 'lucide-react';
 import { useBookedStock } from '../../hooks/useBookedStock';
 import type { Product, BookedStock } from '../../types';
+import { formatDate } from '../../utils/dateFormatting';
 
 interface BookedStockModalProps {
   isOpen: boolean;
@@ -117,7 +118,7 @@ export const BookedStockModal = ({ isOpen, product, onClose }: BookedStockModalP
                             )}
                             <span className="flex items-center gap-1">
                               <Calendar className="text-gray-400" size={12} />
-                              {new Date(booking.bookingDate).toLocaleDateString()}
+                              {formatDate(booking.bookingDate)}
                             </span>
                           </div>
                         </div>
