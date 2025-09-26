@@ -4,6 +4,26 @@ export class GitHubAPIClient {
   private config: GitHubConfig;
   private currentSha: string | null = null;
 
+  // Helper function to properly encode UTF-8 strings to base64
+  private encodeBase64(str: string): string {
+    // Convert string to UTF-8 bytes then to base64
+    const utf8Bytes = new TextEncoder().encode(str);
+    const binaryString = Array.from(utf8Bytes)
+      .map(byte => String.fromCharCode(byte))
+      .join('');
+    return btoa(binaryString);
+  }
+
+  // Helper function to properly decode base64 to UTF-8 strings
+  private decodeBase64(base64: string): string {
+    // Decode base64 to binary string then to UTF-8
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(
+      Array.from(binaryString).map(char => char.charCodeAt(0))
+    );
+    return new TextDecoder().decode(bytes);
+  }
+
   constructor(config: GitHubConfig) {
     this.config = config;
   }
@@ -56,7 +76,8 @@ export class GitHubAPIClient {
       }
 
       const fileData = await response.json();
-      const content = atob(fileData.content);
+      // Properly decode base64 with UTF-8 support
+      const content = this.decodeBase64(fileData.content);
       const data = JSON.parse(content);
 
       this.currentSha = fileData.sha;
@@ -96,7 +117,8 @@ export class GitHubAPIClient {
       }
     };
 
-    const content = btoa(JSON.stringify(fullData, null, 2));
+    // Properly encode to base64 with UTF-8 support
+    const content = this.encodeBase64(JSON.stringify(fullData, null, 2));
     const body: any = {
       message: `Update data - ${new Date().toISOString()}`,
       content: content,
