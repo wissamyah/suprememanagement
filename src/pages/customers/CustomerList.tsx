@@ -50,7 +50,6 @@ export const CustomerList = () => {
     addCustomer,
     updateCustomer,
     deleteCustomer,
-    getStatistics,
     importCustomers,
     importRelatedData,
     forceSync,

@@ -10,7 +10,6 @@ import {
   ChevronDown,
   CheckSquare,
   Square,
-  RefreshCw,
   Weight,
   Copy,
   Check,
@@ -50,8 +49,7 @@ export const PaddyTruckTable = ({
   dateTo,
   loading,
   onEditTruck,
-  onDeleteTruck,
-  refreshData
+  onDeleteTruck
 }: PaddyTruckTableProps) => {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
