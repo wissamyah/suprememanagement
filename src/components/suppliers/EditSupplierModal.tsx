@@ -194,12 +194,6 @@ export const EditSupplierModal = ({ isOpen, supplier, onClose, onUpdate }: EditS
           </div>
         </div>
 
-        {/* Info Box */}
-        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-          <p className="text-sm text-blue-300">
-            Changes will be synced with GitHub for data persistence.
-          </p>
-        </div>
       </form>
     </Modal>
   );

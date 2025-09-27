@@ -15,7 +15,7 @@ import { SummaryCards } from '../components/dashboard/SummaryCards';
 
 export const Dashboard = () => {
   const { products, loading: inventoryLoading } = useInventoryDirect();
-  const { customers, loading: customersLoading } = useCustomersDirect();
+  const { customers, ledgerEntries, loading: customersLoading } = useCustomersDirect();
   const { sales, bookedStock, loading: salesLoading } = useSalesDirect();
   const { loadings, loading: loadingsLoading } = useLoadingsDirect();
   const { paddyTrucks, loading: paddyTrucksLoading } = usePaddyTrucksDirect();
@@ -43,6 +43,7 @@ export const Dashboard = () => {
     sales,
     products,
     customers,
+    ledgerEntries,
     loadings,
     paddyTrucks,
     suppliers,

@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
-import type { Sale, Product, Customer, Loading, PaddyTruck, Supplier, BookedStock } from '../types';
+import type { Sale, Product, Customer, Loading, PaddyTruck, Supplier, BookedStock, LedgerEntry } from '../types';
 import { formatDate } from '../utils/dateFormatting';
+import { calculateCustomerBalance } from '../utils/customers';
 
 interface DashboardDataProps {
   sales: Sale[];
   products: Product[];
   customers: Customer[];
+  ledgerEntries: LedgerEntry[];
   loadings: Loading[];
   paddyTrucks: PaddyTruck[];
   suppliers: Supplier[];
@@ -16,6 +18,7 @@ export const useDashboardData = ({
   sales,
   products,
   customers,
+  ledgerEntries,
   loadings,
   paddyTrucks,
   suppliers,
@@ -177,6 +180,9 @@ export const useDashboardData = ({
           });
           return acc;
         }
+        const customer = customers.find(c => c.name === booking.customerName);
+        const balance = customer ? calculateCustomerBalance(customer.id, ledgerEntries) : 0;
+
         return [...acc, {
           id: booking.id,
           orderId: booking.orderId,
@@ -184,6 +190,7 @@ export const useDashboardData = ({
           status: booking.status,
           items: 1,
           date: booking.bookingDate,
+          balance: balance,
           products: [{
             productName: booking.productName,
             quantity: remainingQuantity,
@@ -198,6 +205,7 @@ export const useDashboardData = ({
         status: string;
         items: number;
         date: Date;
+        balance: number;
         products: Array<{
           productName: string;
           quantity: number;
@@ -205,7 +213,7 @@ export const useDashboardData = ({
           total: number;
         }>;
       }>);
-  }, [bookedStock, sales]);
+  }, [bookedStock, sales, customers, ledgerEntries]);
 
   // Top selling products
   const topSellingProducts = useMemo(() => {
@@ -240,10 +248,14 @@ export const useDashboardData = ({
   }), [sales, loadings, paddyTrucks, startOfToday]);
 
   const customerDebtSummary = useMemo(() => {
-    const customersWithDebt = customers.filter(c => c.balance < 0);
-    const totalOutstanding = Math.abs(customers.reduce((sum, c) => sum + Math.min(0, c.balance), 0));
+    const customersWithBalances = customers.map(c => ({
+      ...c,
+      actualBalance: calculateCustomerBalance(c.id, ledgerEntries)
+    }));
+    const customersWithDebt = customersWithBalances.filter(c => c.actualBalance < 0);
+    const totalOutstanding = Math.abs(customersWithBalances.reduce((sum, c) => sum + Math.min(0, c.actualBalance), 0));
     const averageDebt = customersWithDebt.length > 0
-      ? Math.abs(customersWithDebt.reduce((sum, c) => sum + c.balance, 0) / customersWithDebt.length)
+      ? Math.abs(customersWithDebt.reduce((sum, c) => sum + c.actualBalance, 0) / customersWithDebt.length)
       : 0;
 
     return {
@@ -251,7 +263,7 @@ export const useDashboardData = ({
       customersWithDebt: customersWithDebt.length,
       averageDebt
     };
-  }, [customers]);
+  }, [customers, ledgerEntries]);
 
   const supplierSummary = useMemo(() => ({
     totalSuppliers: suppliers.length,

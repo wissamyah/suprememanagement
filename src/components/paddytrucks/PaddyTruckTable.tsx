@@ -468,8 +468,8 @@ export const PaddyTruckTable = ({
       
       {/* Footer Actions */}
       {!loading && filteredAndSortedTrucks.length > 0 && (
-        <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between text-sm gap-2">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+        <div className="mt-4 text-sm">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-2">
               <Truck size={16} className="text-muted-text" />
               <span>Total: {filteredAndSortedTrucks.length} trucks</span>
@@ -503,12 +503,6 @@ export const PaddyTruckTable = ({
               </span>
             </div>
           </div>
-          {refreshData && (
-            <Button variant="ghost" size="sm" onClick={refreshData}>
-              <RefreshCw size={14} />
-              Refresh
-            </Button>
-          )}
         </div>
       )}
 

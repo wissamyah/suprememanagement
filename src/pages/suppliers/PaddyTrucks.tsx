@@ -432,31 +432,31 @@ export const PaddyTrucks = () => {
               className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text"
             />
           </div>
-          
-          <select 
+
+          <select
             className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
             value={supplierFilter}
             onChange={(e) => setSupplierFilter(e.target.value)}
           >
             <option value="all">All Suppliers</option>
-            {suppliers.map(supplier => (
+            {[...suppliers].sort((a, b) => a.name.localeCompare(b.name)).map(supplier => (
               <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
             ))}
           </select>
-          
-          <div className="flex gap-2">
+
+          <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
             <input
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+              className="w-full sm:w-auto px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
               placeholder="From Date"
             />
             <input
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+              className="w-full sm:w-auto px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
               placeholder="To Date"
             />
           </div>

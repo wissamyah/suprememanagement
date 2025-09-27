@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
@@ -20,10 +20,11 @@ import { CustomerTable } from '../../components/customers/CustomerTable';
 import { AddCustomerModal } from '../../components/customers/AddCustomerModal';
 import { EditCustomerModal } from '../../components/customers/EditCustomerModal';
 import { CustomerBookingsModal } from '../../components/customers/CustomerBookingsModal';
-import { 
-  exportCustomersToJSON, 
+import {
+  exportCustomersToJSON,
   exportCustomersToCSV,
-  importCustomersFromJSON 
+  importCustomersFromJSON,
+  calculateCustomerBalance
 } from '../../utils/customers';
 import type { Customer } from '../../types';
 
@@ -57,8 +58,32 @@ export const CustomerList = () => {
   } = customersHook;
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
-  
-  const statistics = getStatistics();
+
+  // Calculate statistics using actual balances from ledger entries
+  const statistics = useMemo(() => {
+    const totalCustomers = customers.length;
+
+    // Calculate actual balance for each customer from ledger entries
+    const customersWithBalances = customers.map(customer => ({
+      ...customer,
+      actualBalance: calculateCustomerBalance(customer.id, ledgerEntries)
+    }));
+
+    const activeCustomers = customersWithBalances.filter(c => c.actualBalance > 0).length;
+    const totalBalance = customersWithBalances.reduce((sum, c) => sum + c.actualBalance, 0);
+    const totalPositiveBalance = customersWithBalances.reduce((sum, c) => Math.max(0, c.actualBalance) + sum, 0);
+    const totalNegativeBalance = customersWithBalances.reduce((sum, c) => Math.min(0, c.actualBalance) + sum, 0);
+    const customersWithDebt = customersWithBalances.filter(c => c.actualBalance > 0).length;
+
+    return {
+      totalCustomers,
+      activeCustomers,
+      totalBalance,
+      totalPositiveBalance,
+      totalNegativeBalance,
+      customersWithDebt
+    };
+  }, [customers, ledgerEntries]);
 
   const handleAddCustomer = (
     name: string,
@@ -399,6 +424,7 @@ export const CustomerList = () => {
         ) : (
           <CustomerTable
             customers={customers}
+            ledgerEntries={ledgerEntries}
             searchTerm={searchTerm}
             stateFilter={stateFilter}
             balanceFilter={balanceFilter}

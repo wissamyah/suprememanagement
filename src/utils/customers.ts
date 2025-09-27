@@ -1,5 +1,30 @@
-import type { Customer } from '../types';
+import type { Customer, LedgerEntry } from '../types';
 import { formatDate } from './dateFormatting';
+
+// Calculate customer balance from ledger entries
+export const calculateCustomerBalance = (
+  customerId: string,
+  ledgerEntries: LedgerEntry[]
+): number => {
+  // Get all entries for this customer
+  const customerEntries = ledgerEntries.filter(e => e.customerId === customerId);
+
+  if (customerEntries.length === 0) {
+    return 0;
+  }
+
+  // Sort entries by date (oldest first) and then by creation time
+  const sortedEntries = [...customerEntries].sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    if (dateA !== dateB) return dateA - dateB;
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  });
+
+  // Return the running balance of the last entry
+  // This is the customer's current balance
+  return sortedEntries[sortedEntries.length - 1].runningBalance;
+};
 
 // Format Nigerian phone number
 export const formatPhoneNumber = (phone: string): string => {
@@ -69,13 +94,14 @@ export const getBalanceBackgroundColor = (balance: number): string => {
 };
 
 // Format currency
-export const formatCurrency = (amount: number): string => {
+export const formatCurrency = (amount: number, hideNegative: boolean = false): string => {
+  const absAmount = hideNegative ? Math.abs(amount) : amount;
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency: 'NGN',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
-  }).format(amount);
+  }).format(absAmount);
 };
 
 // Check for duplicate customer

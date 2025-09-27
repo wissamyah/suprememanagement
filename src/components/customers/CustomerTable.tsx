@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import type { Customer } from '../../types';
+import type { Customer, LedgerEntry } from '../../types';
 import { Button } from '../ui/Button';
 import { ConfirmModal } from '../ui/ConfirmModal';
-import { 
+import {
   User,
   Edit2,
   Trash2,
@@ -15,17 +15,19 @@ import {
   Users,
   RefreshCw
 } from 'lucide-react';
-import { 
-  formatCurrency, 
+import {
+  formatCurrency,
   formatPhoneNumber,
   getBalanceColor,
   getBalanceBackgroundColor,
   sortCustomers,
-  filterCustomers
+  filterCustomers,
+  calculateCustomerBalance
 } from '../../utils/customers';
 
 interface CustomerTableProps {
   customers: Customer[];
+  ledgerEntries: LedgerEntry[];
   searchTerm: string;
   stateFilter: string;
   balanceFilter: string;
@@ -42,6 +44,7 @@ type SortDirection = 'asc' | 'desc';
 
 export const CustomerTable = ({
   customers,
+  ledgerEntries,
   searchTerm,
   stateFilter,
   balanceFilter,
@@ -55,11 +58,19 @@ export const CustomerTable = ({
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(new Set());
-  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; customer: Customer | null }>({ 
-    show: false, 
-    customer: null 
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; customer: Customer | null }>({
+    show: false,
+    customer: null
   });
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+
+  // Calculate actual balance for each customer from ledger entries
+  const customersWithCalculatedBalances = useMemo(() => {
+    return customers.map(customer => ({
+      ...customer,
+      balance: calculateCustomerBalance(customer.id, ledgerEntries)
+    }));
+  }, [customers, ledgerEntries]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -71,9 +82,9 @@ export const CustomerTable = ({
   };
 
   const filteredAndSortedCustomers = useMemo(() => {
-    const filtered = filterCustomers(customers, searchTerm, stateFilter, balanceFilter);
+    const filtered = filterCustomers(customersWithCalculatedBalances, searchTerm, stateFilter, balanceFilter);
     return sortCustomers(filtered, sortField, sortDirection);
-  }, [customers, searchTerm, stateFilter, balanceFilter, sortField, sortDirection]);
+  }, [customersWithCalculatedBalances, searchTerm, stateFilter, balanceFilter, sortField, sortDirection]);
 
   const toggleSelectAll = () => {
     if (selectedCustomers.size === filteredAndSortedCustomers.length) {
@@ -181,7 +192,7 @@ export const CustomerTable = ({
                     </div>
                   </div>
                   <span className={`font-bold text-lg ${getBalanceColor(customer.balance)}`}>
-                    {formatCurrency(customer.balance)}
+                    {formatCurrency(customer.balance, customer.balance < 0)}
                   </span>
                 </div>
                 
@@ -328,7 +339,7 @@ export const CustomerTable = ({
                   </td>
                   <td className="py-3 px-3 text-right">
                     <span className={`font-medium ${getBalanceColor(customer.balance)}`}>
-                      {formatCurrency(customer.balance)}
+                      {formatCurrency(customer.balance, customer.balance < 0)}
                     </span>
                   </td>
                   <td className="py-3 px-3">
@@ -373,16 +384,16 @@ export const CustomerTable = ({
       {/* Footer Info */}
       {filteredAndSortedCustomers.length > 0 && (
         <div className="mt-4 text-sm text-muted">
-          Showing {filteredAndSortedCustomers.length} of {customers.length} customers
+          Showing {filteredAndSortedCustomers.length} of {customersWithCalculatedBalances.length} customers
         </div>
       )}
-      
+
       {/* Footer Actions */}
-      {!loading && customers.length > 0 && (
+      {!loading && customersWithCalculatedBalances.length > 0 && (
         <div className="mt-4 flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">
             <Users size={16} className="text-muted-text" />
-            <span>Total: {customers.length} customers</span>
+            <span>Total: {customersWithCalculatedBalances.length} customers</span>
           </div>
           {refreshData && (
             <Button variant="ghost" size="sm" onClick={refreshData}>
@@ -410,7 +421,7 @@ export const CustomerTable = ({
                   <p className="text-sm">
                     This customer has an outstanding balance of{' '}
                     <span className={`font-semibold ${getBalanceColor(deleteConfirm.customer.balance)}`}>
-                      {formatCurrency(deleteConfirm.customer.balance)}
+                      {formatCurrency(deleteConfirm.customer.balance, deleteConfirm.customer.balance < 0)}
                     </span>
                   </p>
                 </div>

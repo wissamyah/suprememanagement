@@ -8,6 +8,7 @@ interface Delivery {
   customerName: string;
   status: string;
   items: number;
+  balance: number;
   products: Array<{
     productName: string;
     quantity: number;
@@ -52,6 +53,17 @@ export const PendingDeliveries = ({ deliveries }: PendingDeliveriesProps) => {
                     : 'bg-yellow-500/20 text-yellow-400'
                 }`}>
                   {delivery.status === 'confirmed' ? 'Confirmed' : delivery.status === 'partial-loaded' ? 'Partial Loaded' : 'Pending'}
+                </span>
+              </div>
+              <div className="flex justify-end">
+                <span className={`px-2 py-1 text-xs rounded-full ${
+                  delivery.balance < 0
+                    ? 'bg-red-500/20 text-red-400'
+                    : delivery.balance > 0
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-gray-500/20 text-gray-400'
+                }`}>
+                  ₦{Math.abs(delivery.balance).toLocaleString()}
                 </span>
               </div>
             </div>

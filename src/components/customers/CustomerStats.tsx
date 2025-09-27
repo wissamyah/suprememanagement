@@ -37,7 +37,7 @@ export const CustomerStats = ({ stats, loading }: CustomerStatsProps) => {
       icon: TrendingDown,
       color: 'text-red-400',
       bgColor: 'bg-red-500/10',
-      format: formatCurrency
+      format: (val: number) => formatCurrency(val, true)
     },
     {
       title: 'Customers with Debt',

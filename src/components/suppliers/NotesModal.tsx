@@ -178,12 +178,6 @@ export const NotesModal = ({ isOpen, supplier, onClose, onUpdate }: NotesModalPr
           </div>
         </div>
 
-        {/* Info Box */}
-        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-          <p className="text-sm text-blue-300">
-            Notes are automatically synced with GitHub and included in data exports.
-          </p>
-        </div>
       </form>
     </Modal>
   );

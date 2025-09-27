@@ -219,19 +219,6 @@ export const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }: EditC
               readOnly
             />
           </div>
-          <div className="flex items-start gap-2 mt-2">
-            <Info className="text-blue-400 mt-0.5" size={14} />
-            <p className="text-xs text-blue-300">
-              Balance is managed automatically through ledger transactions and cannot be edited directly.
-            </p>
-          </div>
-        </div>
-
-        {/* Customer Info */}
-        <div className="p-3 bg-glass/50 rounded-lg space-y-1 text-xs text-muted">
-          <p>Customer ID: {customer.id}</p>
-          <p>Created: {new Date(customer.createdAt).toLocaleString()}</p>
-          <p>Last Updated: {new Date(customer.updatedAt).toLocaleString()}</p>
         </div>
       </form>
     </Modal>
