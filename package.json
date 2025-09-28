@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "npm run build && git add -f dist/ && git commit -m \"Build for deployment\" && git push origin main && git subtree push --prefix=dist origin gh-pages"
+    "deploy:manual": "npm run build && git add -f dist/ && git commit -m \"Build for deployment\" && git push origin main && git subtree push --prefix=dist origin gh-pages",
+    "deploy": "echo \"✨ Deployment is now automated via GitHub Actions! \\n🚀 Push to main branch or manually trigger the workflow on GitHub.\""
   },
   "dependencies": {
     "clsx": "^2.1.1",

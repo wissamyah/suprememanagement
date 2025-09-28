@@ -40,7 +40,9 @@
       "Bash(true)",
       "Bash(grep:*)",
       "Bash(npm run deploy:*)",
-      "Bash(gh workflow view:*)"
+      "Bash(gh workflow view:*)",
+      "Bash(npm run lint)",
+      "Bash(npx tsc:*)"
     ],
     "deny": []
   }

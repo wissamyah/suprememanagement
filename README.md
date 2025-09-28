@@ -84,7 +84,7 @@ http://localhost:5173
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build locally
 - `npm run lint` - Run ESLint
-- `npm run deploy` - Deploy to GitHub Pages
+- `npm run deploy` - Shows automated deployment info (GitHub Actions)
 
 ## Project Structure
 
@@ -108,19 +108,28 @@ suprememanagement/
 
 ## Deployment
 
-To deploy to GitHub Pages:
+This project uses **automated deployment** via GitHub Actions:
 
-1. Build the project:
+### Automatic Deployment
+Push to the `main` branch and deployment happens automatically:
+```bash
+git push origin main
+```
+
+### Manual Deployment
+1. Go to the **Actions** tab on GitHub
+2. Select **Deploy to GitHub Pages**
+3. Click **Run workflow**
+
+### Local Build Testing
 ```bash
 npm run build
+npm run preview
 ```
 
-2. Deploy to GitHub Pages:
-```bash
-npm run deploy
-```
+The app is available at: `https://wissamyah.github.io/suprememanagement/`
 
-The app will be available at: `https://wissamyah.github.io/suprememanagement/`
+📖 **See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment guide.**
 
 ## Data Storage
 
