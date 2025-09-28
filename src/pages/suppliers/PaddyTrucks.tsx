@@ -66,6 +66,23 @@ export const PaddyTrucks = () => {
   const filteredTrucks = useMemo(() => {
     let filtered = [...paddyTrucks];
 
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(truck =>
+        truck.truckPlate.toLowerCase().includes(searchLower) ||
+        truck.supplierName.toLowerCase().includes(searchLower) ||
+        truck.agent?.toLowerCase().includes(searchLower) ||
+        truck.waybillNumber?.toLowerCase().includes(searchLower) ||
+        truck.id.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply supplier filter
+    if (supplierFilter !== 'all') {
+      filtered = filtered.filter(truck => truck.supplierId === supplierFilter);
+    }
+
     // Apply date filters
     const fromDate = dateFrom ? new Date(dateFrom) : undefined;
     const toDate = dateTo ? new Date(dateTo) : undefined;
@@ -82,7 +99,7 @@ export const PaddyTrucks = () => {
     filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return filtered;
-  }, [paddyTrucks, dateFrom, dateTo]);
+  }, [paddyTrucks, searchTerm, supplierFilter, dateFrom, dateTo]);
   
   // Calculate pagination
   const totalPages = Math.ceil(filteredTrucks.length / itemsPerPage);
@@ -481,10 +498,10 @@ export const PaddyTrucks = () => {
           <>
             <PaddyTruckTable
               paddyTrucks={paginatedTrucks}
-              searchTerm={searchTerm}
-              supplierFilter={supplierFilter}
-              dateFrom={dateFrom ? new Date(dateFrom) : undefined}
-              dateTo={dateTo ? new Date(dateTo) : undefined}
+              searchTerm=""
+              supplierFilter="all"
+              dateFrom={undefined}
+              dateTo={undefined}
               loading={false}
               onEditTruck={setEditingTruck}
               onDeleteTruck={handleDeletePaddyTruck}
