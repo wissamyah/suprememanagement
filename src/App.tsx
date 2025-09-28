@@ -19,7 +19,6 @@ import { DataProvider } from './contexts/DataContext';
 // Context for GitHub storage
 interface GitHubContextType {
   isAuthenticated: boolean;
-  isLoading: boolean;
   syncStatus: 'idle' | 'syncing' | 'success' | 'error';
   lastSync: string | null;
   syncData: () => Promise<void>;
@@ -28,7 +27,6 @@ interface GitHubContextType {
 
 export const GitHubContext = React.createContext<GitHubContextType>({
   isAuthenticated: false,
-  isLoading: true,
   syncStatus: 'idle',
   lastSync: null,
   syncData: async () => {},
@@ -38,7 +36,6 @@ export const GitHubContext = React.createContext<GitHubContextType>({
 function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [lastSync, setLastSync] = useState<string | null>(null);
   const mountedRef = useRef(true);
@@ -46,16 +43,16 @@ function App() {
   // Cleanup on unmount
   useEffect(() => {
     mountedRef.current = true;
-    
+
     return () => {
       mountedRef.current = false;
     };
   }, []);
 
-  // Check authentication on mount
+  // Check authentication on mount (simplified since initialization already happened)
   useEffect(() => {
     checkAuth();
-    
+
     // Cleanup on unmount
     return () => {
       githubDataManager.destroy();
@@ -64,38 +61,19 @@ function App() {
 
   const checkAuth = async () => {
     if (!mountedRef.current) return;
-    setIsLoading(true);
     try {
       const authenticated = await githubStorage.checkAuthentication();
       if (mountedRef.current) {
         setIsAuthenticated(authenticated);
-        
-        if (authenticated) {
-          // Always initialize GitHub data manager (direct mode only)
-          const token = sessionStorage.getItem('gh_token');
-          if (token) {
-            const decryptedToken = await githubStorage.decryptToken(token);
-            if (decryptedToken) {
-              await githubDataManager.initialize(decryptedToken);
-            }
-          }
-        }
-        
+
         if (!authenticated) {
-          // Show auth modal immediately without delay
           setShowAuthModal(true);
-          setIsLoading(false); // Stop loading immediately if not authenticated
-        } else {
-          // Set loading to false first to show the UI
-          setIsLoading(false);
-          // Data is loaded automatically by githubDataManager
         }
       }
     } catch (error) {
       console.error('Auth check failed:', error);
       if (mountedRef.current) {
         setShowAuthModal(true);
-        setIsLoading(false);
       }
     }
   };
@@ -180,23 +158,11 @@ function App() {
 
   const contextValue = {
     isAuthenticated,
-    isLoading,
     syncStatus,
     lastSync,
     syncData,
     logout: handleLogout
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Initializing...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <GitHubContext.Provider value={contextValue}>
