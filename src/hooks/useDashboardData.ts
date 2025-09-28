@@ -24,14 +24,28 @@ export const useDashboardData = ({
   suppliers,
   bookedStock
 }: DashboardDataProps) => {
-  // Calculate date ranges
-  const today = new Date();
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay());
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-  const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+  // Calculate date ranges - memoized to prevent unnecessary recalculations
+  const startOfWeek = useMemo(() => {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    return startOfWeek;
+  }, []);
+
+  const startOfMonth = useMemo(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  }, []);
+
+  const startOfLastMonth = useMemo(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  }, []);
+
+  const endOfLastMonth = useMemo(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 0);
+  }, []);
 
   // Calculate revenue metrics
   const totalRevenue = useMemo(() => {
@@ -238,14 +252,19 @@ export const useDashboardData = ({
   }, [sales]);
 
   // Summary calculations
-  const todaySummary = useMemo(() => ({
-    salesToday: sales.filter(s => new Date(s.date) >= startOfToday).length,
-    revenueToday: sales
-      .filter(s => new Date(s.date) >= startOfToday)
-      .reduce((sum, s) => sum + s.totalAmount, 0),
-    loadingsToday: loadings.filter(l => new Date(l.date) >= startOfToday).length,
-    paddyTrucksToday: paddyTrucks.filter(t => new Date(t.date) >= startOfToday).length
-  }), [sales, loadings, paddyTrucks, startOfToday]);
+  const todaySummary = useMemo(() => {
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    return {
+      salesToday: sales.filter(s => new Date(s.date) >= startOfToday).length,
+      revenueToday: sales
+        .filter(s => new Date(s.date) >= startOfToday)
+        .reduce((sum, s) => sum + s.totalAmount, 0),
+      loadingsToday: loadings.filter(l => new Date(l.date) >= startOfToday).length,
+      paddyTrucksToday: paddyTrucks.filter(t => new Date(t.date) >= startOfToday).length
+    };
+  }, [sales, loadings, paddyTrucks]);
 
   const customerDebtSummary = useMemo(() => {
     const customersWithBalances = customers.map(c => ({

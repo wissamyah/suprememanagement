@@ -57,7 +57,7 @@ export const ProductionModal = ({
     setEntries([...entries, newEntry]);
   };
 
-  const updateEntry = (index: number, field: keyof ProductionEntry, value: any) => {
+  const updateEntry = (index: number, field: keyof ProductionEntry, value: string | number) => {
     const updatedEntries = [...entries];
     updatedEntries[index] = { ...updatedEntries[index], [field]: value };
     

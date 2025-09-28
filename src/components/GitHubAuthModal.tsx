@@ -48,8 +48,9 @@ const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({ isOpen, onSuccess }) 
             console.log('[Auth] Logged in with password');
             
             onSuccess();
-        } catch (err: any) {
-            setError(err.message || 'Invalid password. Please try again.');
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Invalid password. Please try again.';
+            setError(errorMessage);
             console.error('Password login error:', err);
         } finally {
             setIsLoading(false);
@@ -113,8 +114,9 @@ const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({ isOpen, onSuccess }) 
             console.log('[Auth] Vault setup complete');
             
             onSuccess();
-        } catch (err: any) {
-            setError(err.message || 'Failed to setup secure vault');
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to setup secure vault';
+            setError(errorMessage);
             console.error('Vault setup error:', err);
         } finally {
             setIsLoading(false);

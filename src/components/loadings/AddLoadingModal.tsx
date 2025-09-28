@@ -91,7 +91,7 @@ export const AddLoadingModal = ({
     }
   }, [customerId, getCustomerBookedProducts]);
 
-  const updateItem = (index: number, field: keyof LoadingItem, value: any) => {
+  const updateItem = (index: number, field: keyof LoadingItem, value: string | number) => {
     const updatedItems = [...items];
     const item = { ...updatedItems[index] };
     
@@ -100,7 +100,7 @@ export const AddLoadingModal = ({
       // Validate against max quantity
       item.quantity = Math.min(quantity, item.maxQuantity);
     } else {
-      (item as any)[field] = value;
+      item[field] = value as never;
     }
     
     updatedItems[index] = item;
@@ -165,8 +165,9 @@ export const AddLoadingModal = ({
       } else {
         setErrors([result.error || 'Failed to create loading']);
       }
-    } catch (error: any) {
-      setErrors([error.message || 'An error occurred']);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      setErrors([errorMessage]);
     } finally {
       setIsSubmitting(false);
     }

@@ -71,7 +71,7 @@ export const EditLoadingModal = ({
     }
   }, [loading, isOpen, getCustomerBookedProducts]);
 
-  const updateItem = (index: number, field: keyof typeof items[0], value: any) => {
+  const updateItem = (index: number, field: keyof typeof items[0], value: string | number) => {
     const updatedItems = [...items];
     const item = { ...updatedItems[index] };
     
