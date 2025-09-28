@@ -13,7 +13,7 @@ interface EditCustomerModalProps {
   onUpdate: (
     id: string,
     updates: Partial<Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>>
-  ) => { success: boolean; errors?: string[] };
+  ) => Promise<{ success: boolean; errors?: string[] }>;
 }
 
 export const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }: EditCustomerModalProps) => {
@@ -68,8 +68,8 @@ export const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }: EditC
       state
     };
 
-    const result = onUpdate(customer.id, updates);
-    
+    const result = await onUpdate(customer.id, updates);
+
     if (result.success) {
       handleClose();
     } else {

@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useGitHubData } from './useGitHubData';
 import type { PaddyTruck } from '../types';
 import { generateId } from '../utils/storage';
+import { githubDataManager } from '../services/githubDataManager';
 
 export const usePaddyTrucksDirect = () => {
   // Use the base hook for paddy trucks data

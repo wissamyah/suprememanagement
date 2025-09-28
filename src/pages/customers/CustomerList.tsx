@@ -98,11 +98,11 @@ export const CustomerList = () => {
     return result;
   };
 
-  const handleUpdateCustomer = (
+  const handleUpdateCustomer = async (
     id: string,
     updates: Partial<Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>>
   ) => {
-    const result = updateCustomer(id, updates);
+    const result = await updateCustomer(id, updates);
     if (result.success) {
       showSuccess(`Customer updated successfully`);
       setEditingCustomer(null);
@@ -110,10 +110,10 @@ export const CustomerList = () => {
     return result;
   };
 
-  const handleDeleteCustomer = (customerId: string) => {
+  const handleDeleteCustomer = async (customerId: string) => {
     const customer = customers.find(c => c.id === customerId);
-    const result = deleteCustomer(customerId);
-    
+    const result = await deleteCustomer(customerId);
+
     if (result.success) {
       if (result.error) {
         showError(result.error);

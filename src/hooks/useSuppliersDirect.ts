@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useGitHubData } from './useGitHubData';
 import type { Supplier } from '../types';
 import { generateId } from '../utils/storage';
+import { githubDataManager } from '../services/githubDataManager';
 
 export const useSuppliersDirect = () => {
   // Use the base hook for suppliers data
