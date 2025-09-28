@@ -65,11 +65,11 @@ export const PaddyTrucks = () => {
   // Filter and paginate trucks
   const filteredTrucks = useMemo(() => {
     let filtered = [...paddyTrucks];
-    
+
     // Apply date filters
     const fromDate = dateFrom ? new Date(dateFrom) : undefined;
     const toDate = dateTo ? new Date(dateTo) : undefined;
-    
+
     if (fromDate) {
       filtered = filtered.filter(truck => new Date(truck.date) >= fromDate);
     }
@@ -77,7 +77,10 @@ export const PaddyTrucks = () => {
       toDate.setHours(23, 59, 59, 999);
       filtered = filtered.filter(truck => new Date(truck.date) <= toDate);
     }
-    
+
+    // Sort by date in descending order (newest first)
+    filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
     return filtered;
   }, [paddyTrucks, dateFrom, dateTo]);
   

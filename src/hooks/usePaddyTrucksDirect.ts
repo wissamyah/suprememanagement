@@ -137,9 +137,17 @@ export const usePaddyTrucksDirect = () => {
         return truck;
       });
 
-      // Await update to ensure data is persisted
-      await updatePaddyTrucks(updatedTrucksList);
-      
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Wait for all updates to complete - use batch pattern
+      await Promise.all([
+        updatePaddyTrucks(updatedTrucksList)
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
+
       return { success: true };
     } catch (error) {
       console.error('Error updating paddy truck:', error);
@@ -157,9 +165,17 @@ export const usePaddyTrucksDirect = () => {
       
       const updatedTrucksList = paddyTrucks.filter(t => t.id !== id);
 
-      // Await update to ensure data is persisted
-      await updatePaddyTrucks(updatedTrucksList);
-      
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Wait for all updates to complete - use batch pattern
+      await Promise.all([
+        updatePaddyTrucks(updatedTrucksList)
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
+
       return { success: true };
     } catch (error) {
       console.error('Error deleting paddy truck:', error);

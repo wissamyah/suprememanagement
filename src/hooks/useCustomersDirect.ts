@@ -69,10 +69,10 @@ export const useCustomersDirect = () => {
   }, [customers, updateCustomers]);
   
   // Update customer
-  const updateCustomer = useCallback((
+  const updateCustomer = useCallback(async (
     id: string,
     updates: Partial<Customer>
-  ): { success: boolean; errors?: string[] } => {
+  ): Promise<{ success: boolean; errors?: string[] }> => {
     try {
       // Check for duplicate if name or phone is being updated
       if (updates.name || updates.phone) {
@@ -101,10 +101,18 @@ export const useCustomersDirect = () => {
         }
         return customer;
       });
-      
-      // Fire and forget
-      updateCustomers(updatedCustomersList).catch(console.error);
-      
+
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Wait for all updates to complete - use batch pattern
+      await Promise.all([
+        updateCustomers(updatedCustomersList)
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
+
       return { success: true };
     } catch (error) {
       console.error('Error updating customer:', error);
@@ -113,7 +121,7 @@ export const useCustomersDirect = () => {
   }, [customers, updateCustomers]);
   
   // Delete customer
-  const deleteCustomer = useCallback((id: string): { success: boolean; error?: string } => {
+  const deleteCustomer = useCallback(async (id: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const customer = customers.find(c => c.id === id);
       if (!customer) {
@@ -127,10 +135,18 @@ export const useCustomersDirect = () => {
       }
       
       const updatedCustomersList = customers.filter(c => c.id !== id);
-      
-      // Fire and forget
-      updateCustomers(updatedCustomersList).catch(console.error);
-      
+
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Wait for all updates to complete - use batch pattern
+      await Promise.all([
+        updateCustomers(updatedCustomersList)
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
+
       return { success: true };
     } catch (error) {
       console.error('Error deleting customer:', error);

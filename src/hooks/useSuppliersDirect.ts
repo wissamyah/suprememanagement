@@ -94,9 +94,17 @@ export const useSuppliersDirect = () => {
         return supplier;
       });
 
-      // Await update to ensure data is persisted
-      await updateSuppliers(updatedSuppliersList);
-      
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Wait for all updates to complete - use batch pattern
+      await Promise.all([
+        updateSuppliers(updatedSuppliersList)
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
+
       return { success: true };
     } catch (error) {
       console.error('Error updating supplier:', error);
@@ -114,9 +122,17 @@ export const useSuppliersDirect = () => {
       
       const updatedSuppliersList = suppliers.filter(s => s.id !== id);
 
-      // Await update to ensure data is persisted
-      await updateSuppliers(updatedSuppliersList);
-      
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Wait for all updates to complete - use batch pattern
+      await Promise.all([
+        updateSuppliers(updatedSuppliersList)
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
+
       return { success: true };
     } catch (error) {
       console.error('Error deleting supplier:', error);

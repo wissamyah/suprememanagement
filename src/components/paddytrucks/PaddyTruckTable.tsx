@@ -280,12 +280,12 @@ export const PaddyTruckTable = ({
         <table className="w-full">
           <thead>
             <tr className="border-b border-white/5">
-              <th className="text-left py-3 px-3">
+              <th className="text-left py-3 px-1">
                 <button
                   onClick={toggleSelectAll}
                   className="p-1 rounded hover:bg-glass transition-colors"
                 >
-                  {selectedTrucks.size === filteredAndSortedTrucks.length && 
+                  {selectedTrucks.size === filteredAndSortedTrucks.length &&
                    filteredAndSortedTrucks.length > 0 ? (
                     <CheckSquare size={18} />
                   ) : (
@@ -302,7 +302,7 @@ export const PaddyTruckTable = ({
                   <SortIcon field="date" />
                 </button>
               </th>
-              <th className="text-left py-3 px-3">
+              <th className="text-left py-3 px-3 whitespace-nowrap">
                 <button
                   onClick={() => handleSort('truckPlate')}
                   className="flex items-center gap-1 hover:text-white/80 transition-colors"
@@ -363,7 +363,7 @@ export const PaddyTruckTable = ({
                     selectedTrucks.has(truck.id) ? 'bg-glass/50' : ''
                   }`}
                 >
-                  <td className="py-3 px-3">
+                  <td className="py-3 px-1">
                     <button
                       onClick={() => toggleSelectTruck(truck.id)}
                       className="p-1 rounded hover:bg-glass transition-colors"
@@ -378,7 +378,7 @@ export const PaddyTruckTable = ({
                   <td className="py-3 px-3">
                     <span className="text-sm">{formatDate(truck.date)}</span>
                   </td>
-                  <td className="py-3 px-3">
+                  <td className="py-3 px-3 whitespace-nowrap">
                     <span className="font-medium text-sm">{truck.truckPlate}</span>
                   </td>
                   <td className="py-3 px-3">

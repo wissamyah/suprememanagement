@@ -458,16 +458,21 @@ export const useSalesDirect = () => {
         updatedMovements = updatedMovementsList;
       }
       
-      // Prepare all updates
-      const allUpdates = [updateSales(updatedSalesList)];
-      
-      // Add booked stock, movement, and product updates if items changed
+      // Initialize all data arrays for potential updates
+      let finalSales = updatedSalesList;
+      let finalBookedStock = bookedStock;
+      let finalProducts = products;
+      let finalMovements = movements;
+      let finalLedgerEntries = ledgerEntries;
+      let finalCustomers = customers;
+
+      // Apply booked stock, movement, and product updates if items changed
       if (updatedBookedStock && updatedProducts && updatedMovements) {
-        allUpdates.push(updateBookedStock(updatedBookedStock));
-        allUpdates.push(updateProducts(updatedProducts));
-        allUpdates.push(updateMovements(updatedMovements));
+        finalBookedStock = updatedBookedStock;
+        finalProducts = updatedProducts;
+        finalMovements = updatedMovements;
       }
-      
+
       // If totalAmount or date changed, update the corresponding ledger entry
       const dateChanged = updates.date && new Date(updates.date).getTime() !== new Date(existingSale.date).getTime();
       const amountChanged = updates.totalAmount !== undefined && updates.totalAmount !== existingSale.totalAmount;
@@ -475,7 +480,7 @@ export const useSalesDirect = () => {
       if (dateChanged || amountChanged) {
         const newTotalAmount = updates.totalAmount !== undefined ? updates.totalAmount : existingSale.totalAmount;
         const newDate = updates.date || existingSale.date;
-        
+
         // Get all ledger entries for this customer sorted by date
         const customerEntries = ledgerEntries
           .filter(e => e.customerId === existingSale.customerId)
@@ -485,7 +490,7 @@ export const useSalesDirect = () => {
             if (dateA !== dateB) return dateA - dateB;
             return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           });
-        
+
         // First update the sale's ledger entry with new date/amount
         const updatedEntriesWithDate = customerEntries.map(entry => {
           if (entry.referenceId === id && entry.transactionType === 'sale') {
@@ -523,13 +528,13 @@ export const useSalesDirect = () => {
           }
           return entry;
         });
-        
+
         // Merge updated customer entries back into the full list
         const updatedLedgerEntries = ledgerEntries.map(entry => {
           const updated = updatedCustomerEntries.find(e => e.id === entry.id);
           return updated || entry;
         });
-        
+
         // Update customer's final balance
         const updatedCustomersList = customers.map(c => {
           if (c.id === existingSale.customerId) {
@@ -541,17 +546,23 @@ export const useSalesDirect = () => {
           }
           return c;
         });
-        
-        // Add ledger and customer updates
-        allUpdates.push(updateLedgerEntries(updatedLedgerEntries));
-        allUpdates.push(updateCustomers(updatedCustomersList));
+
+        finalLedgerEntries = updatedLedgerEntries;
+        finalCustomers = updatedCustomersList;
       }
-      
+
       // Start batch update to avoid conflicts
       githubDataManager.startBatchUpdate();
 
-      // Wait for all updates to complete
-      await Promise.all(allUpdates);
+      // Wait for all updates to complete - mimic addSale pattern exactly
+      await Promise.all([
+        updateSales(finalSales),
+        updateBookedStock(finalBookedStock),
+        updateProducts(finalProducts),
+        updateMovements(finalMovements),
+        updateLedgerEntries(finalLedgerEntries),
+        updateCustomers(finalCustomers)
+      ]);
 
       // End batch and save once
       await githubDataManager.endBatchUpdate();

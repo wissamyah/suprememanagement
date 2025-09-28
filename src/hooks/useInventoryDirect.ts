@@ -62,8 +62,17 @@ export const useInventoryDirect = () => {
         updatedAt: now
       };
       
-      // Await update to ensure data is persisted
-      await updateCategories([...categories, newCategory]);
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Wait for all updates to complete - use batch pattern
+      await Promise.all([
+        updateCategories([...categories, newCategory])
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
+
       return { success: true };
     } catch (error) {
       console.error('Error adding category:', error);
@@ -78,8 +87,18 @@ export const useInventoryDirect = () => {
           ? { ...cat, name, description, updatedAt: new Date() } 
           : cat
       );
-      // Await update to ensure data is persisted
-      await updateCategories(updatedCategories);
+
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Wait for all updates to complete - use batch pattern
+      await Promise.all([
+        updateCategories(updatedCategories)
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
+
       return { success: true };
     } catch (error) {
       console.error('Error updating category:', error);
@@ -97,8 +116,18 @@ export const useInventoryDirect = () => {
       }
       
       const updatedCategories = categories.filter(cat => cat.id !== id);
-      // Await update to ensure data is persisted
-      await updateCategories(updatedCategories);
+
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Wait for all updates to complete - use batch pattern
+      await Promise.all([
+        updateCategories(updatedCategories)
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
+
       return { success: true };
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -192,9 +221,18 @@ export const useInventoryDirect = () => {
         }
         return product;
       });
-      
-      // Await update to ensure data is persisted
-      await updateProducts(updatedProducts);
+
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Wait for all updates to complete - use batch pattern
+      await Promise.all([
+        updateProducts(updatedProducts)
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
+
       return { success: true };
     } catch (error) {
       console.error('Error updating product:', error);
@@ -258,11 +296,8 @@ export const useInventoryDirect = () => {
         createdAt: now
       };
       
-      // Update movements
+      // Prepare movements and products updates
       const updatedMovements = [...movements, newMovement];
-      await updateMovements(updatedMovements);
-      
-      // Update product quantity directly
       const updatedProducts = products.map(p => {
         if (p.id === movement.productId) {
           return {
@@ -275,8 +310,18 @@ export const useInventoryDirect = () => {
         }
         return p;
       });
-      
-      await updateProducts(updatedProducts);
+
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Wait for all updates to complete - use batch pattern
+      await Promise.all([
+        updateMovements(updatedMovements),
+        updateProducts(updatedProducts)
+      ]);
+
+      // End batch and save once
+      await githubDataManager.endBatchUpdate();
       
       return { success: true };
     } catch (error) {
@@ -399,11 +444,8 @@ export const useInventoryDirect = () => {
         updatedAt: now
       };
       
-      // Update movements
+      // Prepare movements and products updates
       const updatedMovements = [...movements, movement];
-      await updateMovements(updatedMovements);
-      
-      // Update product with new quantity directly
       const updatedProducts = products.map(p => {
         if (p.id === productId) {
           return {
@@ -417,7 +459,14 @@ export const useInventoryDirect = () => {
         return p;
       });
 
-      await updateProducts(updatedProducts);
+      // Start batch update to avoid conflicts
+      githubDataManager.startBatchUpdate();
+
+      // Wait for all updates to complete - use batch pattern
+      await Promise.all([
+        updateMovements(updatedMovements),
+        updateProducts(updatedProducts)
+      ]);
 
       // End batch and save once
       await githubDataManager.endBatchUpdate();
