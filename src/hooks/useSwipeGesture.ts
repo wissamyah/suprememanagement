@@ -135,13 +135,18 @@ export const useSwipeFromEdge = (
       const deltaX = touch.clientX - touchStartX.current;
       const deltaY = touch.clientY - touchStartY.current;
 
-      // If it's a horizontal swipe, prevent default to avoid interference
-      if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 10) {
+      // If it's a horizontal swipe to the right, prevent default to avoid browser back gesture
+      if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 5) {
         e.preventDefault();
+        // Also set overscroll-behavior on body to prevent any bounce effects
+        document.body.style.overscrollBehaviorX = 'none';
       }
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
+      // Reset overscroll behavior
+      document.body.style.overscrollBehaviorX = 'auto';
+
       if (!isSwipingFromEdge.current || !touchStartX.current || !touchStartY.current) {
         isSwipingFromEdge.current = false;
         return;

@@ -108,7 +108,7 @@ export const Sidebar = () => {
       setIsMobileMenuOpen(true);
     }
   }, {
-    edgeWidth: 30, // Trigger zone from left edge
+    edgeWidth: 80, // Larger trigger zone from left edge to prevent browser back gesture
     enabled: !isMobileMenuOpen && window.innerWidth < 1024 // Only on mobile and when menu is closed
   });
 
