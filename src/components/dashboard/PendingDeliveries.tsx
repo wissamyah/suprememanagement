@@ -22,12 +22,48 @@ interface PendingDeliveriesProps {
 }
 
 export const PendingDeliveries = ({ deliveries }: PendingDeliveriesProps) => {
+  // Calculate product breakdown across all deliveries
+  const productBreakdown = deliveries.reduce((breakdown, delivery) => {
+    delivery.products.forEach(product => {
+      if (!breakdown[product.productName]) {
+        breakdown[product.productName] = { productName: product.productName, quantity: 0 };
+      }
+      breakdown[product.productName].quantity += product.quantity;
+    });
+    return breakdown;
+  }, {} as Record<string, { productName: string; quantity: number }>);
+
+  const productBreakdownArray = Object.values(productBreakdown).sort((a, b) =>
+    b.quantity - a.quantity
+  );
+
   return (
     <GlassCard>
-      <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+      <div className="flex items-center gap-2 mb-4">
         <Truck size={20} />
-        Pending Deliveries
-      </h2>
+        <Tooltip
+          content={
+            <div className="min-w-[240px]">
+              <div className="text-xs font-semibold mb-2 text-white/80">Product Breakdown</div>
+              {productBreakdownArray.length > 0 ? (
+                <div className="space-y-1.5">
+                  {productBreakdownArray.map((item, index) => (
+                    <div key={index} className="flex justify-between items-center text-xs">
+                      <span className="text-white/90">{item.productName}</span>
+                      <span className="font-medium text-blue-400">{item.quantity} units</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-white/60">No pending deliveries</p>
+              )}
+            </div>
+          }
+          placement="bottom"
+        >
+          <h2 className="text-xl font-semibold cursor-help">Pending Deliveries</h2>
+        </Tooltip>
+      </div>
       <div className="space-y-3 max-h-96 overflow-y-auto">
         {deliveries.length > 0 ? (
           deliveries.map((delivery) => (

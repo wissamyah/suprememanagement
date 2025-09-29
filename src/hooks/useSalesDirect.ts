@@ -6,6 +6,9 @@ import { generateId } from '../utils/storage';
 import { generateOrderId } from '../utils/sales';
 import { githubDataManager } from '../services/githubDataManager';
 
+// Global variable to track the last updated sale ID for debugging
+let lastUpdatedSaleId: string | null = null;
+
 export const useSalesDirect = () => {
   // Use the base hook for each data type
   const {
@@ -181,10 +184,10 @@ export const useSalesDirect = () => {
         return c;
       });
       
-      // Start batch update to avoid conflicts
+      // Do ALL updates in a single batch to prevent React state confusion
       githubDataManager.startBatchUpdate();
 
-      // Wait for all updates to complete
+      // Update all data at once
       await Promise.all([
         updateSales([...sales, newSale]),
         updateMovements([...movements, ...newMovements]),
@@ -212,25 +215,40 @@ export const useSalesDirect = () => {
     updates: Partial<Sale>
   ): Promise<{ success: boolean; error?: string; errors?: string[] }> => {
     try {
+      console.log('🔄 UpdateSale starting:', { id, updates });
+      console.log('📊 Current sales count:', sales.length);
+
+      // Track this sale for debugging
+      lastUpdatedSaleId = id;
+      (window as any).lastUpdatedSaleId = id;
+
       const now = new Date();
-      
+
       // Find the existing sale
       const existingSale = sales.find(s => s.id === id);
       if (!existingSale) {
+        console.error('❌ Sale not found:', id);
         return { success: false, error: 'Sale not found' };
       }
-      
+
+      console.log('📄 Found existing sale:', existingSale);
+
       // Update the sale
       const updatedSalesList = sales.map(sale => {
         if (sale.id === id) {
-          return {
+          const updatedSale = {
             ...sale,
             ...updates,
             updatedAt: now
           };
+          console.log('✏️ Updated sale object:', updatedSale);
+          return updatedSale;
         }
         return sale;
       });
+
+      console.log('📋 Updated sales list length:', updatedSalesList.length);
+      console.log('🎯 Updated sale in list:', updatedSalesList.find(s => s.id === id));
       
       // Initialize variables for booked stock, product, and movement updates
       let updatedBookedStock: any[] | undefined;
@@ -551,10 +569,12 @@ export const useSalesDirect = () => {
         finalCustomers = updatedCustomersList;
       }
 
-      // Start batch update to avoid conflicts
+      console.log('🚀 Starting single atomic update for all data');
+
+      // Do ALL updates in a single batch to prevent React state confusion
       githubDataManager.startBatchUpdate();
 
-      // Wait for all updates to complete - mimic addSale pattern exactly
+      // Update all data at once
       await Promise.all([
         updateSales(finalSales),
         updateBookedStock(finalBookedStock),
@@ -566,7 +586,9 @@ export const useSalesDirect = () => {
 
       // End batch and save once
       await githubDataManager.endBatchUpdate();
+      console.log('✅ Atomic update completed');
 
+      console.log('🎉 UpdateSale completed successfully');
       return { success: true };
     } catch (error) {
       console.error('Error updating sale:', error);

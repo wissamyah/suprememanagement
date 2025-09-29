@@ -11,7 +11,7 @@ export const calculateAvailableQuantity = (quantityOnHand: number, quantityBooke
 };
 
 export const getStockStatus = (available: number, reorderLevel: number): 'in-stock' | 'low-stock' | 'out-of-stock' => {
-  if (available === 0) return 'out-of-stock';
+  if (available <= 0) return 'out-of-stock';
   if (available <= reorderLevel) return 'low-stock';
   return 'in-stock';
 };
@@ -263,4 +263,13 @@ export const downloadFile = (content: string, filename: string, type: 'json' | '
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+};
+
+export const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
 };

@@ -60,10 +60,15 @@ class GitHubDataManager {
     this.setupEventListeners();
 
     // Setup cross-tab sync callback
+    // DISABLED: This was causing old data to overwrite new data
+    // The cross-tab sync would broadcast data, then receive its own broadcast
+    // and overwrite the memoryData with stale data from localStorage
+    /*
     this.crossTabSync.onUpdate((data) => {
       this.memoryData = data;
       this.dataListeners.forEach(listener => listener(this.memoryData));
     });
+    */
   }
 
   private setupEventListeners(): void {
@@ -92,7 +97,7 @@ class GitHubDataManager {
   }
 
   // Load all data from GitHub
-  async loadAllData(forceRefresh: boolean = false): Promise<DataState> {
+  async loadAllData(forceRefresh: boolean = false, silent: boolean = false): Promise<DataState> {
     const cacheKey = 'all_data';
 
     // Check cache first unless force refresh
@@ -100,7 +105,9 @@ class GitHubDataManager {
       const cached = this.cacheManager.get<DataState>(cacheKey);
       if (cached) {
         this.memoryData = cached;
-        this.notifyDataListeners();
+        if (!silent) {
+          this.notifyDataListeners();
+        }
         return cached;
       }
     }
@@ -109,18 +116,29 @@ class GitHubDataManager {
       const result = await this.githubAPI.fetchData();
 
       if (result) {
-        this.memoryData = result.data;
-        this.cacheManager.set('github_sha', result.sha, Infinity);
+        // Only update memoryData if not in silent mode (for SHA fetch only)
+        if (silent) {
+          // Store SHA but don't update memoryData
+          this.cacheManager.set('github_sha', result.sha, Infinity);
+          return this.memoryData;
+        } else {
+          this.memoryData = result.data;
+          this.cacheManager.set('github_sha', result.sha, Infinity);
+        }
       } else {
         // File doesn't exist, use default data
-        this.memoryData = this.dataMerger.getDefaultDataState();
+        if (!silent) {
+          this.memoryData = this.dataMerger.getDefaultDataState();
+        }
       }
 
       // Cache the result
       this.cacheManager.set(cacheKey, this.memoryData, this.CACHE_TTL);
 
-      // Notify listeners
-      this.notifyDataListeners();
+      // Notify listeners only if not silent
+      if (!silent) {
+        this.notifyDataListeners();
+      }
 
       return this.memoryData;
     } catch (error) {
@@ -150,8 +168,10 @@ class GitHubDataManager {
     const previousData = this.memoryData[type];
     this.memoryData[type] = data;
 
-    // Notify listeners immediately for responsive UI
-    this.notifyDataListeners();
+    // Only notify listeners if NOT in batch mode
+    if (!this.batchUpdateInProgress) {
+      this.notifyDataListeners();
+    }
 
     // Mark as pending save
     this.pendingSaves.add(type);
@@ -177,7 +197,7 @@ class GitHubDataManager {
       }
     } catch (error) {
       // Rollback on failure
-      console.error(`Failed to update ${type}:`, error);
+      console.error(`Failed to update ${type}, rolling back:`, error);
       this.memoryData[type] = previousData;
       this.notifyDataListeners();
       throw error;
@@ -195,6 +215,9 @@ class GitHubDataManager {
     if (!this.batchUpdateInProgress) return;
 
     this.batchUpdateInProgress = false;
+
+    // Notify listeners once at the end of batch
+    this.notifyDataListeners();
 
     // Clear the queue
     const hadUpdates = this.batchUpdateQueue.length > 0;
@@ -245,9 +268,9 @@ class GitHubDataManager {
         // Get current SHA from cache
         let sha = this.cacheManager.get<string>('github_sha');
 
-        // If no cached SHA, fetch it
+        // If no cached SHA, fetch it (silent mode to not overwrite memoryData)
         if (!sha) {
-          await this.loadAllData(true);
+          await this.loadAllData(true, true); // force refresh, silent mode
           sha = this.cacheManager.get<string>('github_sha');
         }
 
@@ -281,18 +304,20 @@ class GitHubDataManager {
     // Store current local changes
     const localData = { ...this.memoryData };
 
-    // Load fresh data from GitHub
-    await this.loadAllData(true);
+    // Load fresh data from GitHub (non-silent to get remote data for merging)
+    const remoteData = await this.loadAllData(true, true);
     const freshSha = this.cacheManager.get<string>('github_sha');
 
     // Merge local changes with remote data
-    this.memoryData = this.dataMerger.mergeDataStates(this.memoryData, localData);
+    this.memoryData = this.dataMerger.mergeDataStates(remoteData, localData);
 
     // Try to save again with fresh SHA
     if (freshSha) {
       const newSha = await this.githubAPI.saveData(this.memoryData, freshSha || undefined);
       this.cacheManager.set('github_sha', newSha, Infinity);
       console.log('Data saved to GitHub successfully after merge');
+      // Notify listeners after successful merge
+      this.notifyDataListeners();
     }
   }
 
@@ -378,12 +403,32 @@ class GitHubDataManager {
     };
   }
 
-  // Notify data listeners
-  private notifyDataListeners(): void {
-    this.dataListeners.forEach(listener => listener(this.memoryData));
+  // Debounce timer for listener notifications
+  private notifyDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-    // Broadcast changes to other tabs
-    this.crossTabSync.broadcast(this.memoryData);
+  // Notify data listeners with debouncing to prevent rapid successive calls
+  private notifyDataListeners(): void {
+    // Clear any pending notification
+    if (this.notifyDebounceTimer) {
+      clearTimeout(this.notifyDebounceTimer);
+    }
+
+    // Debounce notifications to prevent React state confusion
+    this.notifyDebounceTimer = setTimeout(() => {
+      const currentData = { ...this.memoryData };
+
+      this.dataListeners.forEach(listener => {
+        try {
+          listener(currentData);
+        } catch (error) {
+          console.error('Error in data listener:', error);
+        }
+      });
+
+      // Broadcast changes to other tabs
+      this.crossTabSync.broadcast(currentData);
+      this.notifyDebounceTimer = null;
+    }, 10);
   }
 
   // Notify connection listeners
@@ -444,6 +489,10 @@ class GitHubDataManager {
 
     if (this.saveDebounceTimer) {
       clearTimeout(this.saveDebounceTimer);
+    }
+
+    if (this.notifyDebounceTimer) {
+      clearTimeout(this.notifyDebounceTimer);
     }
 
     if (this.connectionCheckInterval) {

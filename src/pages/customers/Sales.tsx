@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
 import { ToastContainer } from '../../components/ui/Toast';
@@ -50,7 +50,39 @@ export const Sales = () => {
   } = useSales();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
-  
+
+  // Force fresh sales array to trigger re-renders
+  const freshSales = useMemo(() => {
+    // Create a completely new array with fresh object references
+    return sales.map(sale => ({ ...sale }));
+  }, [sales]);
+
+  // Track sales changes for debugging
+  useEffect(() => {
+    const testSaleId = (window as any).lastUpdatedSaleId;
+    const testSale = testSaleId ? freshSales.find(s => s.id === testSaleId) : null;
+    console.log('📊 Sales component received sales update:', {
+      salesCount: freshSales.length,
+      arrayReference: freshSales,
+      trackingSaleId: testSaleId || 'none',
+      testSaleFound: !!testSale,
+      testSaleData: testSale ? {
+        id: testSale.id,
+        orderId: testSale.orderId,
+        totalAmount: testSale.totalAmount,
+        paymentStatus: testSale.paymentStatus,
+        updatedAt: testSale.updatedAt
+      } : 'NOT FOUND',
+      firstThreeSales: freshSales.slice(0, 3).map(s => ({
+        id: s.id,
+        orderId: s.orderId,
+        totalAmount: s.totalAmount,
+        paymentStatus: s.paymentStatus,
+        updatedAt: s.updatedAt
+      }))
+    });
+  }, [freshSales]);
+
   // Calculate real-time statistics
   const stats = calculateSalesStats(sales);
   
@@ -82,10 +114,23 @@ export const Sales = () => {
     id: string,
     updates: Partial<Omit<Sale, 'id' | 'orderId' | 'createdAt' | 'updatedAt'>>
   ) => {
+    console.log('🔧 HandleUpdateSale called with:', { id, updates });
+    console.log('📊 Current sales in component:', sales.length);
+    console.log('🎯 Sale before update:', sales.find(s => s.id === id));
+
     const result = await updateSale(id, updates);
+
+    console.log('🔄 UpdateSale result:', result);
+
     if (result.success) {
       showSuccess('Sale updated successfully');
       setEditingSale(null);
+
+      // Force a manual refresh after successful update
+      console.log('🔄 Forcing manual refresh after sale update');
+      setTimeout(() => {
+        forceSync().catch(console.error);
+      }, 100);
     }
     return result;
   };
@@ -333,7 +378,8 @@ export const Sales = () => {
           </div>
         ) : (
           <SaleTable
-            sales={sales}
+            key={`table-${freshSales.length}-${Date.now()}`}
+            sales={freshSales}
             searchTerm={searchTerm}
             dateFilter={dateFilter}
             loading={false}

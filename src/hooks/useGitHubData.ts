@@ -104,22 +104,22 @@ export function useGitHubData<T>(options: UseGitHubDataOptions) {
     try {
       setIsSyncing(true);
       setError(null);
-      
+
       // Optimistic update happens inside githubDataManager
       await githubDataManager.updateData(dataType, newData, immediate);
-      
+
       // Update offline queue size
       setOfflineQueueSize(githubDataManager.getOfflineQueueSize());
     } catch (err) {
       console.error(`Error updating ${String(dataType)}:`, err);
       setError(err instanceof Error ? err.message : 'Failed to update data');
-      throw err; // Re-throw for caller to handle
+      throw err;
     } finally {
       if (mountedRef.current) {
         setIsSyncing(false);
       }
     }
-  }, [dataType, immediate]);
+  }, [dataType, immediate, data.length]);
   
   // Force refresh from GitHub
   const refresh = useCallback(async () => {

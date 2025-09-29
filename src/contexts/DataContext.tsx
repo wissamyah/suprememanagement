@@ -49,17 +49,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isOnline, setIsOnline] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const mountedRef = useRef(true);
+  const lastDataRef = useRef<DataState | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
 
     // Subscribe to data changes from githubDataManager
     const unsubscribeData = githubDataManager.subscribeToData((newData) => {
-      if (mountedRef.current) {
-        setData(newData);
-        // Trigger a refresh key change to force re-renders
-        setRefreshKey(prev => prev + 1);
-      }
+      if (!mountedRef.current) return;
+
+      // Use functional update to ensure React processes the state change correctly
+      setData(prevData => {
+        // Force a new object reference
+        return { ...newData };
+      });
+
+      // Use functional update for refresh key
+      setRefreshKey(prev => prev + 1);
     });
 
     // Subscribe to connection status
@@ -105,16 +111,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setRefreshKey(prev => prev + 1);
   };
 
-  // Update data state when customersHook data changes
-  useEffect(() => {
-    if (customersHook.customers && customersHook.ledgerEntries) {
-      setData(prev => ({
-        ...prev,
-        customers: customersHook.customers,
-        ledgerEntries: customersHook.ledgerEntries
-      }));
-    }
-  }, [customersHook.customers, customersHook.ledgerEntries]);
+  // Note: Removed data override to prevent race conditions with batch updates
+  // The githubDataManager subscription handles all data updates consistently
 
   return (
     <DataContext.Provider value={{ data, isOnline, refreshKey, triggerRefresh, customersHook }}>

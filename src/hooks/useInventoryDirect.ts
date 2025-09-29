@@ -39,11 +39,18 @@ export const useInventoryDirect = () => {
     data: bookedStock,
   } = useGitHubData<any>({ dataType: 'bookedStock' });
   
-  // Calculate total booked quantity for a product
+  // Calculate total booked quantity for a product (remaining quantity only)
   const getTotalBookedQuantity = useCallback((productId: string): number => {
     return bookedStock
-      .filter((item: any) => item.productId === productId && item.status === 'pending')
-      .reduce((total: number, item: any) => total + item.quantity, 0);
+      .filter((item: any) =>
+        item.productId === productId &&
+        ['pending', 'confirmed', 'partial-loaded'].includes(item.status)
+      )
+      .reduce((total: number, item: any) => {
+        // Calculate remaining quantity (total - already loaded)
+        const remaining = item.quantity - (item.quantityLoaded || 0);
+        return total + remaining;
+      }, 0);
   }, [bookedStock]);
   
   // Loading state combines all data types
@@ -339,7 +346,7 @@ export const useInventoryDirect = () => {
     try {
       const product = products.find(p => p.id === productId);
       if (!product) {
-        console.error('Product not found');
+        console.error('Product not found:', productId);
         return { success: false };
       }
 
@@ -350,7 +357,7 @@ export const useInventoryDirect = () => {
         productId: productId,
         productName: product.name,
         movementType: 'adjustment',
-        quantity: difference, // Use actual difference (positive for increase, negative for decrease)
+        quantity: difference,
         previousQuantity: product.quantityOnHand,
         newQuantity: newQuantity,
         reference: 'Stock adjustment',
@@ -360,10 +367,7 @@ export const useInventoryDirect = () => {
         updatedAt: now
       };
 
-      // Update movements
       const updatedMovements = [...movements, movement];
-
-      // Update the product with new quantity
       const updatedProducts = products.map(p => {
         if (p.id === productId) {
           return {
@@ -377,18 +381,12 @@ export const useInventoryDirect = () => {
         return p;
       });
 
-      // Start batch update to avoid conflicts
       githubDataManager.startBatchUpdate();
-
-      // Await all updates to ensure data is persisted
       await Promise.all([
         updateMovements(updatedMovements),
         updateProducts(updatedProducts)
       ]);
-
-      // End batch and save once
       await githubDataManager.endBatchUpdate();
-      console.log(`Stock adjusted for ${product.name}: ${product.quantityOnHand} → ${newQuantity} (${difference > 0 ? '+' : ''}${difference})`);
 
       return { success: true };
     } catch (error) {
@@ -588,14 +586,17 @@ export const useInventoryDirect = () => {
     return product.quantityOnHand - actualBookedQty;
   }, [products, getTotalBookedQuantity]);
   
-  // Enhance products with actual booked quantities
+  // Enhance products with actual booked quantities and recalculate status
   const enhancedProducts = useMemo(() => {
     return products.map(product => {
       const actualBookedQty = getTotalBookedQuantity(product.id);
+      const availableQty = product.quantityOnHand - actualBookedQty;
       return {
         ...product,
         quantityBooked: actualBookedQty,
-        availableQuantity: product.quantityOnHand - actualBookedQty
+        availableQuantity: availableQty,
+        // Recalculate status based on current quantityOnHand
+        status: getStockStatus(product.quantityOnHand, product.reorderLevel) as any
       };
     });
   }, [products, getTotalBookedQuantity]);

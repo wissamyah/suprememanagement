@@ -8,7 +8,7 @@ interface StockAdjustmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product | null;
-  onAdjustStock: (productId: string, newQuantity: number, reason: string, notes?: string) => void;
+  onAdjustStock: (productId: string, newQuantity: number, reason: string, notes?: string) => Promise<boolean>;
 }
 
 export const StockAdjustmentModal = ({
@@ -46,7 +46,7 @@ export const StockAdjustmentModal = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!product) {
       setError('No product selected');
       return;
@@ -63,20 +63,24 @@ export const StockAdjustmentModal = ({
     }
 
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 300)); // Simulate async operation
 
-    onAdjustStock(
-      product.id,
-      formData.newQuantity,
-      formData.reason,
-      formData.notes || undefined
-    );
+    try {
+      await onAdjustStock(
+        product.id,
+        formData.newQuantity,
+        formData.reason,
+        formData.notes || undefined
+      );
 
-    setLoading(false);
-    setSuccess(true);
-    setTimeout(() => {
-      onClose();
-    }, 1500);
+      setLoading(false);
+      setSuccess(true);
+      setTimeout(() => {
+        onClose();
+      }, 800);
+    } catch (err) {
+      setLoading(false);
+      setError('Failed to adjust stock');
+    }
   };
 
   if (!product) return null;

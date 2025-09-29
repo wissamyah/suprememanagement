@@ -15,6 +15,7 @@ import GitHubAuthModal from './components/GitHubAuthModal';
 import githubStorage from './services/githubStorage';
 import { githubDataManager } from './services/githubDataManager';
 import { DataProvider } from './contexts/DataContext';
+import { ScrollToTop } from './components/ScrollToTop';
 
 // Context for GitHub storage
 interface GitHubContextType {
@@ -168,6 +169,7 @@ function App() {
     <GitHubContext.Provider value={contextValue}>
       <DataProvider>
         <HashRouter>
+          <ScrollToTop />
           <Routes>
             <Route path="/" element={<MainLayout />}>
               <Route index element={<Dashboard />} />

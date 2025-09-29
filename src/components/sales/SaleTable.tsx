@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Edit2, Trash2, Eye, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
@@ -29,12 +29,39 @@ export const SaleTable = ({
   onViewDetails,
   onGenerateInvoice
 }: SaleTableProps) => {
+
+  // Force component re-render when sales array changes by creating a stable key
+  const salesKey = useMemo(() => {
+    return sales.map(s => `${s.id}-${s.updatedAt}`).join('|');
+  }, [sales]);
+
   const [deletingSaleId, setDeletingSaleId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [forceRender, setForceRender] = useState(0);
   const itemsPerPage = 10;
 
-  // Filter and sort sales - newest first
-  const filteredSales = useMemo(() => {
+  // Force re-render when salesKey changes
+  useEffect(() => {
+    console.log('🔄 SaleTable: Sales key changed, forcing re-render:', salesKey.slice(0, 100));
+    setForceRender(prev => prev + 1);
+  }, [salesKey]);
+
+  // Filter and sort sales - newest first (no memoization to force updates)
+  const filteredSales = (() => {
+    console.log('🔍 SaleTable: Filtering sales:', {
+      totalSales: sales.length,
+      dateFilter,
+      searchTerm,
+      salesKey: salesKey.slice(0, 100),
+      sampleSales: sales.slice(0, 2).map(s => ({
+        id: s.id,
+        orderId: s.orderId,
+        totalAmount: s.totalAmount,
+        paymentStatus: s.paymentStatus,
+        updatedAt: s.updatedAt
+      }))
+    });
+
     const filtered = getDateRangeSales(sales, dateFilter).filter(sale => {
       if (!searchTerm) return true;
       const search = searchTerm.toLowerCase();
@@ -44,23 +71,54 @@ export const SaleTable = ({
         sale.items.some(item => item.productName.toLowerCase().includes(search))
       );
     });
-    
+
     // Sort by date - newest first, then by creation time if same date
-    return filtered.sort((a, b) => {
+    const sorted = filtered.sort((a, b) => {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
       if (dateB !== dateA) return dateB - dateA;
       // If same date, sort by creation time (newest first)
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [sales, dateFilter, searchTerm]);
 
-  // Calculate pagination
+    console.log('🔍 SaleTable: Filtered result:', {
+      filteredCount: sorted.length,
+      sampleFiltered: sorted.slice(0, 2).map(s => ({
+        id: s.id,
+        orderId: s.orderId,
+        totalAmount: s.totalAmount,
+        paymentStatus: s.paymentStatus,
+        updatedAt: s.updatedAt
+      }))
+    });
+
+    return sorted;
+  })();
+
+  // Calculate pagination (no memoization to force updates)
   const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
-  const paginatedSales = useMemo(() => {
+  const paginatedSales = (() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredSales.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredSales, currentPage]);
+    const paginated = filteredSales.slice(startIndex, startIndex + itemsPerPage);
+
+    console.log('📄 SaleTable: Pagination calculated:', {
+      currentPage,
+      totalPages,
+      startIndex,
+      itemsPerPage,
+      paginatedCount: paginated.length,
+      forceRender,
+      samplePaginated: paginated.slice(0, 2).map(s => ({
+        id: s.id,
+        orderId: s.orderId,
+        totalAmount: s.totalAmount,
+        paymentStatus: s.paymentStatus,
+        updatedAt: s.updatedAt
+      }))
+    });
+
+    return paginated;
+  })();
 
   // Reset to page 1 when filters change
   useMemo(() => {
@@ -127,8 +185,8 @@ export const SaleTable = ({
             const totalItems = sale.items.reduce((sum, item) => sum + item.quantity, 0);
             
             return (
-              <div 
-                key={sale.id}
+              <div
+                key={`${sale.id}-${sale.updatedAt}-${forceRender}`}
                 className="glass rounded-lg p-4 hover:bg-glass/50 transition-colors"
               >
                 {/* Card Header */}
@@ -230,9 +288,22 @@ export const SaleTable = ({
               const totalItems = sale.items.reduce((sum, item) => sum + item.quantity, 0);
               
               return (
-                <tr 
-                  key={sale.id} 
+                <tr
+                  key={`${sale.id}-${sale.updatedAt}-${forceRender}`}
                   className="border-b border-white/5 hover:bg-glass/50 transition-colors"
+                  onMouseEnter={() => {
+                    // Debug: Log when hovering over a specific sale row
+                    const testSaleId = (window as any).lastUpdatedSaleId;
+                    if (testSaleId && sale.id === testSaleId) {
+                      console.log('🖱️ Hovering over tracked sale row:', {
+                        id: sale.id,
+                        orderId: sale.orderId,
+                        totalAmount: sale.totalAmount,
+                        paymentStatus: sale.paymentStatus,
+                        updatedAt: sale.updatedAt
+                      });
+                    }
+                  }}
                 >
                   <td className="py-3 px-4 font-medium">{sale.orderId}</td>
                   <td className="py-3 px-4">{sale.customerName}</td>

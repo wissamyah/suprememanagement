@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { GlassCard } from '../ui/GlassCard';
 import { Package, Users, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import { useBookedStock } from '../../hooks/useBookedStock';
+import { Tooltip } from '../ui/Tooltip';
 import type { BookedStock } from '../../types';
 import { formatDate } from '../../utils/dateFormatting';
 
@@ -37,8 +38,23 @@ export const BookedStockSummary = () => {
 
   const totalActiveBookings = activeBookings.length;
   const totalCustomersWithBookings = Object.keys(customerGroups).length;
-  const totalBookedQuantity = activeBookings.reduce((sum, booking) => 
+  const totalBookedQuantity = activeBookings.reduce((sum, booking) =>
     sum + (booking.quantity - booking.quantityLoaded), 0
+  );
+
+  // Calculate product breakdown for tooltip
+  const productBreakdown = activeBookings.reduce((breakdown, booking) => {
+    const remaining = booking.quantity - booking.quantityLoaded;
+    const key = `${booking.productName}`;
+    if (!breakdown[key]) {
+      breakdown[key] = { productName: booking.productName, quantity: 0, unit: booking.unit };
+    }
+    breakdown[key].quantity += remaining;
+    return breakdown;
+  }, {} as Record<string, { productName: string; quantity: number; unit: string }>);
+
+  const productBreakdownArray = Object.values(productBreakdown).sort((a, b) =>
+    b.quantity - a.quantity
   );
 
   const getStatusColor = (status: BookedStock['status']) => {
@@ -88,13 +104,32 @@ export const BookedStockSummary = () => {
           </div>
           <p className="text-2xl font-bold">{totalActiveBookings}</p>
         </div>
-        <div className="glass rounded-lg p-3">
-          <div className="flex items-center gap-2 text-sm text-muted mb-1">
-            <TrendingUp size={16} />
-            Total Quantity Booked
+        <Tooltip
+          content={
+            <div className="min-w-[240px]">
+              <div className="text-xs font-semibold mb-2 text-white/80">Product Breakdown</div>
+              <div className="space-y-1.5">
+                {productBreakdownArray.map((item, index) => (
+                  <div key={index} className="flex justify-between items-center text-xs">
+                    <span className="text-white/90">{item.productName}</span>
+                    <span className="font-medium text-yellow-400">
+                      {item.quantity} {item.unit}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          }
+          placement="bottom"
+        >
+          <div className="glass rounded-lg p-3 cursor-help">
+            <div className="flex items-center gap-2 text-sm text-muted mb-1">
+              <TrendingUp size={16} />
+              Total Quantity Booked
+            </div>
+            <p className="text-2xl font-bold text-yellow-400">{totalBookedQuantity}</p>
           </div>
-          <p className="text-2xl font-bold text-yellow-400">{totalBookedQuantity}</p>
-        </div>
+        </Tooltip>
       </div>
 
       {/* Customer-wise Bookings */}
