@@ -6,9 +6,6 @@ import { generateId } from '../utils/storage';
 import { generateOrderId } from '../utils/sales';
 import { githubDataManager } from '../services/githubDataManager';
 
-// Global variable to track the last updated sale ID for debugging
-let lastUpdatedSaleId: string | null = null;
-
 export const useSalesDirect = () => {
   // Use the base hook for each data type
   const {
@@ -217,10 +214,6 @@ export const useSalesDirect = () => {
     try {
       console.log('🔄 UpdateSale starting:', { id, updates });
       console.log('📊 Current sales count:', sales.length);
-
-      // Track this sale for debugging
-      lastUpdatedSaleId = id;
-      (window as any).lastUpdatedSaleId = id;
 
       const now = new Date();
 

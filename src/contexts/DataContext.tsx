@@ -49,7 +49,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isOnline, setIsOnline] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const mountedRef = useRef(true);
-  const lastDataRef = useRef<DataState | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -59,7 +58,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!mountedRef.current) return;
 
       // Use functional update to ensure React processes the state change correctly
-      setData(prevData => {
+      setData(() => {
         // Force a new object reference
         return { ...newData };
       });

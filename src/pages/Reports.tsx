@@ -1,15 +1,11 @@
 import { useState, useMemo } from 'react';
 import { GlassCard } from '../components/ui/GlassCard';
-import { Button } from '../components/ui/Button';
 import {
-  Download,
   Calendar,
   TrendingUp,
   BarChart3,
   PieChart,
   FileText,
-  Filter,
-  Printer,
   Package,
   Users,
   Truck,
@@ -19,14 +15,12 @@ import {
 } from 'lucide-react';
 import { useInventoryDirect } from '../hooks/useInventoryDirect';
 import { useSalesDirect } from '../hooks/useSalesDirect';
-import { useDataContext } from '../contexts/DataContext';
 import { formatCurrency } from '../utils/inventory';
 
 export const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
-  const { products, movements, categories, loading: invLoading } = useInventoryDirect();
-  const { sales, customers, bookedStock, loading: salesLoading } = useSalesDirect();
-  const { data } = useDataContext();
+  const { products, movements, loading: invLoading } = useInventoryDirect();
+  const { sales, bookedStock, loading: salesLoading } = useSalesDirect();
 
   // Date filtering based on selected period
   const getDateRange = () => {

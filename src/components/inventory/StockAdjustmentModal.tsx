@@ -77,7 +77,7 @@ export const StockAdjustmentModal = ({
       setTimeout(() => {
         onClose();
       }, 800);
-    } catch (err) {
+    } catch {
       setLoading(false);
       setError('Failed to adjust stock');
     }
