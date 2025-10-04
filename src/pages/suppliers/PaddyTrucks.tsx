@@ -61,7 +61,15 @@ export const PaddyTrucks = () => {
   const { toasts, showSuccess, showError, removeToast } = useToast();
   
   const statistics = getStatistics();
-  
+
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    return searchTerm.trim() !== '' ||
+           supplierFilter !== 'all' ||
+           dateFrom !== '' ||
+           dateTo !== '';
+  }, [searchTerm, supplierFilter, dateFrom, dateTo]);
+
   // Filter and paginate trucks
   const filteredTrucks = useMemo(() => {
     let filtered = [...paddyTrucks];
@@ -100,7 +108,32 @@ export const PaddyTrucks = () => {
 
     return filtered;
   }, [paddyTrucks, searchTerm, supplierFilter, dateFrom, dateTo]);
-  
+
+  // Calculate statistics for filtered trucks
+  const filteredStatistics = useMemo(() => {
+    const totalTrucks = filteredTrucks.length;
+    const totalWeight = filteredTrucks.reduce((sum, truck) => sum + truck.weightAfterDeduction, 0);
+    const totalValue = filteredTrucks.reduce((sum, truck) => sum + truck.totalAmount, 0);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTrucks = filteredTrucks.filter(truck => {
+      const truckDate = new Date(truck.date);
+      truckDate.setHours(0, 0, 0, 0);
+      return truckDate.getTime() === today.getTime();
+    }).length;
+
+    return {
+      totalTrucks,
+      totalWeight,
+      totalValue,
+      todayTrucks
+    };
+  }, [filteredTrucks]);
+
+  // Use filtered stats when filters are active, otherwise use all-time stats
+  const displayStats = hasActiveFilters ? filteredStatistics : statistics;
+
   // Calculate pagination
   const totalPages = Math.ceil(filteredTrucks.length / itemsPerPage);
   const paginatedTrucks = useMemo(() => {
@@ -161,12 +194,19 @@ export const PaddyTrucks = () => {
   const handleDeletePaddyTruck = async (truckId: string) => {
     const truck = paddyTrucks.find(t => t.id === truckId);
     const result = await deletePaddyTruck(truckId);
-    
+
     if (result.success) {
       showSuccess(`Paddy truck "${truck?.truckPlate}" deleted`);
     } else {
       showError(result.error || 'Failed to delete paddy truck');
     }
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setSupplierFilter('all');
+    setDateFrom('');
+    setDateTo('');
   };
 
   const handleExportJSON = () => {
@@ -391,50 +431,75 @@ export const PaddyTrucks = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <GlassCard>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted">Total Trucks</p>
-                <p className="text-2xl font-bold">{statistics.totalTrucks}</p>
-                <p className="text-xs text-muted mt-1">{statistics.todayTrucks} today</p>
+        <div className="space-y-3">
+          {/* Filter indicator and clear button */}
+          {hasActiveFilters && (
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm font-medium">
+                  Filtered Results ({displayStats.totalTrucks} trucks)
+                </span>
               </div>
-              <Truck className="text-blue-400" size={24} />
+              <button
+                onClick={handleClearFilters}
+                className="px-3 py-1 text-sm text-muted hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+              >
+                Clear Filters
+              </button>
             </div>
-          </GlassCard>
-          <GlassCard>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted">Total Weight</p>
-                <p className="text-2xl font-bold">{formatWeight(statistics.totalWeight)}</p>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <GlassCard>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted">
+                    {hasActiveFilters ? 'Filtered' : 'Total'} Trucks
+                  </p>
+                  <p className="text-2xl font-bold">{displayStats.totalTrucks}</p>
+                  <p className="text-xs text-muted mt-1">{displayStats.todayTrucks} today</p>
+                </div>
+                <Truck className="text-blue-400" size={24} />
               </div>
-              <Weight className="text-green-400" size={24} />
-            </div>
-          </GlassCard>
-          <GlassCard>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted">Total Value</p>
-                <p className="text-2xl font-bold">{formatCurrency(statistics.totalValue)}</p>
+            </GlassCard>
+            <GlassCard>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted">
+                    {hasActiveFilters ? 'Filtered' : 'Total'} Weight
+                  </p>
+                  <p className="text-2xl font-bold">{formatWeight(displayStats.totalWeight)}</p>
+                </div>
+                <Weight className="text-green-400" size={24} />
               </div>
-              <DollarSign className="text-purple-400" size={24} />
-            </div>
-          </GlassCard>
-          <GlassCard>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted">Avg Price/Kg</p>
-                <p className="text-2xl font-bold">
-                  {statistics.totalWeight > 0
-                    ? formatCurrency(statistics.totalValue / statistics.totalWeight)
-                    : formatCurrency(0)
-                  }
-                </p>
-                <p className="text-xs text-muted mt-1">Weighted average</p>
+            </GlassCard>
+            <GlassCard>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted">
+                    {hasActiveFilters ? 'Filtered' : 'Total'} Value
+                  </p>
+                  <p className="text-2xl font-bold">{formatCurrency(displayStats.totalValue)}</p>
+                </div>
+                <DollarSign className="text-purple-400" size={24} />
               </div>
-              <DollarSign className="text-orange-400" size={24} />
-            </div>
-          </GlassCard>
+            </GlassCard>
+            <GlassCard>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted">Avg Price/Kg</p>
+                  <p className="text-2xl font-bold">
+                    {displayStats.totalWeight > 0
+                      ? formatCurrency(displayStats.totalValue / displayStats.totalWeight)
+                      : formatCurrency(0)
+                    }
+                  </p>
+                  <p className="text-xs text-muted mt-1">Weighted average</p>
+                </div>
+                <DollarSign className="text-orange-400" size={24} />
+              </div>
+            </GlassCard>
+          </div>
         </div>
       )}
       
@@ -507,16 +572,41 @@ export const PaddyTrucks = () => {
               onDeleteTruck={handleDeletePaddyTruck}
               refreshData={refreshData}
             />
-            
+
+            {/* Summary Stats - Always show when there are results */}
+            {filteredTrucks.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-white/10">
+                <div className="text-sm">
+                  <div className="text-muted-text">
+                    {totalPages > 1 ? (
+                      <>
+                        Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
+                        {Math.min(currentPage * itemsPerPage, filteredTrucks.length)} of{' '}
+                        {filteredTrucks.length} trucks
+                      </>
+                    ) : (
+                      <>Showing {filteredTrucks.length} truck{filteredTrucks.length !== 1 ? 's' : ''}</>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                    <span>Total: {formatWeight(filteredStatistics.totalWeight)}</span>
+                    <span>|</span>
+                    <span>{formatCurrency(filteredStatistics.totalValue)}</span>
+                    <span>|</span>
+                    <span>
+                      Avg: {filteredStatistics.totalWeight > 0
+                        ? formatCurrency(filteredStatistics.totalValue / filteredStatistics.totalWeight)
+                        : formatCurrency(0)
+                      }/kg
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-                <div className="text-sm text-muted">
-                  Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
-                  {Math.min(currentPage * itemsPerPage, filteredTrucks.length)} of{' '}
-                  {filteredTrucks.length} entries
-                </div>
-                
+              <div className="flex justify-center items-center mt-4">
                 <div className="flex items-center gap-2">
                   <Button
                     variant="ghost"

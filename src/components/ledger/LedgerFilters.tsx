@@ -47,8 +47,8 @@ export const LedgerFilters = ({
         <option value="adjustment">Adjustments</option>
       </select>
 
-      <div className="flex gap-2 w-full lg:w-auto">
-        <div className="relative flex-1 lg:flex-initial">
+      <div className="flex flex-col gap-2 w-full lg:w-auto">
+        <div className="relative">
           <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
           <input
             type="date"
@@ -58,7 +58,7 @@ export const LedgerFilters = ({
             placeholder="From Date"
           />
         </div>
-        <div className="relative flex-1 lg:flex-initial">
+        <div className="relative">
           <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
           <input
             type="date"

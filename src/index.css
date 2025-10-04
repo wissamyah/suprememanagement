@@ -201,6 +201,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 /* For Firefox */
 input[type="date"] {
   color-scheme: dark;
+  /* iOS Safari fixes */
+  -webkit-appearance: none;
+  font-size: 16px;
 }
 
 /* Additional cross-browser support */
@@ -244,6 +247,9 @@ input[type="time"]::-moz-calendar-picker-indicator {
 /* Ensure time input text remains visible and styled */
 input[type="time"] {
   color-scheme: dark;
+  /* iOS Safari fixes */
+  -webkit-appearance: none;
+  font-size: 16px;
 }
 
 input[type="time"]::-webkit-datetime-edit {

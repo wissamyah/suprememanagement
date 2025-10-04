@@ -90,12 +90,10 @@ export const useDashboardData = ({
 
   // Active orders
   const activeOrders = useMemo(() => {
-    const pendingSales = sales.filter(sale => sale.paymentStatus === 'pending').length;
-    const pendingBookings = bookedStock.filter(booking =>
-      booking.status === 'pending' || booking.status === 'confirmed'
+    return bookedStock.filter(booking =>
+      booking.status === 'pending' || booking.status === 'partial-loaded'
     ).length;
-    return pendingSales + pendingBookings;
-  }, [sales, bookedStock]);
+  }, [bookedStock]);
 
   // Order percentage change
   const lastWeekOrders = useMemo(() => {
@@ -280,7 +278,13 @@ export const useDashboardData = ({
     return {
       totalOutstanding,
       customersWithDebt: customersWithDebt.length,
-      averageDebt
+      averageDebt,
+      customersList: customersWithDebt
+        .sort((a, b) => a.actualBalance - b.actualBalance)
+        .map(c => ({
+          name: c.name,
+          balance: Math.abs(c.actualBalance)
+        }))
     };
   }, [customers, ledgerEntries]);
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { StickyNote, Save, AlertCircle, Calendar, User } from 'lucide-react';
+import { StickyNote, Save, AlertCircle, Calendar, User, Copy, Check } from 'lucide-react';
 import { formatDate } from '../../utils/dateFormatting';
 import type { Supplier } from '../../types';
 
@@ -21,6 +21,7 @@ export const NotesModal = ({ isOpen, supplier, onClose, onUpdate }: NotesModalPr
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     if (supplier) {
@@ -74,9 +75,14 @@ export const NotesModal = ({ isOpen, supplier, onClose, onUpdate }: NotesModalPr
     onClose();
   };
 
-  const handleReset = () => {
-    setNotes(originalNotes);
-    setHasChanges(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(notes);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
   };
 
   if (!supplier) return null;
@@ -98,13 +104,6 @@ export const NotesModal = ({ isOpen, supplier, onClose, onUpdate }: NotesModalPr
               <span className="text-xs text-yellow-400">Unsaved changes</span>
             )}
           </div>
-          <Button
-            variant="ghost"
-            onClick={handleReset}
-            disabled={!hasChanges || isSubmitting}
-          >
-            Reset
-          </Button>
           <Button variant="ghost" onClick={handleClose} disabled={isSubmitting}>
             Cancel
           </Button>
@@ -160,14 +159,37 @@ export const NotesModal = ({ isOpen, supplier, onClose, onUpdate }: NotesModalPr
               Notes
             </div>
           </label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add any notes, reminders, or important information about this supplier..."
-            className="w-full px-4 py-3 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 resize-y"
-            rows={10}
-            maxLength={maxCharacters}
-          />
+          <div className="relative">
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any notes, reminders, or important information about this supplier..."
+              className="w-full px-4 py-3 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 resize-y"
+              rows={10}
+              maxLength={maxCharacters}
+            />
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="absolute top-2 right-2 p-2 glass rounded-lg hover:bg-white/10 transition-all duration-200"
+              title="Copy notes"
+            >
+              <div className="relative w-4 h-4">
+                <Copy
+                  size={16}
+                  className={`absolute inset-0 text-muted-text transition-all duration-300 ${
+                    isCopied ? 'opacity-0 scale-0 rotate-90' : 'opacity-100 scale-100 rotate-0'
+                  }`}
+                />
+                <Check
+                  size={16}
+                  className={`absolute inset-0 text-green-400 transition-all duration-300 ${
+                    isCopied ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-0 -rotate-90'
+                  }`}
+                />
+              </div>
+            </button>
+          </div>
           <div className="flex justify-between mt-2">
             <p className="text-xs text-muted">
               Use this space to record important details, agreements, or any other relevant information.
