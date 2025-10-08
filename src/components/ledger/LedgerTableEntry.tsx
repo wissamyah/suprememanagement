@@ -41,7 +41,7 @@ export const LedgerTableEntry = ({
       if (sale && sale.items && sale.items.length > 0 && orderId) {
         const parts = entry.description.split(orderId);
         return (
-          <div className={isMobile ? "text-sm mb-3" : ""}>
+          <div className={isMobile ? "text-sm mb-3" : "leading-tight"}>
             {parts[0]}
             <Tooltip
               content={
@@ -64,9 +64,9 @@ export const LedgerTableEntry = ({
           </div>
         );
       }
-      return <div className={isMobile ? "text-sm mb-3" : ""}>{entry.description}</div>;
+      return <div className={isMobile ? "text-sm mb-3" : "leading-tight"}>{entry.description}</div>;
     }
-    return <div className={isMobile ? "text-sm mb-3" : ""}>{entry.description}</div>;
+    return <div className={isMobile ? "text-sm mb-3" : "leading-tight"}>{entry.description}</div>;
   };
 
   const renderActions = () => {
@@ -195,22 +195,22 @@ export const LedgerTableEntry = ({
             : ''
       }`}
     >
-      <td className="py-3 px-4">
+      <td className="py-1.5 px-2 text-xs">
         {formatDate(entry.date)}
       </td>
       {!customerId && (
-        <td className="py-3 px-4 font-medium">{entry.customerName}</td>
+        <td className="py-1.5 px-2 text-xs font-medium">{entry.customerName}</td>
       )}
-      <td className="py-3 px-4">
+      <td className="py-1.5 px-2 text-xs">
         <div>
           {renderDescription()}
           {entry.notes && (
-            <div className="text-xs text-muted">{entry.notes}</div>
+            <div className="text-[10px] text-muted mt-0.5">{entry.notes}</div>
           )}
         </div>
       </td>
-      <td className="py-3 px-4">
-        <span className={`px-2 py-0.5 text-xs rounded ${
+      <td className="py-1.5 px-2">
+        <span className={`px-1 py-0.5 text-[10px] rounded ${
           entry.transactionType === 'payment'
             ? 'bg-green-500/20 text-green-400'
             : entry.transactionType === 'sale'
@@ -224,13 +224,13 @@ export const LedgerTableEntry = ({
           {getTransactionTypeLabel(entry.transactionType)}
         </span>
       </td>
-      <td className="py-3 px-4 text-right font-medium text-red-400">
+      <td className="py-1.5 px-2 text-right text-xs font-medium text-red-400">
         {entry.debit > 0 ? formatCurrency(entry.debit) : '-'}
       </td>
-      <td className="py-3 px-4 text-right font-medium text-green-400">
+      <td className="py-1.5 px-2 text-right text-xs font-medium text-green-400">
         {entry.credit > 0 ? formatCurrency(entry.credit) : '-'}
       </td>
-      <td className={`py-3 px-4 text-right font-bold ${
+      <td className={`py-1.5 px-2 text-right text-xs font-bold ${
         entry.runningBalance < 0
           ? 'text-red-400'
           : entry.runningBalance > 0
@@ -239,14 +239,14 @@ export const LedgerTableEntry = ({
       }`}>
         {formatCurrency(Math.abs(entry.runningBalance))}
         {entry.runningBalance < 0 && (
-          <span className="text-xs block text-red-400">Owes</span>
+          <span className="text-[10px] block text-red-400">Owes</span>
         )}
         {entry.runningBalance > 0 && (
-          <span className="text-xs block text-green-400">Credit</span>
+          <span className="text-[10px] block text-green-400">Credit</span>
         )}
       </td>
       {customerId && (
-        <td className="py-3 px-4">
+        <td className="py-1.5 px-2">
           {renderActions()}
         </td>
       )}

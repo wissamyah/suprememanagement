@@ -92,14 +92,14 @@ export const LedgerTable = ({
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-800/50">
-              <th className="text-left py-3 px-4">Date</th>
-              {!customerId && <th className="text-left py-3 px-4">Customer</th>}
-              <th className="text-left py-3 px-4">Description</th>
-              <th className="text-left py-3 px-4">Type</th>
-              <th className="text-right py-3 px-4">Debit (₦)</th>
-              <th className="text-right py-3 px-4">Credit (₦)</th>
-              <th className="text-right py-3 px-4">Balance (₦)</th>
-              {customerId && <th className="text-center py-3 px-4">Actions</th>}
+              <th className="text-left py-1.5 px-2 text-xs">Date</th>
+              {!customerId && <th className="text-left py-1.5 px-2 text-xs">Customer</th>}
+              <th className="text-left py-1.5 px-2 text-xs">Description</th>
+              <th className="text-left py-1.5 px-2 text-xs">Type</th>
+              <th className="text-right py-1.5 px-2 text-xs">Debit (₦)</th>
+              <th className="text-right py-1.5 px-2 text-xs">Credit (₦)</th>
+              <th className="text-right py-1.5 px-2 text-xs">Balance (₦)</th>
+              {customerId && <th className="text-center py-1.5 px-2 text-xs">Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -118,25 +118,25 @@ export const LedgerTable = ({
           </tbody>
           <tfoot>
             <tr className="border-t border-gray-800/30">
-              <td colSpan={customerId ? 3 : 4} className="py-3 px-4 text-sm text-muted">Page Total</td>
-              <td className="py-3 px-4 text-right text-sm text-red-400">
+              <td colSpan={customerId ? 3 : 4} className="py-1.5 px-2 text-xs text-muted">Page Total</td>
+              <td className="py-1.5 px-2 text-right text-xs text-red-400">
                 {formatCurrency(pageTotalDebit)}
               </td>
-              <td className="py-3 px-4 text-right text-sm text-green-400">
+              <td className="py-1.5 px-2 text-right text-xs text-green-400">
                 {formatCurrency(pageTotalCredit)}
               </td>
               <td></td>
               {customerId && <td></td>}
             </tr>
             <tr className="border-t-2 border-gray-800/50 font-bold">
-              <td colSpan={customerId ? 3 : 4} className="py-3 px-4">Overall Total</td>
-              <td className="py-3 px-4 text-right text-red-400">
+              <td colSpan={customerId ? 3 : 4} className="py-1.5 px-2 text-xs">Overall Total</td>
+              <td className="py-1.5 px-2 text-right text-xs text-red-400">
                 {formatCurrency(totalDebit)}
               </td>
-              <td className="py-3 px-4 text-right text-green-400">
+              <td className="py-1.5 px-2 text-right text-xs text-green-400">
                 {formatCurrency(totalCredit)}
               </td>
-              <td className={`py-3 px-4 text-right ${
+              <td className={`py-1.5 px-2 text-right text-xs ${
                 balance > 0
                   ? 'text-green-400'
                   : balance < 0

@@ -1,4 +1,4 @@
-import { Search, Calendar } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 interface LedgerFiltersProps {
   searchTerm: string;
@@ -35,7 +35,7 @@ export const LedgerFilters = ({
       </div>
 
       <select
-        className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+        className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 w-full lg:w-auto"
         value={transactionFilter}
         onChange={(e) => setTransactionFilter(e.target.value)}
       >
@@ -47,27 +47,21 @@ export const LedgerFilters = ({
         <option value="adjustment">Adjustments</option>
       </select>
 
-      <div className="flex flex-col gap-2 w-full lg:w-auto">
-        <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="w-full pl-10 pr-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-            placeholder="From Date"
-          />
-        </div>
-        <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="w-full pl-10 pr-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-            placeholder="To Date"
-          />
-        </div>
+      <div className="flex flex-col lg:flex-row gap-2 w-full lg:w-auto">
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+          placeholder="From Date"
+        />
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+          placeholder="To Date"
+        />
       </div>
     </div>
   );
