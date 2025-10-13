@@ -11,7 +11,9 @@ import {
   Truck,
   Activity,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useInventoryDirect } from '../hooks/useInventoryDirect';
 import { useSalesDirect } from '../hooks/useSalesDirect';
@@ -19,6 +21,7 @@ import { formatCurrency } from '../utils/inventory';
 
 export const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const { products, movements, loading: invLoading } = useInventoryDirect();
   const { sales, bookedStock, loading: salesLoading } = useSalesDirect();
 
@@ -110,10 +113,24 @@ export const Reports = () => {
     const typeMap = new Map<string, number>();
     filteredMovements.forEach(m => {
       const current = typeMap.get(m.movementType) || 0;
-      typeMap.set(m.movementType, current + Math.abs(m.quantity));
+
+      // For sales movements, calculate actual quantity from associated sale
+      if (m.movementType === 'sales' && m.referenceId) {
+        const sale = sales.find(s => s.id === m.referenceId);
+        if (sale) {
+          const totalQuantity = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+          typeMap.set(m.movementType, current + totalQuantity);
+        } else {
+          // Fallback to movement quantity if sale not found
+          typeMap.set(m.movementType, current + Math.abs(m.quantity));
+        }
+      } else {
+        // For other movement types, use the movement quantity directly
+        typeMap.set(m.movementType, current + Math.abs(m.quantity));
+      }
     });
     return Array.from(typeMap.entries()).map(([type, qty]) => ({ type, quantity: qty }));
-  }, [filteredMovements]);
+  }, [filteredMovements, sales]);
 
   // Top customers by sales value
   const topCustomers = useMemo(() => {
@@ -134,16 +151,24 @@ export const Reports = () => {
   // Recent activities
   const recentActivities = useMemo(() => {
     const activities = [
-      ...filteredMovements.map(m => ({
-        time: new Date(m.date),
-        action: `${m.movementType}: ${m.productName} (${m.quantity} units)`,
-        type: m.movementType
-      })),
-      ...filteredSales.map(s => ({
-        time: new Date(s.date),
-        action: `Sale: ${s.orderId} - ${s.customerName}`,
-        type: 'sale'
-      }))
+      // Only include non-sales movements (sales are added separately from filteredSales to avoid duplicates)
+      ...filteredMovements
+        .filter(m => m.movementType !== 'sales') // Skip sales movements to prevent duplicates
+        .map(m => ({
+          time: new Date(m.createdAt), // Use createdAt for accurate timestamp
+          action: `${m.movementType}: ${m.productName} (${Math.abs(m.quantity)} units)`,
+          type: m.movementType
+        })),
+      // Add sales from the sales array (this avoids duplicates since each sale appears once)
+      ...filteredSales.map(s => {
+        const totalItems = s.items.reduce((sum, item) => sum + item.quantity, 0);
+        const itemCount = s.items.length;
+        return {
+          time: new Date(s.createdAt), // Use createdAt for accurate timestamp
+          action: `Sale: ${s.orderId} - ${s.customerName} (${totalItems} ${s.items[0]?.unit || 'units'}, ${itemCount} ${itemCount === 1 ? 'item' : 'items'})`,
+          type: 'sale'
+        };
+      })
     ].sort((a, b) => b.time.getTime() - a.time.getTime()).slice(0, 10);
 
     return activities;
@@ -180,6 +205,58 @@ export const Reports = () => {
   }, [sales]);
 
   const maxSalesValue = Math.max(...salesTrend.map(d => d.total), 1);
+
+  // Daily product sales breakdown
+  const dailyProductSales = useMemo(() => {
+    const selectedDateObj = new Date(selectedDate);
+    selectedDateObj.setHours(0, 0, 0, 0);
+    const nextDay = new Date(selectedDateObj);
+    nextDay.setDate(selectedDateObj.getDate() + 1);
+
+    // Filter sales for the selected date
+    const daySales = sales.filter(s => {
+      const saleDate = new Date(s.date);
+      saleDate.setHours(0, 0, 0, 0);
+      return saleDate.getTime() === selectedDateObj.getTime();
+    });
+
+    // Group by product
+    const productMap = new Map<string, { name: string; quantity: number; unit: string; salesCount: number; totalRevenue: number }>();
+
+    daySales.forEach(sale => {
+      sale.items.forEach(item => {
+        const current = productMap.get(item.productId) || {
+          name: item.productName,
+          quantity: 0,
+          unit: item.unit,
+          salesCount: 0,
+          totalRevenue: 0
+        };
+
+        productMap.set(item.productId, {
+          ...current,
+          quantity: current.quantity + item.quantity,
+          salesCount: current.salesCount + 1,
+          totalRevenue: current.totalRevenue + (item.quantity * item.price) // Track total revenue for weighted average
+        });
+      });
+    });
+
+    // Calculate average price for each product (weighted average)
+    return Array.from(productMap.values()).map(product => ({
+      ...product,
+      avgPrice: product.quantity > 0 ? product.totalRevenue / product.quantity : 0
+    })).sort((a, b) => b.quantity - a.quantity);
+  }, [sales, selectedDate]);
+
+  const totalDailySales = dailyProductSales.reduce((sum, p) => sum + p.quantity, 0);
+
+  // Date navigation helpers
+  const navigateDate = (days: number) => {
+    const currentDate = new Date(selectedDate);
+    currentDate.setDate(currentDate.getDate() + days);
+    setSelectedDate(currentDate.toISOString().split('T')[0]);
+  };
 
   const quickStats = [
     { label: 'Total Revenue', value: formatCurrency(totalRevenue), icon: <TrendingUp size={20} />, color: 'text-green-400' },
@@ -269,6 +346,95 @@ export const Reports = () => {
           ))}
         </div>
       </div>
+
+      {/* Daily Product Sales */}
+      <GlassCard>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Package size={20} />
+            Daily Product Sales
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigateDate(-1)}
+              className="p-2 glass rounded-lg hover:bg-white/10 transition-colors"
+              aria-label="Previous day"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-sm"
+            />
+            <button
+              onClick={() => navigateDate(1)}
+              className="p-2 glass rounded-lg hover:bg-white/10 transition-colors"
+              aria-label="Next day"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        </div>
+
+        {dailyProductSales.length > 0 ? (
+          <div className="space-y-3">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className="text-left py-2 px-3 text-sm font-semibold">Product Name</th>
+                    <th className="text-center py-2 px-3 text-sm font-semibold">Quantity</th>
+                    <th className="text-center py-2 px-3 text-sm font-semibold">Unit</th>
+                    <th className="text-center py-2 px-3 text-sm font-semibold">Avg Price</th>
+                    <th className="text-center py-2 px-3 text-sm font-semibold">Total Revenue</th>
+                    <th className="text-center py-2 px-3 text-sm font-semibold">Sales Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dailyProductSales.map((product, index) => (
+                    <tr key={index} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="py-3 px-3 text-sm">{product.name}</td>
+                      <td className="py-3 px-3 text-sm text-center font-semibold text-green-400">
+                        {product.quantity.toLocaleString()}
+                      </td>
+                      <td className="py-3 px-3 text-sm text-center text-muted">{product.unit}</td>
+                      <td className="py-3 px-3 text-sm text-center text-blue-400">
+                        {formatCurrency(product.avgPrice)}
+                      </td>
+                      <td className="py-3 px-3 text-sm text-center font-semibold text-yellow-400">
+                        {formatCurrency(product.totalRevenue)}
+                      </td>
+                      <td className="py-3 px-3 text-sm text-center text-muted">
+                        {product.salesCount} {product.salesCount === 1 ? 'sale' : 'sales'}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="border-t-2 border-white/20 font-bold">
+                    <td className="py-3 px-3 text-sm">Total</td>
+                    <td className="py-3 px-3 text-sm text-center text-green-400">
+                      {totalDailySales.toLocaleString()}
+                    </td>
+                    <td className="py-3 px-3 text-sm text-center"></td>
+                    <td className="py-3 px-3 text-sm text-center"></td>
+                    <td className="py-3 px-3 text-sm text-center text-yellow-400">
+                      {formatCurrency(dailyProductSales.reduce((sum, p) => sum + p.totalRevenue, 0))}
+                    </td>
+                    <td className="py-3 px-3 text-sm text-center"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Package size={48} className="mx-auto mb-3 text-muted/50" />
+            <p className="text-muted">No sales recorded for {new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          </div>
+        )}
+      </GlassCard>
+
       {/* Sales Trend */}
       <GlassCard>
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
