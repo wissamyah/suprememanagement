@@ -32,7 +32,8 @@ export const CustomerFilters = ({
             placeholder="Search by name or phone number..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text transition-all duration-200"
+            className="w-full pl-10 pr-4 py-2.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text transition-all duration-200 text-base"
+            style={{ fontSize: '16px' }}
           />
           {searchTerm && (
             <button
@@ -54,7 +55,8 @@ export const CustomerFilters = ({
             <select
               value={stateFilter}
               onChange={(e) => onStateChange(e.target.value)}
-              className="w-full pl-10 pr-8 py-2.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-sm appearance-none cursor-pointer transition-all duration-200"
+              className="w-full pl-10 pr-8 py-2.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-base appearance-none cursor-pointer transition-all duration-200"
+              style={{ fontSize: '16px' }}
             >
               <option value="">All States</option>
               {NIGERIAN_STATES.map(state => (
@@ -76,7 +78,8 @@ export const CustomerFilters = ({
             <select
               value={balanceFilter}
               onChange={(e) => onBalanceChange(e.target.value)}
-              className="w-full pl-10 pr-8 py-2.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-sm appearance-none cursor-pointer transition-all duration-200"
+              className="w-full pl-10 pr-8 py-2.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-base appearance-none cursor-pointer transition-all duration-200"
+              style={{ fontSize: '16px' }}
             >
               <option value="">All Balances</option>
               <option value="positive">Positive Balance</option>

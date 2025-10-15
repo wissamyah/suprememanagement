@@ -30,14 +30,16 @@ export const LedgerFilters = ({
           placeholder="Search transactions..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text"
+          className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text text-base"
+          style={{ fontSize: '16px' }}
         />
       </div>
 
       <select
-        className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 w-full lg:w-auto"
+        className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 w-full lg:w-auto text-base"
         value={transactionFilter}
         onChange={(e) => setTransactionFilter(e.target.value)}
+        style={{ fontSize: '16px' }}
       >
         <option value="all">All Transactions</option>
         <option value="payment">Payments</option>
@@ -52,15 +54,17 @@ export const LedgerFilters = ({
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+          className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-base"
           placeholder="From Date"
+          style={{ fontSize: '16px' }}
         />
         <input
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+          className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-base"
           placeholder="To Date"
+          style={{ fontSize: '16px' }}
         />
       </div>
     </div>

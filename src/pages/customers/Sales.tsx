@@ -159,7 +159,7 @@ export const Sales = () => {
   };
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -296,52 +296,54 @@ export const Sales = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <GlassCard>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted">Today's Sales</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.todaysTotal)}</p>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-full">
+          <GlassCard className="max-w-full">
+            <div className="flex items-center justify-between gap-2 max-w-full">
+              <div className="min-w-0 flex-1 max-w-full">
+                <p className="text-sm text-muted whitespace-nowrap">Today's Sales</p>
+                <p className="text-2xl font-bold break-all max-w-full">{formatCurrency(stats.todaysTotal)}</p>
               </div>
-              <TrendingUp className="text-green-400" size={24} />
+              <TrendingUp className="text-green-400 flex-shrink-0" size={24} />
             </div>
           </GlassCard>
-          <GlassCard>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted">This Week</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.weekTotal)}</p>
+          <GlassCard className="max-w-full">
+            <div className="flex items-center justify-between gap-2 max-w-full">
+              <div className="min-w-0 flex-1 max-w-full">
+                <p className="text-sm text-muted whitespace-nowrap">This Week</p>
+                <p className="text-2xl font-bold break-all max-w-full">{formatCurrency(stats.weekTotal)}</p>
               </div>
-              <Calendar className="text-blue-400" size={24} />
+              <Calendar className="text-blue-400 flex-shrink-0" size={24} />
             </div>
           </GlassCard>
-          <GlassCard>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted">This Month</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.monthTotal)}</p>
+          <GlassCard className="max-w-full">
+            <div className="flex items-center justify-between gap-2 max-w-full">
+              <div className="min-w-0 flex-1 max-w-full">
+                <p className="text-sm text-muted whitespace-nowrap">This Month</p>
+                <p className="text-2xl font-bold break-all max-w-full">{formatCurrency(stats.monthTotal)}</p>
               </div>
-              <Calendar className="text-purple-400" size={24} />
+              <Calendar className="text-purple-400 flex-shrink-0" size={24} />
             </div>
           </GlassCard>
-          <GlassCard>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted">Pending Payment</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.pendingPaymentTotal)}</p>
+          <GlassCard className="max-w-full">
+            <div className="flex items-center justify-between gap-2 max-w-full">
+              <div className="min-w-0 flex-1 max-w-full">
+                <p className="text-sm text-muted whitespace-nowrap">Pending Payment</p>
+                <p className="text-2xl font-bold break-all max-w-full">{formatCurrency(stats.pendingPaymentTotal)}</p>
               </div>
-              <DollarSign className="text-yellow-400" size={24} />
+              <DollarSign className="text-yellow-400 flex-shrink-0" size={24} />
             </div>
           </GlassCard>
         </div>
       )}
-      
+
       {/* Booked Stock Summary */}
-      <BookedStockSummary />
+      <div className="w-full max-w-full overflow-x-hidden">
+        <BookedStockSummary />
+      </div>
       
       {/* Main Table Card */}
-      <GlassCard>
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+      <GlassCard className="max-w-full">
+        <div className="flex flex-col md:flex-row gap-4 mb-6 max-w-full">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={20} />
             <input
@@ -349,13 +351,15 @@ export const Sales = () => {
               placeholder="Search by order ID or customer..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text"
+              className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text text-base"
+              style={{ fontSize: '16px' }}
             />
           </div>
-          <select 
-            className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+          <select
+            className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-base"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value as any)}
+            style={{ fontSize: '16px' }}
           >
             <option value="all">All Time</option>
             <option value="today">Today</option>
@@ -363,7 +367,7 @@ export const Sales = () => {
             <option value="month">This Month</option>
           </select>
         </div>
-        
+
         {/* Sales Table */}
         {loading ? (
           <div className="flex items-center justify-center py-20">

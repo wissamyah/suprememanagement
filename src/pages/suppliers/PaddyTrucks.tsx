@@ -457,7 +457,7 @@ export const PaddyTrucks = () => {
                     {hasActiveFilters ? 'Filtered' : 'Total'} Trucks
                   </p>
                   <p className="text-2xl font-bold">{displayStats.totalTrucks}</p>
-                  <p className="text-xs text-muted mt-1">{displayStats.todayTrucks} today</p>
+                  <p className="text-sm text-muted mt-1">{displayStats.todayTrucks} today</p>
                 </div>
                 <Truck className="text-blue-400" size={24} />
               </div>
@@ -494,7 +494,7 @@ export const PaddyTrucks = () => {
                       : formatCurrency(0)
                     }
                   </p>
-                  <p className="text-xs text-muted mt-1">Weighted average</p>
+                  <p className="text-sm text-muted mt-1">Weighted average</p>
                 </div>
                 <DollarSign className="text-orange-400" size={24} />
               </div>
@@ -534,15 +534,17 @@ export const PaddyTrucks = () => {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full sm:w-auto px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+              className="w-full sm:w-auto px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-base"
               placeholder="From Date"
+              style={{ fontSize: '16px' }}
             />
             <input
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="w-full sm:w-auto px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+              className="w-full sm:w-auto px-3 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-base"
               placeholder="To Date"
+              style={{ fontSize: '16px' }}
             />
           </div>
         </div>
@@ -588,7 +590,7 @@ export const PaddyTrucks = () => {
                       <>Showing {filteredTrucks.length} truck{filteredTrucks.length !== 1 ? 's' : ''}</>
                     )}
                   </div>
-                  <div className="text-xs text-muted mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                  <div className="text-sm text-muted mt-1 flex flex-wrap gap-x-3 gap-y-1">
                     <span>Total: {formatWeight(filteredStatistics.totalWeight)}</span>
                     <span>|</span>
                     <span>{formatCurrency(filteredStatistics.totalValue)}</span>
@@ -607,17 +609,18 @@ export const PaddyTrucks = () => {
             {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center mt-4">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-center">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
+                    className="min-h-[44px]"
                   >
                     <ChevronLeft size={16} />
-                    Previous
+                    <span className="hidden sm:inline">Previous</span>
                   </Button>
-                  
+
                   <div className="flex items-center gap-1">
                     {/* Show page numbers */}
                     {(() => {
@@ -625,17 +628,17 @@ export const PaddyTrucks = () => {
                       const showPages = 5;
                       let start = Math.max(1, currentPage - Math.floor(showPages / 2));
                       let end = Math.min(totalPages, start + showPages - 1);
-                      
+
                       if (end - start < showPages - 1) {
                         start = Math.max(1, end - showPages + 1);
                       }
-                      
+
                       if (start > 1) {
                         pages.push(
                           <button
                             key={1}
                             onClick={() => setCurrentPage(1)}
-                            className="px-3 py-1 rounded-lg text-sm hover:bg-glass"
+                            className="min-w-[44px] min-h-[44px] px-3 py-2 rounded-lg text-base hover:bg-glass"
                           >
                             1
                           </button>
@@ -646,15 +649,15 @@ export const PaddyTrucks = () => {
                           );
                         }
                       }
-                      
+
                       for (let i = start; i <= end; i++) {
                         pages.push(
                           <button
                             key={i}
                             onClick={() => setCurrentPage(i)}
-                            className={`px-3 py-1 rounded-lg text-sm ${
-                              i === currentPage 
-                                ? 'bg-white/20 text-white font-medium' 
+                            className={`min-w-[44px] min-h-[44px] px-3 py-2 rounded-lg text-base ${
+                              i === currentPage
+                                ? 'bg-white/20 text-white font-medium'
                                 : 'hover:bg-glass'
                             }`}
                           >
@@ -662,7 +665,7 @@ export const PaddyTrucks = () => {
                           </button>
                         );
                       }
-                      
+
                       if (end < totalPages) {
                         if (end < totalPages - 1) {
                           pages.push(
@@ -673,24 +676,25 @@ export const PaddyTrucks = () => {
                           <button
                             key={totalPages}
                             onClick={() => setCurrentPage(totalPages)}
-                            className="px-3 py-1 rounded-lg text-sm hover:bg-glass"
+                            className="min-w-[44px] min-h-[44px] px-3 py-2 rounded-lg text-base hover:bg-glass"
                           >
                             {totalPages}
                           </button>
                         );
                       }
-                      
+
                       return pages;
                     })()}
                   </div>
-                  
+
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
+                    className="min-h-[44px]"
                   >
-                    Next
+                    <span className="hidden sm:inline">Next</span>
                     <ChevronRight size={16} />
                   </Button>
                 </div>

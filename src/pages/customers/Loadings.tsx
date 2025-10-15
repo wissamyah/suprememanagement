@@ -479,13 +479,15 @@ export const Loadings = () => {
               placeholder="Search by loading ID, customer, truck, or way bill..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text"
+              className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text text-base"
+              style={{ fontSize: '16px' }}
             />
           </div>
-          <select 
-            className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+          <select
+            className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-base"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value as any)}
+            style={{ fontSize: '16px' }}
           >
             <option value="all">All Time</option>
             <option value="today">Today</option>

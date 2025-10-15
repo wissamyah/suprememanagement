@@ -119,7 +119,7 @@ export const Tooltip = ({
         ref={triggerRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="inline-block"
+        className="block w-full"
       >
         {children}
       </div>
@@ -161,7 +161,7 @@ interface ProductTooltipProps {
 
 export const ProductTooltip = ({ items }: ProductTooltipProps) => {
   return (
-    <div className="min-w-[300px] max-w-[400px]">
+    <div className="w-full max-w-[min(400px,90vw)]">
       <div className="text-xs font-semibold mb-2 text-white/80">Product Details</div>
       <div className="space-y-1">
         <div className="grid grid-cols-4 gap-2 text-xs font-medium text-white/60 pb-1 border-b border-white/10">
