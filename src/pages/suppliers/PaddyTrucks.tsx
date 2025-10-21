@@ -103,8 +103,15 @@ export const PaddyTrucks = () => {
       filtered = filtered.filter(truck => new Date(truck.date) <= toDate);
     }
 
-    // Sort by date in descending order (newest first)
-    filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Sort by date and creation time in descending order (newest first)
+    filtered.sort((a, b) => {
+      const dateComparison = new Date(b.date).getTime() - new Date(a.date).getTime();
+      // If dates are the same, sort by creation time (most recent first)
+      if (dateComparison === 0) {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      return dateComparison;
+    });
 
     return filtered;
   }, [paddyTrucks, searchTerm, supplierFilter, dateFrom, dateTo]);
