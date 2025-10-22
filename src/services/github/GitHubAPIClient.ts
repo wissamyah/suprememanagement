@@ -92,13 +92,34 @@ export class GitHubAPIClient {
         throw new Error(`Invalid JSON response from GitHub API. Response: ${responseText.substring(0, 200)}`);
       }
 
-      if (!fileData.content) {
-        console.error('GitHub response missing content field:', fileData);
-        throw new Error('GitHub API response missing content field. The file may be too large or the token lacks permissions.');
-      }
+      // Handle large files (>1MB) - GitHub doesn't return content field
+      let content: string;
+      if (!fileData.content && fileData.sha) {
+        console.log('File is large (>1MB), fetching via Git Blob API...');
+        // Use Git Blob API for large files - no CORS issues
+        const blobResponse = await fetch(
+          `${this.config.apiBase}/repos/${this.config.owner}/${this.config.repo}/git/blobs/${fileData.sha}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${this.config.token}`,
+              'Accept': 'application/vnd.github.v3+json'
+            }
+          }
+        );
 
-      // Properly decode base64 with UTF-8 support
-      const content = this.decodeBase64(fileData.content);
+        if (!blobResponse.ok) {
+          throw new Error(`Failed to fetch large file via blob API: ${blobResponse.status}`);
+        }
+
+        const blobData = await blobResponse.json();
+        content = this.decodeBase64(blobData.content);
+      } else if (fileData.content) {
+        // Properly decode base64 with UTF-8 support for small files
+        content = this.decodeBase64(fileData.content);
+      } else {
+        console.error('GitHub response missing both content and sha:', fileData);
+        throw new Error('GitHub API response missing content field. The token may lack permissions.');
+      }
 
       if (!content || content.trim() === '') {
         throw new Error('Decoded file content is empty. The data.json file may be empty in your repository.');
