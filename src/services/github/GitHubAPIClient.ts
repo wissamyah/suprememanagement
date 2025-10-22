@@ -72,13 +72,45 @@ export class GitHubAPIClient {
       }
 
       if (!response.ok) {
-        throw new Error(`GitHub API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('GitHub API error response:', errorText);
+        throw new Error(`GitHub API error: ${response.status} - ${errorText.substring(0, 200)}`);
       }
 
-      const fileData = await response.json();
+      // Get response text first to debug
+      const responseText = await response.text();
+
+      if (!responseText || responseText.trim() === '') {
+        throw new Error('GitHub API returned empty response. Check if the file exists and your token has read permissions.');
+      }
+
+      let fileData;
+      try {
+        fileData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse GitHub response:', responseText.substring(0, 500));
+        throw new Error(`Invalid JSON response from GitHub API. Response: ${responseText.substring(0, 200)}`);
+      }
+
+      if (!fileData.content) {
+        console.error('GitHub response missing content field:', fileData);
+        throw new Error('GitHub API response missing content field. The file may be too large or the token lacks permissions.');
+      }
+
       // Properly decode base64 with UTF-8 support
       const content = this.decodeBase64(fileData.content);
-      const data = JSON.parse(content);
+
+      if (!content || content.trim() === '') {
+        throw new Error('Decoded file content is empty. The data.json file may be empty in your repository.');
+      }
+
+      let data;
+      try {
+        data = JSON.parse(content);
+      } catch (parseError) {
+        console.error('Failed to parse file content:', content.substring(0, 500));
+        throw new Error(`Invalid JSON in data.json file: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+      }
 
       this.currentSha = fileData.sha;
 
