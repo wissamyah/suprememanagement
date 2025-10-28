@@ -169,3 +169,21 @@ export interface BookedStock {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Global Search Types
+export type EntityType = 'customer' | 'supplier' | 'product' | 'sale' | 'loading' | 'paddyTruck';
+
+export interface SearchResult<T = any> {
+  type: EntityType;
+  data: T;
+  score?: number;
+}
+
+export interface GroupedSearchResults {
+  customers: SearchResult<Customer>[];
+  suppliers: SearchResult<Supplier>[];
+  products: SearchResult<Product>[];
+  sales: SearchResult<Sale>[];
+  loadings: SearchResult<Loading>[];
+  paddyTrucks: SearchResult<PaddyTruck>[];
+}

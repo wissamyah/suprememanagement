@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
 import { ToastContainer } from '../../components/ui/Toast';
-import { 
-  Plus, 
-  Download, 
-  Upload, 
-  FileJson, 
+import {
+  Plus,
+  Download,
+  Upload,
+  FileJson,
   FileText,
   RefreshCw,
   MoreVertical
@@ -19,14 +20,15 @@ import { SupplierTable } from '../../components/suppliers/SupplierTable';
 import { AddSupplierModal } from '../../components/suppliers/AddSupplierModal';
 import { EditSupplierModal } from '../../components/suppliers/EditSupplierModal';
 import { NotesModal } from '../../components/suppliers/NotesModal';
-import { 
-  exportSuppliersToJSON, 
+import {
+  exportSuppliersToJSON,
   exportSuppliersToCSV,
-  importSuppliersFromJSON 
+  importSuppliersFromJSON
 } from '../../utils/suppliers';
 import type { Supplier } from '../../types';
 
 export const SupplierList = () => {
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [agentFilter, setAgentFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -34,6 +36,7 @@ export const SupplierList = () => {
   const [notesSupplier, setNotesSupplier] = useState<Supplier | null>(null);
   const [showImportExportMenu, setShowImportExportMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   
   const {
     suppliers,
@@ -49,8 +52,19 @@ export const SupplierList = () => {
   } = useSuppliers();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
-  
+
   const statistics = getStatistics();
+
+  // Handle deep linking from search
+  useEffect(() => {
+    const state = location.state as { highlightId?: string } | null;
+    if (state?.highlightId) {
+      setHighlightId(state.highlightId);
+      // Clear highlight after 3 seconds
+      const timer = setTimeout(() => setHighlightId(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
   
   // Get unique agents for filter
   const uniqueAgents = Array.from(new Set(suppliers.map(s => s.agent))).sort();
@@ -349,6 +363,7 @@ export const SupplierList = () => {
             onDeleteSupplier={handleDeleteSupplier}
             onNotesSupplier={setNotesSupplier}
             refreshData={refreshData}
+            highlightId={highlightId}
           />
         )}
       </GlassCard>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import {
@@ -32,9 +32,10 @@ interface AddPaddyTruckModalProps {
     deduction?: number,
     bags?: number
   ) => Promise<{ success: boolean; errors?: string[] }> | { success: boolean; errors?: string[] };
+  preSelectedSupplierId?: string; // Optional pre-selected supplier for quick entry
 }
 
-export const AddPaddyTruckModal = ({ isOpen, onClose, onAdd }: AddPaddyTruckModalProps) => {
+export const AddPaddyTruckModal = ({ isOpen, onClose, onAdd, preSelectedSupplierId }: AddPaddyTruckModalProps) => {
   const { suppliers } = useSuppliers();
 
   // Sort suppliers alphabetically by name
@@ -44,7 +45,7 @@ export const AddPaddyTruckModal = ({ isOpen, onClose, onAdd }: AddPaddyTruckModa
 
   // Form state
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [supplierId, setSupplierId] = useState('');
+  const [supplierId, setSupplierId] = useState(preSelectedSupplierId || '');
   const [waybillNumber, setWaybillNumber] = useState('');
   const [truckPlate, setTruckPlate] = useState('');
   const [bags, setBags] = useState('');
@@ -55,7 +56,18 @@ export const AddPaddyTruckModal = ({ isOpen, onClose, onAdd }: AddPaddyTruckModa
   const [agent, setAgent] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
+  // Pre-fill supplier and agent when modal opens with a pre-selected supplier
+  useEffect(() => {
+    if (isOpen && preSelectedSupplierId) {
+      setSupplierId(preSelectedSupplierId);
+      const selectedSupplier = sortedSuppliers.find(s => s.id === preSelectedSupplierId);
+      if (selectedSupplier?.agent) {
+        setAgent(selectedSupplier.agent);
+      }
+    }
+  }, [isOpen, preSelectedSupplierId, sortedSuppliers]);
+
   // Calculate weight after deduction
   const weightAfterDeduction = calculateWeightAfterDeduction(
     netWeight ? parseFloat(netWeight) : undefined,

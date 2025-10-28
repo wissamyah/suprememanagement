@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
 import { ToastContainer } from '../../components/ui/Toast';
@@ -29,6 +30,7 @@ import {
 import type { Sale } from '../../types';
 
 export const Sales = () => {
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -50,6 +52,17 @@ export const Sales = () => {
   } = useSales();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
+
+  // Handle deep linking from search
+  useEffect(() => {
+    const state = location.state as { openSaleId?: string } | null;
+    if (state?.openSaleId && sales.length > 0) {
+      const sale = sales.find(s => s.id === state.openSaleId);
+      if (sale) {
+        setEditingSale(sale);
+      }
+    }
+  }, [location.state, sales]);
 
   // Force fresh sales array to trigger re-renders
   const freshSales = useMemo(() => {

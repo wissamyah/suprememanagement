@@ -25,6 +25,7 @@ interface SupplierTableProps {
   onDeleteSupplier: (supplierId: string) => void;
   onNotesSupplier: (supplier: Supplier) => void;
   refreshData: () => void;
+  highlightId?: string | null;
 }
 
 type SortField = 'name' | 'agent';
@@ -38,7 +39,8 @@ export const SupplierTable = ({
   onEditSupplier,
   onDeleteSupplier,
   onNotesSupplier,
-  refreshData
+  refreshData,
+  highlightId
 }: SupplierTableProps) => {
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -162,10 +164,14 @@ export const SupplierTable = ({
         ) : (
           <div className="space-y-3">
             {processedSuppliers.map((supplier) => (
-              <div 
+              <div
                 key={supplier.id}
-                className={`glass rounded-lg p-4 ${
-                  selectedSuppliers.has(supplier.id) ? 'ring-2 ring-white/20' : ''
+                className={`glass rounded-lg p-4 transition-all duration-300 ${
+                  highlightId === supplier.id
+                    ? 'ring-2 ring-blue-400/50 bg-blue-500/10'
+                    : selectedSuppliers.has(supplier.id)
+                    ? 'ring-2 ring-white/20'
+                    : ''
                 }`}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -277,10 +283,14 @@ export const SupplierTable = ({
               </tr>
             ) : (
               processedSuppliers.map((supplier) => (
-                <tr 
+                <tr
                   key={supplier.id}
-                  className={`border-b border-white/5 hover:bg-glass/50 transition-colors ${
-                    selectedSuppliers.has(supplier.id) ? 'bg-white/5' : ''
+                  className={`border-b border-white/5 hover:bg-glass/50 transition-all duration-300 ${
+                    highlightId === supplier.id
+                      ? 'bg-blue-500/10 ring-2 ring-blue-400/50'
+                      : selectedSuppliers.has(supplier.id)
+                      ? 'bg-white/5'
+                      : ''
                   }`}
                 >
                   <td className="py-3 px-3">

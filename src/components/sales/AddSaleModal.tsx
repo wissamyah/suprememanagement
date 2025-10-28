@@ -32,14 +32,16 @@ interface AddSaleModalProps {
   ) => Promise<{ success: boolean; errors?: string[] }> | { success: boolean; errors?: string[] };
   products: Product[];
   customers: Customer[];
+  preSelectedCustomerId?: string; // Optional pre-selected customer for quick entry
 }
 
-export const AddSaleModal = ({ 
-  isOpen, 
-  onClose, 
+export const AddSaleModal = ({
+  isOpen,
+  onClose,
   onAdd,
   products,
-  customers
+  customers,
+  preSelectedCustomerId
 }: AddSaleModalProps) => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [customerId, setCustomerId] = useState('');
@@ -47,6 +49,13 @@ export const AddSaleModal = ({
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'partial' | 'paid'>('pending');
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Pre-fill customer when modal opens with a pre-selected customer
+  useEffect(() => {
+    if (isOpen && preSelectedCustomerId) {
+      setCustomerId(preSelectedCustomerId);
+    }
+  }, [isOpen, preSelectedCustomerId]);
 
   // Add initial empty item when modal opens
   useEffect(() => {

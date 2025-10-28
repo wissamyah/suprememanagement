@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Button } from '../components/ui/Button';
 import { ToastContainer } from '../components/ui/Toast';
@@ -25,6 +26,7 @@ import {
 } from '../utils/inventory';
 
 export const Inventory = () => {
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [stockFilter, setStockFilter] = useState('');
@@ -57,7 +59,18 @@ export const Inventory = () => {
   } = useInventory();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
-  
+
+  // Handle deep linking from search
+  useEffect(() => {
+    const state = location.state as { openProductId?: string } | null;
+    if (state?.openProductId && products.length > 0) {
+      const product = products.find(p => p.id === state.openProductId);
+      if (product) {
+        setSelectedProduct(product);
+      }
+    }
+  }, [location.state, products]);
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;

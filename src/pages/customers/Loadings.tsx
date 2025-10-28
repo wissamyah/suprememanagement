@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
 import { ToastContainer } from '../../components/ui/Toast';
@@ -33,6 +34,7 @@ import {
 import type { Loading } from '../../types';
 
 export const Loadings = () => {
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -58,7 +60,18 @@ export const Loadings = () => {
   } = useLoadings();
   
   const { toasts, showSuccess, showError, removeToast } = useToast();
-  
+
+  // Handle deep linking from search
+  useEffect(() => {
+    const state = location.state as { openLoadingId?: string } | null;
+    if (state?.openLoadingId && loadings.length > 0) {
+      const loadingItem = loadings.find(l => l.id === state.openLoadingId);
+      if (loadingItem) {
+        setEditingLoading(loadingItem);
+      }
+    }
+  }, [location.state, loadings]);
+
   // Calculate real-time statistics
   const stats = calculateLoadingStats(loadings);
 

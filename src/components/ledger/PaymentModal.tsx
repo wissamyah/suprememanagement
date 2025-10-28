@@ -57,9 +57,9 @@ export const PaymentModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsSubmitting(true);
 
     const result = await onAdd(
@@ -71,7 +71,7 @@ export const PaymentModal = ({
     );
 
     setIsSubmitting(false);
-    
+
     if (result.success) {
       // Reset form
       setAmount('');
@@ -79,6 +79,11 @@ export const PaymentModal = ({
       setNotes('');
       setDate(new Date().toISOString().split('T')[0]);
       setErrors({});
+
+      // Close modal after successful payment
+      setTimeout(() => {
+        onClose();
+      }, 500); // Small delay to allow success message to be seen
     }
   };
 

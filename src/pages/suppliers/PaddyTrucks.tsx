@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Button } from '../../components/ui/Button';
 import { ToastContainer } from '../../components/ui/Toast';
@@ -33,6 +34,7 @@ import {
 import type { PaddyTruck } from '../../types';
 
 export const PaddyTrucks = () => {
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [supplierFilter, setSupplierFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
@@ -59,8 +61,19 @@ export const PaddyTrucks = () => {
   
   const { suppliers } = useSuppliers();
   const { toasts, showSuccess, showError, removeToast } = useToast();
-  
+
   const statistics = getStatistics();
+
+  // Handle deep linking from search
+  useEffect(() => {
+    const state = location.state as { openTruckId?: string } | null;
+    if (state?.openTruckId && paddyTrucks.length > 0) {
+      const truck = paddyTrucks.find(t => t.id === state.openTruckId);
+      if (truck) {
+        setEditingTruck(truck);
+      }
+    }
+  }, [location.state, paddyTrucks]);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
