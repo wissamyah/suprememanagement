@@ -123,23 +123,46 @@ export const useDashboardData = ({
       type: 'sale' | 'loading' | 'supplier' | 'inventory' | 'payment';
       description: string;
       time: Date;
+      metadata?: {
+        customerName?: string;
+        amount?: number;
+        quantity?: string;
+        supplierName?: string;
+        weight?: number;
+        productName?: string;
+        unit?: string;
+      };
     }> = [];
 
     sales.slice(-5).forEach(sale => {
       activities.push({
         id: sale.id,
         type: 'sale',
-        description: `New sale to ${sale.customerName} - ₦${sale.totalAmount.toLocaleString()}`,
-        time: new Date(sale.createdAt)
+        description: `Sale`,
+        time: new Date(sale.createdAt),
+        metadata: {
+          customerName: sale.customerName,
+          amount: sale.totalAmount
+        }
       });
     });
 
     loadings.slice(-5).forEach(loading => {
+      const totalQuantity = loading.items.reduce((sum, item) => sum + item.quantity, 0);
+      const itemCount = loading.items.length;
+      const quantityText = itemCount > 1 
+        ? `${itemCount} items (${totalQuantity} ${loading.items[0]?.unit || 'units'})`
+        : `${totalQuantity} ${loading.items[0]?.unit || 'units'}`;
+      
       activities.push({
         id: loading.id,
         type: 'loading',
-        description: `Loading completed for ${loading.customerName} - Order ${loading.loadingId}`,
-        time: new Date(loading.createdAt)
+        description: `Loading completed`,
+        time: new Date(loading.createdAt),
+        metadata: {
+          customerName: loading.customerName,
+          quantity: quantityText
+        }
       });
     });
 
@@ -147,8 +170,12 @@ export const useDashboardData = ({
       activities.push({
         id: truck.id,
         type: 'supplier',
-        description: `Paddy truck received from ${truck.supplierName} - ${truck.weightAfterDeduction}kg`,
-        time: new Date(truck.createdAt)
+        description: `Paddy truck received`,
+        time: new Date(truck.createdAt),
+        metadata: {
+          supplierName: truck.supplierName,
+          weight: truck.weightAfterDeduction
+        }
       });
     });
 
@@ -156,8 +183,12 @@ export const useDashboardData = ({
       activities.push({
         id: product.id,
         type: 'inventory',
-        description: `Low stock alert: ${product.name} (${product.quantityOnHand} ${product.unit} remaining)`,
-        time: new Date(product.updatedAt)
+        description: `Low stock alert`,
+        time: new Date(product.updatedAt),
+        metadata: {
+          productName: product.name,
+          quantity: `${product.quantityOnHand} ${product.unit} remaining`
+        }
       });
     });
 

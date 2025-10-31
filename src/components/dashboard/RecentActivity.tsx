@@ -6,6 +6,15 @@ interface ActivityItem {
   type: 'sale' | 'loading' | 'supplier' | 'inventory' | 'payment';
   description: string;
   timeAgo: string;
+  metadata?: {
+    customerName?: string;
+    amount?: number;
+    quantity?: string;
+    supplierName?: string;
+    weight?: number;
+    productName?: string;
+    unit?: string;
+  };
 }
 
 interface RecentActivityProps {
@@ -16,15 +25,15 @@ export const RecentActivity = ({ activities }: RecentActivityProps) => {
   const getActivityIcon = (type: ActivityItem['type']) => {
     switch (type) {
       case 'sale':
-        return <DollarSign size={16} />;
+        return <DollarSign size={14} />;
       case 'loading':
-        return <Truck size={16} />;
+        return <Truck size={14} />;
       case 'supplier':
-        return <Package2 size={16} />;
+        return <Package2 size={14} />;
       case 'inventory':
-        return <AlertTriangle size={16} />;
+        return <AlertTriangle size={14} />;
       default:
-        return <Activity size={16} />;
+        return <Activity size={14} />;
     }
   };
 
@@ -43,23 +52,66 @@ export const RecentActivity = ({ activities }: RecentActivityProps) => {
     }
   };
 
+  const formatMainText = (activity: ActivityItem) => {
+    switch (activity.type) {
+      case 'sale':
+        return activity.metadata?.customerName || 'Customer';
+      case 'loading':
+        return activity.metadata?.customerName || 'Customer';
+      case 'supplier':
+        return activity.metadata?.supplierName || 'Supplier';
+      case 'inventory':
+        return activity.metadata?.productName || 'Product';
+      default:
+        return activity.description;
+    }
+  };
+
+  const formatSubtext = (activity: ActivityItem) => {
+    switch (activity.type) {
+      case 'sale':
+        return activity.metadata?.amount 
+          ? `₦${activity.metadata.amount.toLocaleString()}` 
+          : '';
+      case 'loading':
+        return activity.metadata?.quantity || '';
+      case 'supplier':
+        return activity.metadata?.weight 
+          ? `${activity.metadata.weight}kg` 
+          : '';
+      case 'inventory':
+        return activity.metadata?.quantity || '';
+      default:
+        return '';
+    }
+  };
+
   return (
     <GlassCard>
       <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
         <Activity size={20} />
         Recent Activity
       </h2>
-      <div className="space-y-3 max-h-96 overflow-y-auto">
+      <div className="space-y-2 max-h-96 overflow-y-auto">
         {activities.length > 0 ? (
           activities.map((activity) => (
-            <div key={activity.id} className="flex items-center justify-between p-3 glass rounded-lg">
-              <div className="flex items-start gap-3">
-                <div className={`p-2 rounded-full ${getActivityColor(activity.type)}`}>
+            <div key={activity.id} className="p-2.5 glass rounded-lg">
+              <div className="flex items-center gap-2.5">
+                <div className={`p-1.5 rounded-full flex-shrink-0 ${getActivityColor(activity.type)}`}>
                   {getActivityIcon(activity.type)}
                 </div>
-                <div>
-                  <p className="text-sm font-medium">{activity.description}</p>
-                  <p className="text-xs text-gray-400">{activity.timeAgo}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{formatMainText(activity)}</p>
+                      {formatSubtext(activity) && (
+                        <p className="text-xs text-gray-400/70 mt-0.5">{formatSubtext(activity)}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0 ml-2">
+                      {activity.timeAgo}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

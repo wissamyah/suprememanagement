@@ -64,44 +64,56 @@ export const PendingDeliveries = ({ deliveries }: PendingDeliveriesProps) => {
           <h2 className="text-xl font-semibold cursor-help">Pending Deliveries</h2>
         </Tooltip>
       </div>
-      <div className="space-y-3 max-h-96 overflow-y-auto">
+      <div className="space-y-2 max-h-96 overflow-y-auto">
         {deliveries.length > 0 ? (
           deliveries.map((delivery) => (
-            <div key={delivery.id} className="p-3 glass rounded-lg">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="font-medium">Order {delivery.orderId}</p>
-                  <p className="text-sm text-gray-400">Customer: {delivery.customerName}</p>
-                  <Tooltip
-                    content={<ProductTooltip items={delivery.products} />}
-                    placement="top"
-                  >
-                    <p className="text-xs text-gray-500 cursor-help underline decoration-dotted">
-                      {delivery.items} item{delivery.items > 1 ? 's' : ''}
-                    </p>
-                  </Tooltip>
+            <div key={delivery.id} className="p-2.5 glass rounded-lg">
+              {/* Header: Customer name with status and balance badges */}
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="font-semibold text-sm truncate flex-1 min-w-0">{delivery.customerName}</p>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <span className={`px-2 py-0.5 text-xs rounded-full whitespace-nowrap ${
+                    delivery.status === 'confirmed'
+                      ? 'bg-blue-500/20 text-blue-400'
+                      : delivery.status === 'partial-loaded'
+                      ? 'bg-orange-500/20 text-orange-400'
+                      : 'bg-yellow-500/20 text-yellow-400'
+                  }`}>
+                    {delivery.status === 'confirmed' ? 'Confirmed' : delivery.status === 'partial-loaded' ? 'Partial' : 'Pending'}
+                  </span>
+                  <span className={`px-2 py-0.5 text-xs rounded-full whitespace-nowrap ${
+                    delivery.balance < 0
+                      ? 'bg-red-500/20 text-red-400'
+                      : delivery.balance > 0
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-gray-500/20 text-gray-400'
+                  }`}>
+                    {delivery.balance < 0 ? '-' : '+'}₦{Math.abs(delivery.balance).toLocaleString()}
+                  </span>
                 </div>
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  delivery.status === 'confirmed'
-                    ? 'bg-blue-500/20 text-blue-400'
-                    : delivery.status === 'partial-loaded'
-                    ? 'bg-orange-500/20 text-orange-400'
-                    : 'bg-yellow-500/20 text-yellow-400'
-                }`}>
-                  {delivery.status === 'confirmed' ? 'Confirmed' : delivery.status === 'partial-loaded' ? 'Partial Loaded' : 'Pending'}
-                </span>
               </div>
-              <div className="flex justify-end">
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  delivery.balance < 0
-                    ? 'bg-red-500/20 text-red-400'
-                    : delivery.balance > 0
-                    ? 'bg-green-500/20 text-green-400'
-                    : 'bg-gray-500/20 text-gray-400'
-                }`}>
-                  ₦{Math.abs(delivery.balance).toLocaleString()}
-                </span>
-              </div>
+              
+              {/* Subtle product list */}
+              <Tooltip
+                content={<ProductTooltip items={delivery.products} />}
+                placement="top"
+              >
+                <div className="text-xs text-gray-400/70 cursor-help">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {delivery.products.slice(0, 3).map((product, index) => (
+                      <span key={index} className="truncate">
+                        {product.productName} <span className="text-gray-500">({product.quantity})</span>
+                        {index < Math.min(2, delivery.products.length - 1) && <span className="text-gray-600 mx-1">•</span>}
+                      </span>
+                    ))}
+                    {delivery.products.length > 3 && (
+                      <span className="text-gray-500">
+                        +{delivery.products.length - 3} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Tooltip>
             </div>
           ))
         ) : (
