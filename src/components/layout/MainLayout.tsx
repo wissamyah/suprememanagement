@@ -22,15 +22,15 @@ export const MainLayout = () => {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-950">
+    <div className="flex h-screen bg-gray-950 w-full max-w-full overflow-x-hidden">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col w-full max-w-full overflow-x-hidden h-full overflow-y-auto">
         <Header
           isSearchOpen={isSearchOpen}
           onSearchOpen={() => setIsSearchOpen(true)}
           onSearchClose={() => setIsSearchOpen(false)}
         />
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-6 overflow-x-hidden w-full max-w-full min-h-0">
           <Outlet />
         </main>
       </div>

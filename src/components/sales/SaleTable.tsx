@@ -179,32 +179,32 @@ export const SaleTable = ({
   return (
     <>
       {/* Mobile Card View */}
-      <div className="sm:hidden">
-        <div className="space-y-3">
+      <div className="sm:hidden w-full max-w-full overflow-x-hidden">
+        <div className="space-y-3 w-full max-w-full">
           {paginatedSales.map((sale) => {
             const totalItems = sale.items.reduce((sum, item) => sum + item.quantity, 0);
             
             return (
               <div
                 key={`${sale.id}-${sale.updatedAt}-${forceRender}`}
-                className="glass rounded-lg p-4 hover:bg-glass/50 transition-colors"
+                className="glass rounded-lg p-4 hover:bg-glass/50 transition-colors w-full max-w-full overflow-x-hidden"
               >
                 {/* Card Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm">{sale.orderId}</p>
-                    <p className="text-xs text-muted mt-1">{sale.customerName}</p>
+                <div className="flex items-start justify-between mb-3 gap-2 w-full overflow-x-hidden">
+                  <div className="flex-1 min-w-0 overflow-x-hidden">
+                    <p className="font-semibold text-sm truncate">{sale.orderId}</p>
+                    <p className="text-xs text-muted mt-1 truncate">{sale.customerName}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-lg">{formatCurrency(sale.totalAmount)}</p>
-                    <p className="text-xs text-muted mt-1">
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-bold text-lg break-words">{formatCurrency(sale.totalAmount)}</p>
+                    <p className="text-xs text-muted mt-1 whitespace-nowrap">
                       {formatDate(sale.date)}
                     </p>
                   </div>
                 </div>
 
                 {/* Items and Payment Status */}
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-3 gap-2 w-full overflow-x-hidden">
                   <Tooltip
                     content={
                       <ProductTooltip
@@ -218,18 +218,18 @@ export const SaleTable = ({
                     }
                     placement="top"
                   >
-                    <span className="cursor-help underline decoration-dotted text-sm">
+                    <span className="cursor-help underline decoration-dotted text-sm truncate min-w-0">
                       {totalItems} {totalItems === 1 ? 'item' : 'items'}
                     </span>
                   </Tooltip>
                   
-                  <span className={`px-2 py-1 text-xs rounded-full ${getPaymentStatusColor(sale.paymentStatus)}`}>
+                  <span className={`px-2 py-1 text-xs rounded-full whitespace-nowrap flex-shrink-0 ${getPaymentStatusColor(sale.paymentStatus)}`}>
                     {sale.paymentStatus}
                   </span>
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-1 justify-end border-t border-white/5 pt-3">
+                <div className="flex gap-1 justify-end border-t border-white/5 pt-3 w-full overflow-x-hidden">
                   {onViewDetails && (
                     <button
                       className="p-1.5 rounded-lg text-gray-300 hover:bg-white/10 transition-all duration-200"
@@ -270,7 +270,7 @@ export const SaleTable = ({
       </div>
 
       {/* Desktop Table View */}
-      <div className="hidden sm:block overflow-x-auto">
+      <div className="hidden sm:block overflow-x-auto w-full max-w-full">
         <table className="w-full">
           <thead>
             <tr className="border-b border-white/5">
@@ -382,14 +382,14 @@ export const SaleTable = ({
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-          <div className="text-sm text-muted">
+        <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4 w-full max-w-full overflow-x-hidden">
+          <div className="text-sm text-muted whitespace-normal break-words">
             Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
             {Math.min(currentPage * itemsPerPage, filteredSales.length)} of{' '}
             {filteredSales.length} entries
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start w-full sm:w-auto">
             <Button
               variant="ghost"
               size="sm"
@@ -400,7 +400,7 @@ export const SaleTable = ({
               Previous
             </Button>
             
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-wrap justify-center sm:justify-start">
               {/* Show page numbers */}
               {(() => {
                 const pages = [];

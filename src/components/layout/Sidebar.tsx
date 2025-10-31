@@ -229,32 +229,6 @@ export const Sidebar = () => {
 
   return (
     <>
-      {/* Mobile Menu Button - Clean Design */}
-      <button
-        className={`lg:hidden fixed left-4 z-40 w-10 h-10 rounded-xl glass backdrop-blur-xl transition-all duration-300 ${
-          isMobileMenuOpen 
-            ? 'bg-white/20 shadow-lg' 
-            : 'bg-white/10 hover:bg-white/15 hover:shadow-md'
-        }`}
-        style={{ top: '12px' }}
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-      >
-        <div className="relative flex items-center justify-center w-full h-full">
-          {/* Simple hamburger menu that transforms to X */}
-          <div className="relative w-5 h-4 flex flex-col justify-between">
-            <span className={`block h-0.5 w-full bg-white rounded-full transform transition-all duration-300 origin-left ${
-              isMobileMenuOpen ? 'rotate-45 translate-y-0.5' : ''
-            }`} />
-            <span className={`block h-0.5 w-full bg-white rounded-full transition-all duration-300 ${
-              isMobileMenuOpen ? 'opacity-0 translate-x-3' : ''
-            }`} />
-            <span className={`block h-0.5 w-full bg-white rounded-full transform transition-all duration-300 origin-left ${
-              isMobileMenuOpen ? '-rotate-45 -translate-y-0.5' : ''
-            }`} />
-          </div>
-        </div>
-      </button>
-
       {/* Desktop Sidebar */}
       <aside className="hidden lg:block w-64 h-screen glass border-r border-gray-800/50 sticky top-0">
         <SidebarContent />

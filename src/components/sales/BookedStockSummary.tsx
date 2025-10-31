@@ -135,19 +135,19 @@ export const BookedStockSummary = () => {
       </div>
 
       {/* Customer-wise Bookings */}
-      <div className="space-y-3 max-h-96 overflow-y-auto overflow-x-hidden">
+      <div className="space-y-3 max-h-96 overflow-y-auto overflow-x-hidden w-full">
         {Object.entries(customerGroups).map(([customerId, group]) => (
-          <div key={customerId} className="glass rounded-lg p-4 max-w-full">
+          <div key={customerId} className="glass rounded-lg p-4 w-full max-w-full overflow-x-hidden">
             <div
-              className="flex justify-between items-start cursor-pointer gap-2"
+              className="flex justify-between items-start cursor-pointer gap-2 w-full"
               onClick={() => setExpandedCustomer(expandedCustomer === customerId ? null : customerId)}
             >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
+              <div className="flex-1 min-w-0 overflow-x-hidden">
+                <div className="flex items-center gap-2 mb-2 min-w-0">
                   <Users className="text-blue-400 flex-shrink-0" size={18} />
-                  <h3 className="font-semibold text-lg truncate">{group.customerName}</h3>
+                  <h3 className="font-semibold text-lg truncate min-w-0">{group.customerName}</h3>
                 </div>
-                <div className="flex flex-wrap gap-3 text-sm max-w-full">
+                <div className="flex flex-wrap gap-3 text-sm w-full">
                   <div className="whitespace-nowrap">
                     <span className="text-muted">Products: </span>
                     <span className="font-medium">{group.productTypes.size}</span>
@@ -169,26 +169,26 @@ export const BookedStockSummary = () => {
 
             {/* Expanded Details */}
             {expandedCustomer === customerId && (
-              <div className="mt-4 pt-4 border-t border-gray-800/50 space-y-2">
+              <div className="mt-4 pt-4 border-t border-gray-800/50 space-y-2 w-full">
                 {group.bookings.map((booking) => (
-                  <div key={booking.id} className="flex justify-between items-center py-2 px-3 glass rounded gap-2 max-w-full">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium truncate">{booking.productName}</p>
+                  <div key={booking.id} className="flex justify-between items-center py-2 px-3 glass rounded gap-2 w-full max-w-full overflow-x-hidden">
+                    <div className="flex-1 min-w-0 overflow-x-hidden">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <p className="font-medium truncate min-w-0">{booking.productName}</p>
                         <span className={`px-2 py-0.5 text-xs rounded-full whitespace-nowrap flex-shrink-0 ${getStatusColor(booking.status)}`}>
                           {booking.status.replace('-', ' ')}
                         </span>
                       </div>
-                      <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-muted">
-                        <span className="truncate max-w-[150px]" title={booking.orderId}>Order: {booking.orderId}</span>
-                        <span className="flex items-center gap-1 whitespace-nowrap">
+                      <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-muted min-w-0">
+                        <span className="truncate min-w-0" title={booking.orderId}>Order: {booking.orderId}</span>
+                        <span className="flex items-center gap-1 whitespace-nowrap flex-shrink-0">
                           <Calendar className="text-gray-400" size={12} />
                           {formatDate(booking.bookingDate)}
                         </span>
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0 max-w-[120px]">
-                      <p className="font-medium whitespace-nowrap">
+                    <div className="text-right flex-shrink-0 min-w-0">
+                      <p className="font-medium whitespace-nowrap text-sm">
                         {booking.quantity - booking.quantityLoaded} {booking.unit}
                       </p>
                       {booking.quantityLoaded > 0 && (

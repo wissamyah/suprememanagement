@@ -169,11 +169,13 @@ export const GlobalSearchBar = ({ isOpen, onOpen, onClose }: GlobalSearchBarProp
         <div
           ref={resultsRef}
           className="
-            absolute top-full left-0 right-0 mt-2
+            fixed sm:absolute top-[4.5rem] sm:top-full left-2 right-2 sm:left-0 sm:right-0
+            sm:mt-2 sm:-mx-4
             bg-gray-900/95 backdrop-blur-xl border border-white/20
             rounded-lg shadow-2xl
             z-50
             animate-in fade-in slide-in-from-top-2 duration-200
+            max-h-[calc(100vh-5rem)] sm:max-h-[70vh]
           "
         >
           {loading && query.length >= 2 ? (
@@ -193,11 +195,11 @@ export const GlobalSearchBar = ({ isOpen, onOpen, onClose }: GlobalSearchBarProp
 
           {/* Results footer */}
           {!loading && totalResults > 0 && (
-            <div className="px-4 py-2 border-t border-white/10 text-xs text-gray-400 flex items-center justify-between">
+            <div className="px-4 py-2 border-t border-white/10 text-xs text-gray-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <span>{totalResults} result{totalResults !== 1 ? 's' : ''} found</span>
-              <span className="flex items-center gap-4">
-                <span>↑↓ Navigate</span>
-                <span>↵ Select</span>
+              <span className="flex items-center gap-2 sm:gap-4 flex-wrap">
+                <span className="hidden sm:inline">↑↓ Navigate</span>
+                <span className="hidden sm:inline">↵ Select</span>
                 <span>Esc Close</span>
               </span>
             </div>
@@ -210,7 +212,8 @@ export const GlobalSearchBar = ({ isOpen, onOpen, onClose }: GlobalSearchBarProp
         <div
           ref={resultsRef}
           className="
-            absolute top-full left-0 right-0 mt-2
+            fixed sm:absolute top-[4.5rem] sm:top-full left-2 right-2 sm:left-0 sm:right-0
+            sm:mt-2 sm:-mx-4
             bg-gray-900/95 backdrop-blur-xl border border-white/20
             rounded-lg shadow-2xl
             z-50

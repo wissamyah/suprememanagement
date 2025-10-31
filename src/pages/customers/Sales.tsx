@@ -172,15 +172,15 @@ export const Sales = () => {
   };
   
   return (
-    <div className="space-y-6 max-w-full overflow-x-hidden">
+    <div className="w-full max-w-full overflow-x-hidden space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Sales</h1>
-          <p className="text-muted">Track and manage your sales transactions</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full max-w-full overflow-x-hidden">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-3xl font-bold mb-2 break-words">Sales</h1>
+          <p className="text-muted break-words">Track and manage your sales transactions</p>
         </div>
         
-        <div className="flex items-center gap-2 self-end sm:self-start">
+        <div className="flex items-center gap-2 self-end sm:self-start flex-shrink-0">
           {/* Mobile dropdown menu */}
           <div className="relative mobile-menu-dropdown sm:hidden">
             <button
@@ -194,7 +194,7 @@ export const Sales = () => {
               <MoreVertical size={20} />
             </button>
             {showMobileMenu && (
-              <div className="absolute right-0 top-full mt-2 rounded-lg shadow-xl z-50 py-1 min-w-[160px] bg-gray-900 border border-white/20 animate-fadeIn">
+              <div className="absolute right-0 top-full mt-2 rounded-lg shadow-xl z-50 py-1 min-w-[160px] max-w-[calc(100vw-2rem)] bg-gray-900 border border-white/20 animate-fadeIn overflow-x-hidden">
                 {pendingChanges > 0 && !syncInProgress && (
                   <button
                     onClick={(e) => {
@@ -309,39 +309,39 @@ export const Sales = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-full">
-          <GlassCard className="max-w-full">
-            <div className="flex items-center justify-between gap-2 max-w-full">
-              <div className="min-w-0 flex-1 max-w-full">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full max-w-full">
+          <GlassCard className="w-full max-w-full overflow-x-hidden">
+            <div className="flex items-center justify-between gap-2 w-full max-w-full">
+              <div className="min-w-0 flex-1 overflow-x-hidden">
                 <p className="text-sm text-muted whitespace-nowrap">Today's Sales</p>
-                <p className="text-2xl font-bold break-all max-w-full">{formatCurrency(stats.todaysTotal)}</p>
+                <p className="text-2xl font-bold break-all">{formatCurrency(stats.todaysTotal)}</p>
               </div>
               <TrendingUp className="text-green-400 flex-shrink-0" size={24} />
             </div>
           </GlassCard>
-          <GlassCard className="max-w-full">
-            <div className="flex items-center justify-between gap-2 max-w-full">
-              <div className="min-w-0 flex-1 max-w-full">
+          <GlassCard className="w-full max-w-full overflow-x-hidden">
+            <div className="flex items-center justify-between gap-2 w-full max-w-full">
+              <div className="min-w-0 flex-1 overflow-x-hidden">
                 <p className="text-sm text-muted whitespace-nowrap">This Week</p>
-                <p className="text-2xl font-bold break-all max-w-full">{formatCurrency(stats.weekTotal)}</p>
+                <p className="text-2xl font-bold break-all">{formatCurrency(stats.weekTotal)}</p>
               </div>
               <Calendar className="text-blue-400 flex-shrink-0" size={24} />
             </div>
           </GlassCard>
-          <GlassCard className="max-w-full">
-            <div className="flex items-center justify-between gap-2 max-w-full">
-              <div className="min-w-0 flex-1 max-w-full">
+          <GlassCard className="w-full max-w-full overflow-x-hidden">
+            <div className="flex items-center justify-between gap-2 w-full max-w-full">
+              <div className="min-w-0 flex-1 overflow-x-hidden">
                 <p className="text-sm text-muted whitespace-nowrap">This Month</p>
-                <p className="text-2xl font-bold break-all max-w-full">{formatCurrency(stats.monthTotal)}</p>
+                <p className="text-2xl font-bold break-all">{formatCurrency(stats.monthTotal)}</p>
               </div>
               <Calendar className="text-purple-400 flex-shrink-0" size={24} />
             </div>
           </GlassCard>
-          <GlassCard className="max-w-full">
-            <div className="flex items-center justify-between gap-2 max-w-full">
-              <div className="min-w-0 flex-1 max-w-full">
+          <GlassCard className="w-full max-w-full overflow-x-hidden">
+            <div className="flex items-center justify-between gap-2 w-full max-w-full">
+              <div className="min-w-0 flex-1 overflow-x-hidden">
                 <p className="text-sm text-muted whitespace-nowrap">Pending Payment</p>
-                <p className="text-2xl font-bold break-all max-w-full">{formatCurrency(stats.pendingPaymentTotal)}</p>
+                <p className="text-2xl font-bold break-all">{formatCurrency(stats.pendingPaymentTotal)}</p>
               </div>
               <DollarSign className="text-yellow-400 flex-shrink-0" size={24} />
             </div>
@@ -355,8 +355,8 @@ export const Sales = () => {
       </div>
       
       {/* Main Table Card */}
-      <GlassCard className="max-w-full">
-        <div className="flex flex-col md:flex-row gap-4 mb-6 max-w-full">
+      <GlassCard className="w-full max-w-full overflow-x-hidden">
+        <div className="flex flex-col md:flex-row gap-4 mb-6 w-full max-w-full">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={20} />
             <input

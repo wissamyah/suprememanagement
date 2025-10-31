@@ -537,7 +537,7 @@ export const SearchResults = ({
   };
 
   return (
-    <div className="max-h-[70vh] overflow-y-auto custom-scrollbar py-3">
+    <div className="max-h-[calc(100vh-8rem)] sm:max-h-[70vh] overflow-y-auto custom-scrollbar py-3">
       {/* Customers */}
       {results.customers.length > 0 && (
         <div className="mb-4">
