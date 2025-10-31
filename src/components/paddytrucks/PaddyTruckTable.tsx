@@ -172,101 +172,105 @@ export const PaddyTruckTable = ({
               'No paddy trucks yet'}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {filteredAndSortedTrucks.map((truck) => (
               <div 
                 key={truck.id}
-                className={`glass rounded-lg p-4 ${
+                className={`glass rounded-lg p-2.5 ${
                   selectedTrucks.has(truck.id) ? 'ring-2 ring-white/20' : ''
                 }`}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-start gap-3 flex-1">
-                    <button
-                      onClick={() => toggleSelectTruck(truck.id)}
-                      className="p-1 rounded hover:bg-glass transition-colors mt-1"
-                    >
-                      {selectedTrucks.has(truck.id) ? (
-                        <CheckSquare size={18} />
-                      ) : (
-                        <Square size={18} />
-                      )}
-                    </button>
-                    <div className="flex-1">
-                      <p className="font-medium text-base">{truck.truckPlate}</p>
-                      <p className="text-sm text-muted">{truck.supplierName}</p>
+                {/* Compact Header: Checkbox, Truck Plate, Supplier, Date in one row */}
+                <div className="flex items-center gap-2 mb-2">
+                  <button
+                    onClick={() => toggleSelectTruck(truck.id)}
+                    className="p-0.5 rounded hover:bg-glass transition-colors flex-shrink-0"
+                  >
+                    {selectedTrucks.has(truck.id) ? (
+                      <CheckSquare size={16} />
+                    ) : (
+                      <Square size={16} />
+                    )}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm truncate flex-shrink-0">{truck.truckPlate}</span>
+                      <span className="text-xs text-muted truncate min-w-0 flex-1">{truck.supplierName}</span>
+                      <span className="text-xs text-muted ml-auto whitespace-nowrap flex-shrink-0">{formatDate(truck.date)}</span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                  <div>
-                    <span className="text-muted text-xs">Date:</span>
-                    <p>{formatDate(truck.date)}</p>
+                {/* Compact Info Grid: 3 columns for key metrics */}
+                <div className="grid grid-cols-3 gap-x-3 gap-y-1.5 text-xs mb-2">
+                  <div className="flex items-center gap-1">
+                    <Weight size={12} className="text-muted flex-shrink-0" />
+                    <span className="font-medium">{formatWeight(truck.weightAfterDeduction)}</span>
                   </div>
-                  <div>
-                    <span className="text-muted text-xs">Agent:</span>
-                    <p>{truck.agent || '-'}</p>
+                  <div className="flex items-center gap-1">
+                    <DollarSign size={12} className="text-muted flex-shrink-0" />
+                    <span className="font-medium text-green-400">{formatCurrency(truck.totalAmount)}</span>
                   </div>
-                  <div>
-                    <span className="text-muted text-xs">Bags:</span>
-                    <p>{truck.bags || '-'}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted text-xs">Weight:</span>
-                    <p>{formatWeight(truck.weightAfterDeduction)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted text-xs">Moisture:</span>
-                    <p>{formatMoistureLevel(truck.moistureLevel)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted text-xs">Price/kg:</span>
-                    <p>{formatCurrency(truck.pricePerKg)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted text-xs">Total:</span>
-                    <p className="font-bold text-green-400">{formatCurrency(truck.totalAmount)}</p>
+                  <div className="flex items-center gap-1">
+                    <Droplets size={12} className="text-muted flex-shrink-0" />
+                    <span className="font-medium">{formatMoistureLevel(truck.moistureLevel)}</span>
                   </div>
                 </div>
+
+                {/* Secondary Info: Inline compact format */}
+                <div className="flex items-center gap-2 text-xs text-muted mb-2 flex-wrap">
+                  {truck.bags && (
+                    <>
+                      <span>Bags: <span className="text-white/90">{truck.bags}</span></span>
+                      <span>•</span>
+                    </>
+                  )}
+                  <span>Price: <span className="text-white/90">{formatCurrency(truck.pricePerKg)}/kg</span></span>
+                  {truck.agent && (
+                    <>
+                      <span>•</span>
+                      <span>Agent: <span className="text-white/90">{truck.agent}</span></span>
+                    </>
+                  )}
+                  {truck.waybillNumber && (
+                    <>
+                      <span>•</span>
+                      <span className="truncate">WB: <span className="text-white/90">{truck.waybillNumber}</span></span>
+                    </>
+                  )}
+                </div>
                 
-                {truck.waybillNumber && (
-                  <div className="text-sm mb-3">
-                    <span className="text-muted text-xs">Waybill:</span>
-                    <p>{truck.waybillNumber}</p>
-                  </div>
-                )}
-                
-                <div className="flex gap-1 justify-end border-t border-white/5 pt-3">
+                {/* Compact Action Buttons */}
+                <div className="flex gap-1 justify-end border-t border-white/5 pt-1.5">
                   <button
                     onClick={() => handleCopyDetails(truck)}
-                    className="p-1.5 rounded-lg hover:bg-white/10 transition-all duration-200 relative"
+                    className="p-1 rounded hover:bg-white/10 transition-all duration-200 relative"
                     title="Copy Details"
                   >
-                    <div className="relative w-4 h-4">
+                    <div className="relative w-3.5 h-3.5">
                       <Copy 
-                        size={16} 
+                        size={14} 
                         className={`absolute inset-0 transition-all duration-300 ${copiedTruckId === truck.id ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}
                       />
                       <Check 
-                        size={16} 
+                        size={14} 
                         className={`absolute inset-0 text-green-400 transition-all duration-300 ${copiedTruckId === truck.id ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
                       />
                     </div>
                   </button>
                   <button
                     onClick={() => onEditTruck(truck)}
-                    className="p-1.5 rounded-lg hover:bg-white/10 transition-all duration-200"
+                    className="p-1 rounded hover:bg-white/10 transition-all duration-200"
                     title="Edit Truck"
                   >
-                    <Edit2 size={16} />
+                    <Edit2 size={14} />
                   </button>
                   <button
                     onClick={() => handleDeleteConfirm(truck)}
-                    className="p-1.5 rounded-lg hover:bg-white/10 transition-all duration-200"
+                    className="p-1 rounded hover:bg-white/10 transition-all duration-200"
                     title="Delete Truck"
                   >
-                    <Trash2 size={16} className="text-red-400" />
+                    <Trash2 size={14} className="text-red-400" />
                   </button>
                 </div>
               </div>
