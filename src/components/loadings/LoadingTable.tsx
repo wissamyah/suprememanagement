@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
-import type { Loading } from '../../types';
-import { Button } from '../ui/Button';
-import { ConfirmModal } from '../ui/ConfirmModal';
-import { Tooltip, ProductTooltip } from '../ui/Tooltip';
-import { 
+import { useState, useMemo } from "react";
+import type { Loading } from "../../types";
+import { Button } from "../ui/Button";
+import { ConfirmModal } from "../ui/ConfirmModal";
+import { Tooltip, ProductTooltip } from "../ui/Tooltip";
+import {
   Edit2,
   Trash2,
   Truck,
@@ -13,9 +13,9 @@ import {
   FileText,
   ChevronUp,
   ChevronDown,
-  Eye
-} from 'lucide-react';
-import { formatDate } from '../../utils/date';
+  Eye,
+} from "lucide-react";
+import { formatDate } from "../../utils/date";
 
 interface LoadingTableProps {
   loadings: Loading[];
@@ -25,30 +25,33 @@ interface LoadingTableProps {
   onDeleteLoading: (loadingId: string) => void;
 }
 
-type SortField = 'date' | 'customer' | 'totalValue';
-type SortDirection = 'asc' | 'desc';
+type SortField = "date" | "customer" | "totalValue";
+type SortDirection = "asc" | "desc";
 
 export const LoadingTable = ({
   loadings,
   searchTerm,
   dateFilter,
   onEditLoading,
-  onDeleteLoading
+  onDeleteLoading,
 }: LoadingTableProps) => {
-  const [sortField, setSortField] = useState<SortField>('date');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; loading: Loading | null }>({ 
-    show: false, 
-    loading: null 
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    show: boolean;
+    loading: Loading | null;
+  }>({
+    show: false,
+    loading: null,
   });
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
   };
 
@@ -58,31 +61,33 @@ export const LoadingTable = ({
     // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(loading =>
-        loading.loadingId.toLowerCase().includes(term) ||
-        loading.customerName.toLowerCase().includes(term) ||
-        loading.truckPlateNumber.toLowerCase().includes(term) ||
-        (loading.wayBillNumber && loading.wayBillNumber.toLowerCase().includes(term))
+      filtered = filtered.filter(
+        (loading) =>
+          loading.loadingId.toLowerCase().includes(term) ||
+          loading.customerName.toLowerCase().includes(term) ||
+          loading.truckPlateNumber.toLowerCase().includes(term) ||
+          (loading.wayBillNumber &&
+            loading.wayBillNumber.toLowerCase().includes(term))
       );
     }
 
     // Apply date filter
-    if (dateFilter && dateFilter !== 'all') {
+    if (dateFilter && dateFilter !== "all") {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
-      filtered = filtered.filter(loading => {
+
+      filtered = filtered.filter((loading) => {
         const loadingDate = new Date(loading.date);
         loadingDate.setHours(0, 0, 0, 0);
-        
+
         switch (dateFilter) {
-          case 'today':
+          case "today":
             return loadingDate.getTime() === today.getTime();
-          case 'week':
+          case "week":
             const weekAgo = new Date(today);
             weekAgo.setDate(weekAgo.getDate() - 7);
             return loadingDate >= weekAgo;
-          case 'month':
+          case "month":
             const monthAgo = new Date(today);
             monthAgo.setMonth(monthAgo.getMonth() - 1);
             return loadingDate >= monthAgo;
@@ -95,14 +100,14 @@ export const LoadingTable = ({
     // Apply sorting - always show newest first by default
     filtered.sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortField) {
-        case 'date':
+        case "date":
           // Sort by date first
           const dateA = new Date(a.date).getTime();
           const dateB = new Date(b.date).getTime();
           comparison = dateA - dateB;
-          
+
           // If same date, sort by creation time
           if (comparison === 0) {
             const createdA = new Date(a.createdAt).getTime();
@@ -110,15 +115,15 @@ export const LoadingTable = ({
             comparison = createdA - createdB;
           }
           break;
-        case 'customer':
+        case "customer":
           comparison = a.customerName.localeCompare(b.customerName);
           break;
-        case 'totalValue':
+        case "totalValue":
           comparison = a.totalValue - b.totalValue;
           break;
       }
-      
-      return sortDirection === 'asc' ? comparison : -comparison;
+
+      return sortDirection === "asc" ? comparison : -comparison;
     });
 
     return filtered;
@@ -141,9 +146,11 @@ export const LoadingTable = ({
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return null;
-    return sortDirection === 'asc' ? 
-      <ChevronUp size={14} /> : 
-      <ChevronDown size={14} />;
+    return sortDirection === "asc" ? (
+      <ChevronUp size={14} />
+    ) : (
+      <ChevronDown size={14} />
+    );
   };
 
   return (
@@ -162,7 +169,10 @@ export const LoadingTable = ({
               </div>
               <div className="text-right">
                 <p className="text-lg font-bold text-green-400">
-                  {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(loading.totalValue)}
+                  {new Intl.NumberFormat("en-NG", {
+                    style: "currency",
+                    currency: "NGN",
+                  }).format(loading.totalValue)}
                 </p>
               </div>
             </div>
@@ -187,18 +197,19 @@ export const LoadingTable = ({
                 <Tooltip
                   content={
                     <ProductTooltip
-                      items={loading.items.map(item => ({
+                      items={loading.items.map((item) => ({
                         productName: item.productName,
                         quantity: item.quantity,
                         price: item.unitPrice,
-                        total: item.quantity * item.unitPrice
+                        total: item.quantity * item.unitPrice,
                       }))}
                     />
                   }
                   placement="top"
                 >
                   <span className="cursor-help underline decoration-dotted">
-                    {loading.items.length} {loading.items.length === 1 ? 'item' : 'items'}
+                    {loading.items.length}{" "}
+                    {loading.items.length === 1 ? "item" : "items"}
                   </span>
                 </Tooltip>
               </div>
@@ -211,16 +222,20 @@ export const LoadingTable = ({
                 className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 mb-2"
               >
                 <Eye size={14} />
-                {expandedRow === loading.id ? 'Hide' : 'View'} Items
+                {expandedRow === loading.id ? "Hide" : "View"} Items
               </button>
-              
+
               {expandedRow === loading.id && (
                 <div className="mt-2 space-y-1 text-sm glass rounded p-2">
                   {loading.items.map((item, idx) => (
                     <div key={idx} className="flex justify-between">
                       <span>{item.productName}</span>
                       <span className="text-muted">
-                        {item.quantity} {item.unit} @ {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(item.unitPrice)}
+                        {item.quantity} {item.unit} @{" "}
+                        {new Intl.NumberFormat("en-NG", {
+                          style: "currency",
+                          currency: "NGN",
+                        }).format(item.unitPrice)}
                       </span>
                     </div>
                   ))}
@@ -258,18 +273,18 @@ export const LoadingTable = ({
           <thead>
             <tr className="border-b border-gray-800/50">
               <th className="text-left py-3 px-4">Loading ID</th>
-              <th 
+              <th
                 className="text-left py-3 px-4 cursor-pointer hover:text-gray-300"
-                onClick={() => handleSort('date')}
+                onClick={() => handleSort("date")}
               >
                 <div className="flex items-center gap-1">
                   Date
                   <SortIcon field="date" />
                 </div>
               </th>
-              <th 
+              <th
                 className="text-left py-3 px-4 cursor-pointer hover:text-gray-300"
-                onClick={() => handleSort('customer')}
+                onClick={() => handleSort("customer")}
               >
                 <div className="flex items-center gap-1">
                   Customer
@@ -279,9 +294,9 @@ export const LoadingTable = ({
               <th className="text-left py-3 px-4">Truck</th>
               <th className="text-left py-3 px-4">Way Bill</th>
               <th className="text-left py-3 px-4">Products</th>
-              <th 
+              <th
                 className="text-right py-3 px-4 cursor-pointer hover:text-gray-300"
-                onClick={() => handleSort('totalValue')}
+                onClick={() => handleSort("totalValue")}
               >
                 <div className="flex items-center justify-end gap-1">
                   Total Value
@@ -293,13 +308,14 @@ export const LoadingTable = ({
           </thead>
           <tbody>
             {filteredAndSortedLoadings.map((loading) => (
-              <tr key={loading.id} className="border-b border-gray-800/30 hover:bg-glass">
+              <tr
+                key={loading.id}
+                className="border-b border-gray-800/30 hover:bg-glass"
+              >
                 <td className="py-3 px-4">
                   <span className="font-medium">{loading.loadingId}</span>
                 </td>
-                <td className="py-3 px-4">
-                  {formatDate(loading.date)}
-                </td>
+                <td className="py-3 px-4">{formatDate(loading.date)}</td>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">
                     <User size={16} className="text-muted" />
@@ -312,31 +328,33 @@ export const LoadingTable = ({
                     {loading.truckPlateNumber}
                   </div>
                 </td>
-                <td className="py-3 px-4">
-                  {loading.wayBillNumber || '-'}
-                </td>
+                <td className="py-3 px-4">{loading.wayBillNumber || "-"}</td>
                 <td className="py-3 px-4">
                   <Tooltip
                     content={
                       <ProductTooltip
-                        items={loading.items.map(item => ({
+                        items={loading.items.map((item) => ({
                           productName: item.productName,
                           quantity: item.quantity,
                           price: item.unitPrice,
-                          total: item.quantity * item.unitPrice
+                          total: item.quantity * item.unitPrice,
                         }))}
                       />
                     }
                     placement="top"
                   >
                     <span className="cursor-help underline decoration-dotted">
-                      {loading.items.length} {loading.items.length === 1 ? 'item' : 'items'}
+                      {loading.items.length}{" "}
+                      {loading.items.length === 1 ? "item" : "items"}
                     </span>
                   </Tooltip>
                 </td>
                 <td className="py-3 px-4 text-right">
                   <span className="font-semibold text-green-400">
-                    {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(loading.totalValue)}
+                    {new Intl.NumberFormat("en-NG", {
+                      style: "currency",
+                      currency: "NGN",
+                    }).format(loading.totalValue)}
                   </span>
                 </td>
                 <td className="py-3 px-4">
@@ -378,9 +396,13 @@ export const LoadingTable = ({
         title="Delete Loading"
         message={
           <div>
-            <p>Are you sure you want to delete loading <strong>{deleteConfirm.loading?.loadingId}</strong>?</p>
+            <p>
+              Are you sure you want to delete loading{" "}
+              <strong>{deleteConfirm.loading?.loadingId}</strong>?
+            </p>
             <p className="mt-2 text-sm text-muted">
-              This will restore the booked stock quantities and inventory levels.
+              This will restore the booked stock quantities and inventory
+              levels.
             </p>
           </div>
         }
