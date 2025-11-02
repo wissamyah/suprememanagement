@@ -1,5 +1,5 @@
 import { GlassCard } from '../ui/GlassCard';
-import { Activity, DollarSign, Truck, Package2, AlertTriangle } from 'lucide-react';
+import { Activity, DollarSign, Truck, Package2, AlertTriangle, CreditCard } from 'lucide-react';
 
 interface ActivityItem {
   id: string;
@@ -14,6 +14,9 @@ interface ActivityItem {
     weight?: number;
     productName?: string;
     unit?: string;
+    itemNames?: string;
+    truckPlate?: string;
+    pricePerKg?: number;
   };
 }
 
@@ -32,6 +35,8 @@ export const RecentActivity = ({ activities }: RecentActivityProps) => {
         return <Package2 size={14} />;
       case 'inventory':
         return <AlertTriangle size={14} />;
+      case 'payment':
+        return <CreditCard size={14} />;
       default:
         return <Activity size={14} />;
     }
@@ -47,6 +52,8 @@ export const RecentActivity = ({ activities }: RecentActivityProps) => {
         return 'bg-purple-500/20 text-purple-400';
       case 'inventory':
         return 'bg-yellow-500/20 text-yellow-400';
+      case 'payment':
+        return 'bg-cyan-500/20 text-cyan-400';
       default:
         return 'bg-gray-500/20 text-gray-400';
     }
@@ -55,13 +62,15 @@ export const RecentActivity = ({ activities }: RecentActivityProps) => {
   const formatMainText = (activity: ActivityItem) => {
     switch (activity.type) {
       case 'sale':
-        return activity.metadata?.customerName || 'Customer';
+        return `Sale to ${activity.metadata?.customerName || 'Customer'}`;
       case 'loading':
-        return activity.metadata?.customerName || 'Customer';
+        return `Loading for ${activity.metadata?.customerName || 'Customer'}`;
       case 'supplier':
         return activity.metadata?.supplierName || 'Supplier';
       case 'inventory':
         return activity.metadata?.productName || 'Product';
+      case 'payment':
+        return `Payment from ${activity.metadata?.customerName || 'Customer'}`;
       default:
         return activity.description;
     }
@@ -69,18 +78,26 @@ export const RecentActivity = ({ activities }: RecentActivityProps) => {
 
   const formatSubtext = (activity: ActivityItem) => {
     switch (activity.type) {
-      case 'sale':
-        return activity.metadata?.amount 
-          ? `₦${activity.metadata.amount.toLocaleString()}` 
-          : '';
-      case 'loading':
-        return activity.metadata?.quantity || '';
-      case 'supplier':
-        return activity.metadata?.weight 
-          ? `${activity.metadata.weight}kg` 
-          : '';
+      case 'sale': {
+        const amount = activity.metadata?.amount ? `₦${activity.metadata.amount.toLocaleString()}` : '';
+        const items = activity.metadata?.itemNames || '';
+        return [amount, items].filter(Boolean).join(' · ');
+      }
+      case 'loading': {
+        const quantity = activity.metadata?.quantity || '';
+        const plate = activity.metadata?.truckPlate || '';
+        return [quantity, plate].filter(Boolean).join(' · ');
+      }
+      case 'supplier': {
+        const weight = activity.metadata?.weight ? `${activity.metadata.weight.toLocaleString()}kg` : '';
+        const plate = activity.metadata?.truckPlate || '';
+        const price = activity.metadata?.pricePerKg ? ` @ ₦${activity.metadata.pricePerKg.toLocaleString()}/kg` : '';
+        return `${weight}${price} · ${plate}`;
+      }
       case 'inventory':
         return activity.metadata?.quantity || '';
+      case 'payment':
+        return activity.metadata?.amount ? `₦${activity.metadata.amount.toLocaleString()}` : '';
       default:
         return '';
     }

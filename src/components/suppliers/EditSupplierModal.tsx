@@ -44,9 +44,7 @@ export const EditSupplierModal = ({ isOpen, supplier, onClose, onUpdate }: EditS
       validationErrors.push('Supplier name is required');
     }
     
-    if (!phone.trim()) {
-      validationErrors.push('Phone number is required');
-    } else if (!validatePhoneNumber(phone)) {
+    if (phone.trim() && !validatePhoneNumber(phone)) {
       validationErrors.push('Please enter a valid Nigerian phone number');
     }
     
@@ -151,7 +149,7 @@ export const EditSupplierModal = ({ isOpen, supplier, onClose, onUpdate }: EditS
         {/* Phone Number */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            Phone Number <span className="text-red-400">*</span>
+            Phone Number
           </label>
           <div className="relative">
             <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={18} />
@@ -161,7 +159,6 @@ export const EditSupplierModal = ({ isOpen, supplier, onClose, onUpdate }: EditS
               onChange={(e) => handlePhoneChange(e.target.value)}
               placeholder="e.g., 0803 123 4567"
               className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-              required
             />
           </div>
           {phone && !validatePhoneNumber(phone) && (

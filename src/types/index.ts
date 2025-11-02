@@ -139,6 +139,8 @@ export interface LedgerEntry {
   customerId: string;
   customerName: string;
   date: Date;
+  type: 'credit' | 'debit';
+  amount: number;
   transactionType: 'payment' | 'sale' | 'credit_note' | 'opening_balance' | 'adjustment';
   referenceId?: string; // Links to Sale ID or Payment ID
   referenceNumber?: string; // Receipt/Invoice number

@@ -195,7 +195,7 @@ export const SupplierTable = ({
                 <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                   <div>
                     <span className="text-muted text-xs">Phone:</span>
-                    <p>{formatPhoneNumber(supplier.phone)}</p>
+                    <p>{supplier.phone ? formatPhoneNumber(supplier.phone) : '-'}</p>
                   </div>
                   <div>
                     <span className="text-muted text-xs">Agent:</span>
@@ -316,7 +316,7 @@ export const SupplierTable = ({
                     </div>
                   </td>
                   <td className="py-3 px-3">
-                    <span className="text-sm">{formatPhoneNumber(supplier.phone)}</span>
+                    <span className="text-sm">{supplier.phone ? formatPhoneNumber(supplier.phone) : '-'}</span>
                   </td>
                   <td className="py-3 px-3">
                     <span className="text-sm">{supplier.agent}</span>
