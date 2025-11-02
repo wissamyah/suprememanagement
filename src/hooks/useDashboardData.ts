@@ -131,6 +131,10 @@ export const useDashboardData = ({
         weight?: number;
         productName?: string;
         unit?: string;
+        itemCount?: number;
+        truckPlate?: string;
+        pricePerKg?: number;
+        itemNames?: string;
       };
     }> = [];
 
@@ -138,43 +142,46 @@ export const useDashboardData = ({
       activities.push({
         id: sale.id,
         type: 'sale',
-        description: `Sale`,
+        description: `Sale to ${sale.customerName}`,
         time: new Date(sale.createdAt),
         metadata: {
           customerName: sale.customerName,
-          amount: sale.totalAmount
+          amount: sale.totalAmount,
+          itemNames: sale.items.map(i => i.productName).join(', ')
         }
       });
     });
 
     loadings.slice(-5).forEach(loading => {
-      const totalQuantity = loading.items.reduce((sum, item) => sum + item.quantity, 0);
-      const itemCount = loading.items.length;
-      const quantityText = itemCount > 1 
-        ? `${itemCount} items (${totalQuantity} ${loading.items[0]?.unit || 'units'})`
-        : `${totalQuantity} ${loading.items[0]?.unit || 'units'}`;
+      const itemsDescription = loading.items
+        .map(item => `${item.productName} (${item.quantity} bags)`)
+        .join(', ');
       
       activities.push({
         id: loading.id,
         type: 'loading',
-        description: `Loading completed`,
+        description: `Loading for ${loading.customerName}`,
         time: new Date(loading.createdAt),
         metadata: {
           customerName: loading.customerName,
-          quantity: quantityText
+          quantity: itemsDescription,
+          truckPlate: loading.truckPlate
         }
       });
     });
 
     paddyTrucks.slice(-3).forEach(truck => {
+      const weight = truck.weightAfterDeduction > 0 ? truck.weightAfterDeduction : truck.weight;
       activities.push({
         id: truck.id,
         type: 'supplier',
-        description: `Paddy truck received`,
+        description: `Paddy from ${truck.supplierName}`,
         time: new Date(truck.createdAt),
         metadata: {
           supplierName: truck.supplierName,
-          weight: truck.weightAfterDeduction
+          weight: weight,
+          truckPlate: truck.truckPlate,
+          pricePerKg: truck.pricePerKg,
         }
       });
     });
@@ -192,6 +199,23 @@ export const useDashboardData = ({
       });
     });
 
+    ledgerEntries
+      .filter(entry => entry.type === 'credit' && entry.notes?.toLowerCase().includes('payment'))
+      .slice(-5)
+      .forEach(entry => {
+        const customer = customers.find(c => c.id === entry.customerId);
+        activities.push({
+          id: entry.id,
+          type: 'payment',
+          description: 'Payment received',
+          time: new Date(entry.date),
+          metadata: {
+            customerName: customer?.name || 'Unknown Customer',
+            amount: entry.amount
+          }
+        });
+      });
+
     return activities
       .sort((a, b) => b.time.getTime() - a.time.getTime())
       .slice(0, 10)
@@ -199,51 +223,73 @@ export const useDashboardData = ({
         ...activity,
         timeAgo: getRelativeTime(activity.time)
       }));
-  }, [sales, loadings, paddyTrucks, products]);
+  }, [sales, loadings, paddyTrucks, products, ledgerEntries, customers]);
 
   // Pending deliveries
   const pendingDeliveries = useMemo(() => {
-    return bookedStock
+    const customerDeliveries = bookedStock
       .filter(booking => booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'partial-loaded')
       .reduce((acc, booking) => {
         const sale = sales.find(s => s.id === booking.saleId);
         const saleItem = sale?.items.find(item => item.productId === booking.productId);
         const price = saleItem?.price || 0;
-        const existing = acc.find(d => d.orderId === booking.orderId);
         const remainingQuantity = booking.quantity - booking.quantityLoaded;
-        const remainingTotal = remainingQuantity * price;
 
-        if (existing) {
-          existing.items++;
-          existing.products.push({
-            productName: booking.productName,
-            quantity: remainingQuantity,
-            price: price,
-            total: remainingTotal
-          });
+        if (remainingQuantity <= 0) {
           return acc;
         }
-        const customer = customers.find(c => c.name === booking.customerName);
-        const balance = customer ? calculateCustomerBalance(customer.id, ledgerEntries) : 0;
 
-        return [...acc, {
-          id: booking.id,
-          orderId: booking.orderId,
-          customerName: booking.customerName,
-          status: booking.status,
-          items: 1,
-          date: booking.bookingDate,
-          balance: balance,
-          products: [{
-            productName: booking.productName,
-            quantity: remainingQuantity,
-            price: price,
-            total: remainingTotal
-          }]
-        }];
-      }, [] as Array<{
+        const remainingTotal = remainingQuantity * price;
+        const customerName = booking.customerName;
+
+        if (acc[customerName]) {
+          const existing = acc[customerName];
+          existing.orderIds.push(booking.orderId);
+          existing.items++;
+
+          const statusPriority = { 'partial-loaded': 3, 'confirmed': 2, 'pending': 1 };
+          if (statusPriority[booking.status] > statusPriority[existing.status]) {
+            existing.status = booking.status;
+          }
+
+          const existingProduct = existing.products.find(p => p.productName === booking.productName);
+          if (existingProduct) {
+            existingProduct.quantity += remainingQuantity;
+            existingProduct.total += remainingTotal;
+          } else {
+            existing.products.push({
+              productName: booking.productName,
+              quantity: remainingQuantity,
+              price: price,
+              total: remainingTotal,
+            });
+          }
+        } else {
+          const customer = customers.find(c => c.name === customerName);
+          const balance = customer ? calculateCustomerBalance(customer.id, ledgerEntries) : 0;
+
+          acc[customerName] = {
+            id: customerName,
+            orderId: booking.orderId, // For compatibility, but orderIds array is better
+            orderIds: [booking.orderId],
+            customerName: customerName,
+            status: booking.status,
+            items: 1,
+            date: booking.bookingDate,
+            balance: balance,
+            products: [{
+              productName: booking.productName,
+              quantity: remainingQuantity,
+              price: price,
+              total: remainingTotal,
+            }],
+          };
+        }
+        return acc;
+      }, {} as Record<string, {
         id: string;
         orderId: string;
+        orderIds: string[];
         customerName: string;
         status: string;
         items: number;
@@ -256,6 +302,8 @@ export const useDashboardData = ({
           total: number;
         }>;
       }>);
+
+    return Object.values(customerDeliveries);
   }, [bookedStock, sales, customers, ledgerEntries]);
 
   // Top selling products

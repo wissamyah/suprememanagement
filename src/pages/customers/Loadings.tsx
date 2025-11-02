@@ -442,7 +442,7 @@ export const Loadings = () => {
               <div>
                 <p className="text-sm text-muted">Today's Loadings</p>
                 <p className="text-2xl font-bold">{stats.todaysCount}</p>
-                <p className="text-sm text-green-400">{formatCurrency(stats.todaysValue)}</p>
+                <p className="text-sm text-green-400">{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(stats.todaysValue)}</p>
               </div>
               <Truck className="text-blue-400" size={24} />
             </div>
@@ -452,7 +452,7 @@ export const Loadings = () => {
               <div>
                 <p className="text-sm text-muted">This Week</p>
                 <p className="text-2xl font-bold">{stats.weekCount}</p>
-                <p className="text-sm text-green-400">{formatCurrency(stats.weekValue)}</p>
+                <p className="text-sm text-green-400">{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(stats.weekValue)}</p>
               </div>
               <Calendar className="text-purple-400" size={24} />
             </div>
@@ -462,7 +462,7 @@ export const Loadings = () => {
               <div>
                 <p className="text-sm text-muted">This Month</p>
                 <p className="text-2xl font-bold">{stats.monthCount}</p>
-                <p className="text-sm text-green-400">{formatCurrency(stats.monthValue)}</p>
+                <p className="text-sm text-green-400">{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(stats.monthValue)}</p>
               </div>
               <TrendingUp className="text-yellow-400" size={24} />
             </div>
@@ -472,7 +472,7 @@ export const Loadings = () => {
               <div>
                 <p className="text-sm text-muted">Total Value</p>
                 <p className="text-2xl font-bold text-green-400">
-                  {formatCurrency(stats.totalValue)}
+                  {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(stats.totalValue)}
                 </p>
                 <p className="text-sm text-muted">{stats.totalCount} loadings</p>
               </div>
@@ -483,7 +483,7 @@ export const Loadings = () => {
       )}
       
       {/* Main Table Card */}
-      <GlassCard>
+      <GlassCard className="transform-gpu relative z-0">
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={20} />

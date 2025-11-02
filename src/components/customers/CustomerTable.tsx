@@ -199,7 +199,7 @@ export const CustomerTable = ({
                 <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                   <div>
                     <span className="text-muted text-xs">Phone:</span>
-                    <p>{formatPhoneNumber(customer.phone)}</p>
+                    <p>{customer.phone ? formatPhoneNumber(customer.phone) : '-'}</p>
                   </div>
                   <div>
                     <span className="text-muted text-xs">State:</span>
@@ -332,7 +332,7 @@ export const CustomerTable = ({
                     </div>
                   </td>
                   <td className="py-3 px-3">
-                    <span className="text-sm">{formatPhoneNumber(customer.phone)}</span>
+                    <span className="text-sm">{customer.phone ? formatPhoneNumber(customer.phone) : '-'}</span>
                   </td>
                   <td className="py-3 px-3">
                     <span className="text-sm">{customer.state}</span>

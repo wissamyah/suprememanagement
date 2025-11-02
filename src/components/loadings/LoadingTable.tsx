@@ -163,7 +163,7 @@ export const LoadingTable = ({
               </div>
               <div className="text-right">
                 <p className="text-lg font-bold text-green-400">
-                  {formatCurrency(loading.totalValue)}
+                  {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(loading.totalValue)}
                 </p>
               </div>
             </div>
@@ -221,7 +221,7 @@ export const LoadingTable = ({
                     <div key={idx} className="flex justify-between">
                       <span>{item.productName}</span>
                       <span className="text-muted">
-                        {item.quantity} {item.unit} @ {formatCurrency(item.unitPrice)}
+                        {item.quantity} {item.unit} @ {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(item.unitPrice)}
                       </span>
                     </div>
                   ))}
@@ -337,7 +337,7 @@ export const LoadingTable = ({
                 </td>
                 <td className="py-3 px-4 text-right">
                   <span className="font-semibold text-green-400">
-                    {formatCurrency(loading.totalValue)}
+                    {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(loading.totalValue)}
                   </span>
                 </td>
                 <td className="py-3 px-4">

@@ -28,7 +28,7 @@ interface SummaryCardsProps {
 export const SummaryCards = ({ todaySummary, customerDebtSummary, supplierSummary }: SummaryCardsProps) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <GlassCard>
+      <GlassCard className="lg:h-full">
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
           <Clock className="text-gray-400" size={20} />
           Today's Summary
@@ -85,7 +85,7 @@ export const SummaryCards = ({ todaySummary, customerDebtSummary, supplierSummar
         placement="top"
         className="max-w-[90vw]"
       >
-        <GlassCard>
+        <GlassCard className="lg:h-full">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <Users size={20} />
             Customer Debt Summary
@@ -111,7 +111,7 @@ export const SummaryCards = ({ todaySummary, customerDebtSummary, supplierSummar
         </GlassCard>
       </Tooltip>
 
-      <GlassCard>
+      <GlassCard className="lg:h-full">
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
           <Package2 size={20} />
           Supplier Summary
