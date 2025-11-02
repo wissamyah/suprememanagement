@@ -178,6 +178,8 @@ export const useCustomersDirect = () => {
         customerId,
         customerName: customer.name,
         date,
+        type: debit > 0 ? 'debit' : 'credit',
+        amount: debit > 0 ? debit : credit,
         transactionType,
         referenceId,
         referenceNumber,

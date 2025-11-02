@@ -158,6 +158,8 @@ export const useSalesDirect = () => {
         customerId,
         customerName: customer.name,
         date,
+        type: 'debit',
+        amount: total,
         transactionType: 'sale',
         referenceId: newSale.id,
         referenceNumber: orderId,
