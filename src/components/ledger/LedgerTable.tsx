@@ -72,7 +72,7 @@ export const LedgerTable = ({
   return (
     <>
       {/* Mobile Cards View */}
-      <div className="sm:hidden space-y-3">
+      <div className="sm:hidden space-y-2">
         {entries.map((entry) => (
           <LedgerTableEntry
             key={entry.id}

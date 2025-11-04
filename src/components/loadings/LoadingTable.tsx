@@ -13,7 +13,6 @@ import {
   FileText,
   ChevronUp,
   ChevronDown,
-  Eye,
 } from "lucide-react";
 import { formatDate } from "../../utils/date";
 
@@ -44,7 +43,6 @@ export const LoadingTable = ({
     show: false,
     loading: null,
   });
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -140,10 +138,6 @@ export const LoadingTable = ({
     }
   };
 
-  const toggleExpandRow = (loadingId: string) => {
-    setExpandedRow(expandedRow === loadingId ? null : loadingId);
-  };
-
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return null;
     return sortDirection === "asc" ? (
@@ -156,115 +150,104 @@ export const LoadingTable = ({
   return (
     <>
       {/* Mobile Card View */}
-      <div className="block md:hidden space-y-4">
-        {filteredAndSortedLoadings.map((loading) => (
-          <div key={loading.id} className="glass rounded-lg p-4">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h3 className="font-semibold text-lg">{loading.loadingId}</h3>
-                <p className="text-sm text-muted flex items-center gap-1 mt-1">
-                  <Calendar className="text-gray-400" size={14} />
-                  {formatDate(loading.date)}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-green-400">
-                  {new Intl.NumberFormat("en-NG", {
-                    style: "currency",
-                    currency: "NGN",
-                  }).format(loading.totalValue)}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2 mb-3">
-              <div className="flex items-center gap-2 text-sm">
-                <User size={14} className="text-muted" />
-                <span>{loading.customerName}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Truck size={14} className="text-muted" />
-                <span>{loading.truckPlateNumber}</span>
-              </div>
-              {loading.wayBillNumber && (
-                <div className="flex items-center gap-2 text-sm">
-                  <FileText size={14} className="text-muted" />
-                  <span>{loading.wayBillNumber}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2 text-sm">
-                <Package size={14} className="text-muted" />
-                <Tooltip
-                  content={
-                    <ProductTooltip
-                      items={loading.items.map((item) => ({
-                        productName: item.productName,
-                        quantity: item.quantity,
-                        price: item.unitPrice,
-                        total: item.quantity * item.unitPrice,
-                      }))}
-                    />
-                  }
-                  placement="top"
-                >
-                  <span className="cursor-help underline decoration-dotted">
-                    {loading.items.length}{" "}
-                    {loading.items.length === 1 ? "item" : "items"}
-                  </span>
-                </Tooltip>
-              </div>
-            </div>
-
-            {/* Expandable Items Section */}
-            <div>
-              <button
-                onClick={() => toggleExpandRow(loading.id)}
-                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 mb-2"
-              >
-                <Eye size={14} />
-                {expandedRow === loading.id ? "Hide" : "View"} Items
-              </button>
-
-              {expandedRow === loading.id && (
-                <div className="mt-2 space-y-1 text-sm glass rounded p-2">
-                  {loading.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between">
-                      <span>{item.productName}</span>
-                      <span className="text-muted">
-                        {item.quantity} {item.unit} @{" "}
-                        {new Intl.NumberFormat("en-NG", {
-                          style: "currency",
-                          currency: "NGN",
-                        }).format(item.unitPrice)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-2 mt-3 pt-3 border-t border-gray-800/50">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onEditLoading(loading)}
-                className="flex-1"
-              >
-                <Edit2 size={16} />
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDeleteConfirm(loading)}
-                className="flex-1 text-red-400 hover:text-red-300"
-              >
-                <Trash2 size={16} />
-                Delete
-              </Button>
-            </div>
+      <div className="block md:hidden">
+        {filteredAndSortedLoadings.length === 0 ? (
+          <div className="text-center py-12">
+            <Truck className="mx-auto mb-4 text-muted" size={48} />
+            <p className="text-muted">No loadings found</p>
           </div>
-        ))}
+        ) : (
+          <div className="space-y-2.5">
+            {filteredAndSortedLoadings.map((loading) => (
+              <div key={loading.id} className="glass rounded-lg p-2.5">
+                {/* Header: Customer Name, Total Value & Actions */}
+                <div className="flex justify-between items-start mb-2 pb-2 border-b border-gray-800/30">
+                  <div className="flex-1 pr-2">
+                    <h3 className="font-bold text-base leading-tight mb-0.5">
+                      {loading.customerName}
+                    </h3>
+                    <div className="text-sm font-bold text-green-400">
+                      {new Intl.NumberFormat("en-NG", {
+                        style: "currency",
+                        currency: "NGN",
+                        maximumFractionDigits: 0,
+                      }).format(loading.totalValue)}
+                    </div>
+                  </div>
+                  
+                  {/* Actions - Icon Only */}
+                  <div className="flex gap-1 items-start">
+                    <button
+                      onClick={() => onEditLoading(loading)}
+                      className="p-1.5 rounded hover:bg-white/10 transition-colors"
+                      title="Edit"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteConfirm(loading)}
+                      className="p-1.5 rounded hover:bg-white/10 transition-colors text-red-400 hover:text-red-300"
+                      title="Delete"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2-Column Grid Layout */}
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                  {/* Left Column */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1 text-muted">
+                      <Calendar size={10} className="flex-shrink-0" />
+                      <span className="truncate">{formatDate(loading.date)}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-muted">
+                      <Truck size={10} className="flex-shrink-0" />
+                      <span className="truncate">{loading.truckPlateNumber}</span>
+                    </div>
+                    {loading.wayBillNumber && (
+                      <div className="flex items-center gap-1 text-muted">
+                        <FileText size={10} className="flex-shrink-0" />
+                        <span className="truncate">{loading.wayBillNumber}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column - Products */}
+                  <Tooltip
+                    content={
+                      <ProductTooltip
+                        items={loading.items.map((item) => ({
+                          productName: item.productName,
+                          quantity: item.quantity,
+                          price: item.unitPrice,
+                          total: item.quantity * item.unitPrice,
+                        }))}
+                      />
+                    }
+                    placement="top"
+                  >
+                    <div className="space-y-0.5 cursor-help">
+                      <div className="flex items-center gap-1 text-muted mb-0.5">
+                        <Package size={10} className="flex-shrink-0" />
+                        <span className="font-medium text-[10px]">{loading.items.length} {loading.items.length === 1 ? "Item" : "Items"}</span>
+                      </div>
+                      {loading.items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between text-[10px] leading-tight">
+                          <span className="text-gray-400 truncate pr-1">{item.productName}</span>
+                          <span className="text-gray-500 whitespace-nowrap flex-shrink-0">
+                            {item.quantity}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </Tooltip>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Desktop Table View */}

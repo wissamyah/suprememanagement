@@ -527,19 +527,19 @@ export const PaddyTrucks = () => {
       <GlassCard>
         {/* Filters */}
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
+          <div className="relative flex-1 lg:min-w-[500px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={20} />
             <input
               type="text"
               placeholder="Search by truck, supplier, waybill..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text"
+              className="w-full pl-10 pr-4 py-2.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-muted-text text-base"
             />
           </div>
 
           <select
-            className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+            className="w-full lg:w-[180px] px-3 py-2.5 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-sm"
             value={supplierFilter}
             onChange={(e) => setSupplierFilter(e.target.value)}
           >

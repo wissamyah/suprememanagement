@@ -180,31 +180,79 @@ export const SaleTable = ({
     <>
       {/* Mobile Card View */}
       <div className="sm:hidden w-full max-w-full overflow-x-hidden">
-        <div className="space-y-3 w-full max-w-full">
+        <div className="space-y-2 w-full max-w-full">
           {paginatedSales.map((sale) => {
             const totalItems = sale.items.reduce((sum, item) => sum + item.quantity, 0);
             
             return (
               <div
                 key={`${sale.id}-${sale.updatedAt}-${forceRender}`}
-                className="glass rounded-lg p-4 hover:bg-glass/50 transition-colors w-full max-w-full overflow-x-hidden"
+                className="glass rounded-lg p-2 hover:bg-glass/50 transition-colors w-full max-w-full overflow-x-hidden"
               >
-                {/* Card Header */}
-                <div className="flex items-start justify-between mb-3 gap-2 w-full overflow-x-hidden">
-                  <div className="flex-1 min-w-0 overflow-x-hidden">
-                    <p className="font-semibold text-sm truncate">{sale.orderId}</p>
-                    <p className="text-xs text-muted mt-1 truncate">{sale.customerName}</p>
+                {/* Compact Header: Customer, Date, Status, Total, Actions */}
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-sm truncate">
+                        {sale.customerName}
+                      </span>
+                      <span className="text-[10px] text-muted whitespace-nowrap">
+                        {formatDate(sale.date)}
+                      </span>
+                      <span className={`px-1.5 py-0.5 text-[9px] rounded leading-none ${getPaymentStatusColor(sale.paymentStatus)}`}>
+                        {sale.paymentStatus}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="font-bold text-lg break-words">{formatCurrency(sale.totalAmount)}</p>
-                    <p className="text-xs text-muted mt-1 whitespace-nowrap">
-                      {formatDate(sale.date)}
-                    </p>
+                  
+                  {/* Total & Actions on Same Line */}
+                  <div className="flex items-center gap-1.5">
+                    <div className="text-right">
+                      <div className="font-bold text-sm leading-none text-green-400">
+                        {formatCurrency(sale.totalAmount)}
+                      </div>
+                    </div>
+                    
+                    {/* Actions - Icon Only */}
+                    <div className="flex gap-0.5">
+                      {onViewDetails && (
+                        <button
+                          onClick={() => onViewDetails(sale)}
+                          className="p-1 rounded hover:bg-white/10 transition-colors"
+                          title="View Details"
+                        >
+                          <Eye size={13} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => onEditSale(sale)}
+                        className="p-1 rounded hover:bg-white/10 transition-colors"
+                        title="Edit Sale"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(sale)}
+                        className="p-1 rounded hover:bg-white/10 transition-colors text-red-400 hover:text-red-300"
+                        title="Delete Sale"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                      {onGenerateInvoice && (
+                        <button
+                          onClick={() => onGenerateInvoice(sale)}
+                          className="p-1 rounded hover:bg-white/10 transition-colors"
+                          title="Generate Invoice"
+                        >
+                          <FileText size={13} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Items and Payment Status */}
-                <div className="flex items-center justify-between mb-3 gap-2 w-full overflow-x-hidden">
+                {/* Items - Subtle Inline Display */}
+                <div className="text-[10px] text-muted">
                   <Tooltip
                     content={
                       <ProductTooltip
@@ -218,50 +266,19 @@ export const SaleTable = ({
                     }
                     placement="top"
                   >
-                    <span className="cursor-help underline decoration-dotted text-sm truncate min-w-0">
-                      {totalItems} {totalItems === 1 ? 'item' : 'items'}
-                    </span>
+                    <div className="cursor-help flex items-center gap-1.5 flex-wrap">
+                      {sale.items.slice(0, 3).map((item, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-0.5">
+                          <span className="text-gray-400">{item.productName}</span>
+                          <span className="text-gray-500">×{item.quantity}</span>
+                          {idx < Math.min(sale.items.length - 1, 2) && <span className="text-gray-600">•</span>}
+                        </span>
+                      ))}
+                      {sale.items.length > 3 && (
+                        <span className="text-gray-500 italic">+{sale.items.length - 3} more</span>
+                      )}
+                    </div>
                   </Tooltip>
-                  
-                  <span className={`px-2 py-1 text-xs rounded-full whitespace-nowrap flex-shrink-0 ${getPaymentStatusColor(sale.paymentStatus)}`}>
-                    {sale.paymentStatus}
-                  </span>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-1 justify-end border-t border-white/5 pt-3 w-full overflow-x-hidden">
-                  {onViewDetails && (
-                    <button
-                      className="p-1.5 rounded-lg text-gray-300 hover:bg-white/10 transition-all duration-200"
-                      onClick={() => onViewDetails(sale)}
-                      title="View Details"
-                    >
-                      <Eye size={16} />
-                    </button>
-                  )}
-                  <button
-                    className="p-1.5 rounded-lg text-gray-300 hover:bg-white/10 transition-all duration-200"
-                    onClick={() => onEditSale(sale)}
-                    title="Edit Sale"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    className="p-1.5 rounded-lg text-gray-300 hover:bg-white/10 hover:text-red-400 transition-all duration-200"
-                    onClick={() => handleDeleteClick(sale)}
-                    title="Delete Sale"
-                  >
-                    <Trash2 size={16} className="text-red-400" />
-                  </button>
-                  {onGenerateInvoice && (
-                    <button
-                      className="p-1.5 rounded-lg text-gray-300 hover:bg-white/10 transition-all duration-200"
-                      onClick={() => onGenerateInvoice(sale)}
-                      title="Generate Invoice"
-                    >
-                      <FileText size={16} />
-                    </button>
-                  )}
                 </div>
               </div>
             );

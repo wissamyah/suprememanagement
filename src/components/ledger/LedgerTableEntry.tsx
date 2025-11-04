@@ -41,7 +41,7 @@ export const LedgerTableEntry = ({
       if (sale && sale.items && sale.items.length > 0 && orderId) {
         const parts = entry.description.split(orderId);
         return (
-          <div className={isMobile ? "text-sm mb-3" : "leading-tight"}>
+          <>
             {parts[0]}
             <Tooltip
               content={
@@ -61,12 +61,12 @@ export const LedgerTableEntry = ({
               </span>
             </Tooltip>
             {parts[1]}
-          </div>
+          </>
         );
       }
-      return <div className={isMobile ? "text-sm mb-3" : "leading-tight"}>{entry.description}</div>;
+      return entry.description;
     }
-    return <div className={isMobile ? "text-sm mb-3" : "leading-tight"}>{entry.description}</div>;
+    return entry.description;
   };
 
   const renderActions = () => {
@@ -117,7 +117,7 @@ export const LedgerTableEntry = ({
   if (isMobile) {
     return (
       <div
-        className={`glass rounded-lg p-4 ${
+        className={`glass rounded-lg p-2 ${
           entry.runningBalance > 0
             ? 'bg-green-500/5'
             : entry.runningBalance < 0
@@ -125,62 +125,118 @@ export const LedgerTableEntry = ({
               : ''
         }`}
       >
-        <div className="flex justify-between items-start mb-3">
-          <div>
-            <p className="font-medium">
-              {!customerId && entry.customerName}
-            </p>
-            <p className="text-sm text-muted">
-              {formatDate(entry.date)}
-            </p>
+        {/* Compact Header: Customer, Date, Type, Balance, Actions - All in One Line */}
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex-1 min-w-0 pr-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {!customerId && (
+                <span className="font-bold text-sm truncate">
+                  {entry.customerName}
+                </span>
+              )}
+              <span className="text-[10px] text-muted whitespace-nowrap">
+                {formatDate(entry.date)}
+              </span>
+              <span className={`px-1.5 py-0.5 text-[9px] rounded leading-none ${
+                entry.transactionType === 'payment'
+                  ? 'bg-green-500/20 text-green-400'
+                  : entry.transactionType === 'sale'
+                    ? 'bg-red-500/20 text-red-400'
+                    : entry.transactionType === 'credit_note'
+                      ? 'bg-blue-500/20 text-blue-400'
+                      : entry.transactionType === 'opening_balance'
+                        ? 'bg-purple-500/20 text-purple-400'
+                        : 'bg-gray-500/20 text-gray-400'
+              }`}>
+                {getTransactionTypeLabel(entry.transactionType)}
+              </span>
+            </div>
           </div>
-          <span className={`px-2 py-0.5 text-xs rounded ${
-            entry.transactionType === 'payment'
-              ? 'bg-green-500/20 text-green-400'
-              : entry.transactionType === 'sale'
-                ? 'bg-red-500/20 text-red-400'
-                : entry.transactionType === 'credit_note'
-                  ? 'bg-blue-500/20 text-blue-400'
-                  : 'bg-gray-500/20 text-gray-400'
-          }`}>
-            {getTransactionTypeLabel(entry.transactionType)}
-          </span>
+          
+          {/* Balance & Actions on Same Line */}
+          <div className="flex items-center gap-1.5">
+            <div className="text-right">
+              <div className={`font-bold text-sm leading-none ${
+                entry.runningBalance > 0
+                  ? 'text-green-400'
+                  : entry.runningBalance < 0
+                    ? 'text-red-400'
+                    : 'text-yellow-400'
+              }`}>
+                {formatCurrency(entry.runningBalance)}
+              </div>
+              {entry.runningBalance !== 0 && (
+                <div className="text-[8px] text-muted leading-none mt-0.5">
+                  {entry.runningBalance < 0 ? 'Owes' : 'Credit'}
+                </div>
+              )}
+            </div>
+            
+            {/* Actions */}
+            {customerId && entry.transactionType !== 'sale' && (
+              <div className="flex gap-0.5">
+                {entry.transactionType !== 'payment' && (
+                  <button
+                    onClick={() => onEdit(entry)}
+                    className="p-1 rounded hover:bg-white/10 transition-colors"
+                    title="Edit"
+                  >
+                    <Edit2 size={13} />
+                  </button>
+                )}
+                <button
+                  onClick={() => onDelete(entry)}
+                  disabled={isDeletingId === entry.id}
+                  className="p-1 rounded hover:bg-white/10 transition-colors text-red-400 hover:text-red-300 disabled:opacity-50"
+                  title="Delete"
+                >
+                  {isDeletingId === entry.id ? (
+                    <RefreshCw size={13} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={13} />
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {renderDescription()}
+        {/* Description - Compact Single Line */}
+        <div className="text-[11px] leading-tight text-gray-300 mb-1">
+          {renderDescription()}
+        </div>
 
-        <div className="grid grid-cols-3 gap-2 text-sm mb-3">
+        {/* Inline Debit/Credit - Only Show What Exists */}
+        <div className="flex items-center gap-3 text-[10px]">
           {entry.debit > 0 && (
-            <div>
-              <span className="text-muted text-xs">Debit</span>
-              <p className="font-medium text-red-400">
+            <div className="flex items-center gap-1">
+              <span className="text-muted">Dr:</span>
+              <span className="font-medium text-red-400">
                 {formatCurrency(entry.debit)}
-              </p>
+              </span>
             </div>
           )}
           {entry.credit > 0 && (
-            <div>
-              <span className="text-muted text-xs">Credit</span>
-              <p className="font-medium text-green-400">
+            <div className="flex items-center gap-1">
+              <span className="text-muted">Cr:</span>
+              <span className="font-medium text-green-400">
                 {formatCurrency(entry.credit)}
-              </p>
+              </span>
             </div>
           )}
-          <div>
-            <span className="text-muted text-xs">Balance</span>
-            <p className={`font-bold ${
-              entry.runningBalance > 0
-                ? 'text-green-400'
-                : entry.runningBalance < 0
-                  ? 'text-red-400'
-                  : 'text-yellow-400'
-            }`}>
-              {formatCurrency(entry.runningBalance)}
-            </p>
-          </div>
+          {entry.notes && (
+            <>
+              <span className="text-muted">•</span>
+              <span className="text-muted italic truncate flex-1">{entry.notes}</span>
+            </>
+          )}
+          {customerId && entry.transactionType === 'sale' && (
+            <>
+              <span className="text-muted">•</span>
+              <span className="text-muted italic text-[9px]">Via Sales</span>
+            </>
+          )}
         </div>
-
-        {renderActions()}
       </div>
     );
   }
@@ -202,7 +258,7 @@ export const LedgerTableEntry = ({
         <td className="py-1.5 px-2 text-xs font-medium">{entry.customerName}</td>
       )}
       <td className="py-1.5 px-2 text-xs">
-        <div>
+        <div className="leading-tight">
           {renderDescription()}
           {entry.notes && (
             <div className="text-[10px] text-muted mt-0.5">{entry.notes}</div>
