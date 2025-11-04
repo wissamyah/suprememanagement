@@ -182,8 +182,6 @@ export const SaleTable = ({
       <div className="sm:hidden w-full max-w-full overflow-x-hidden">
         <div className="space-y-2 w-full max-w-full">
           {paginatedSales.map((sale) => {
-            const totalItems = sale.items.reduce((sum, item) => sum + item.quantity, 0);
-            
             return (
               <div
                 key={`${sale.id}-${sale.updatedAt}-${forceRender}`}

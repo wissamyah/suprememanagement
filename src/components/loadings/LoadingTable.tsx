@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import type { Loading } from "../../types";
-import { Button } from "../ui/Button";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import { Tooltip, ProductTooltip } from "../ui/Tooltip";
 import {
