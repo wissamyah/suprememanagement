@@ -484,7 +484,7 @@ export const Loadings = () => {
       {/* Main Table Card */}
       <GlassCard className="transform-gpu relative z-0">
         <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
+          <div className="relative flex-1 md:flex-[1_1_0%] min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={20} />
             <input
               type="text"
@@ -496,7 +496,7 @@ export const Loadings = () => {
             />
           </div>
           <select
-            className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-base"
+            className="px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-base w-full md:w-auto md:flex-[0_0_180px]"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value as any)}
             style={{ fontSize: '16px' }}
