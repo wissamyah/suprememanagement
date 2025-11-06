@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import type { Customer, Sale, Loading, LedgerEntry } from '../types';
+import type { Customer } from '../types';
 import { formatCurrency } from './customers';
 
 export interface TimelineTransaction {

@@ -515,11 +515,11 @@ export const SearchResults = ({
                     <div
                       key={idx}
                       className="text-xs px-2 py-1 rounded bg-yellow-500/10 text-gray-300 border border-yellow-500/20"
-                      title={`${item.productName}: ${item.quantity} ${item.unit} @ ${formatCurrency(item.price)}/${item.unit}`}
+                      title={`${item.productName}: ${item.quantity} ${item.unit} @ ${formatCurrency(item.unitPrice)}/${item.unit}`}
                     >
                       <span className="font-medium">{item.productName}</span>
                       <span className="text-yellow-400 ml-1">• {item.quantity} {item.unit}</span>
-                      <span className="text-gray-400 ml-1">@ {formatCurrency(item.price)}</span>
+                      <span className="text-gray-400 ml-1">@ {formatCurrency(item.unitPrice)}</span>
                     </div>
                   ))}
                 </div>

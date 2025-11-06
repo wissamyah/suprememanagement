@@ -11,7 +11,7 @@ import {
   TrendingUp,
   TrendingDown
 } from 'lucide-react';
-import type { Customer, Sale, Loading, LedgerEntry } from '../../types';
+import type { Customer } from '../../types';
 import { formatCurrency } from '../../utils/customers';
 import { formatDate } from '../../utils/dateFormatting';
 import { useDataContext } from '../../contexts/DataContext';
@@ -104,7 +104,7 @@ export const CustomerHistoryModal = ({
           credit: 0,
           balance: 0, // Will be calculated later
           reference: sale.orderId,
-          items: sale.items.map(item => ({
+          items: sale.items.map((item: { productName: string; quantity: number; unit: string; price: number }) => ({
             productName: item.productName,
             quantity: item.quantity,
             unit: item.unit,
@@ -128,7 +128,7 @@ export const CustomerHistoryModal = ({
           credit: 0,
           balance: 0, // Will be calculated later
           reference: loading.loadingId,
-          items: loading.items.map(item => ({
+          items: loading.items.map((item: { productName: string; quantity: number; unit: string; unitPrice: number }) => ({
             productName: item.productName,
             quantity: item.quantity,
             unit: item.unit,
