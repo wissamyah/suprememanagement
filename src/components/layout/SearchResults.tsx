@@ -444,7 +444,7 @@ export const SearchResults = ({
             <div className="flex items-center gap-4 mt-1 text-sm text-gray-400">
               <span>{sale.customerName}</span>
               <span>•</span>
-              <span>{new Date(sale.date).toLocaleDateString()}</span>
+              <span>{new Date(sale.date).toLocaleDateString('en-GB')}</span>
               <span>•</span>
               <span>{formatCurrency(sale.totalAmount)}</span>
               <span>•</span>
@@ -452,6 +452,23 @@ export const SearchResults = ({
                 {sale.paymentStatus.replace('-', ' ').toUpperCase()}
               </span>
             </div>
+            {sale.items && sale.items.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-white/5">
+                <div className="flex flex-wrap gap-2">
+                  {sale.items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="text-xs px-2 py-1 rounded bg-orange-500/10 text-gray-300 border border-orange-500/20"
+                      title={`${item.productName}: ${item.quantity} ${item.unit} @ ${formatCurrency(item.price)}/${item.unit}`}
+                    >
+                      <span className="font-medium">{item.productName}</span>
+                      <span className="text-orange-400 ml-1">• {item.quantity} {item.unit}</span>
+                      <span className="text-gray-400 ml-1">@ {formatCurrency(item.price)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -489,8 +506,25 @@ export const SearchResults = ({
               <span>•</span>
               <span>Truck: {loading.truckPlateNumber}</span>
               <span>•</span>
-              <span>{new Date(loading.date).toLocaleDateString()}</span>
+              <span>{new Date(loading.date).toLocaleDateString('en-GB')}</span>
             </div>
+            {loading.items && loading.items.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-white/5">
+                <div className="flex flex-wrap gap-2">
+                  {loading.items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="text-xs px-2 py-1 rounded bg-yellow-500/10 text-gray-300 border border-yellow-500/20"
+                      title={`${item.productName}: ${item.quantity} ${item.unit} @ ${formatCurrency(item.price)}/${item.unit}`}
+                    >
+                      <span className="font-medium">{item.productName}</span>
+                      <span className="text-yellow-400 ml-1">• {item.quantity} {item.unit}</span>
+                      <span className="text-gray-400 ml-1">@ {formatCurrency(item.price)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -526,7 +560,7 @@ export const SearchResults = ({
             <div className="flex items-center gap-4 mt-1 text-sm text-gray-400">
               <span>{paddyTruck.supplierName}</span>
               <span>•</span>
-              <span>{new Date(paddyTruck.date).toLocaleDateString()}</span>
+              <span>{new Date(paddyTruck.date).toLocaleDateString('en-GB')}</span>
               <span>•</span>
               <span>{paddyTruck.weightAfterDeduction} kg</span>
             </div>
@@ -535,6 +569,17 @@ export const SearchResults = ({
       </div>
     );
   };
+
+  // Sort time-sensitive results by date (most recent first)
+  const sortedSales = [...results.sales].sort((a, b) => 
+    new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+  );
+  const sortedLoadings = [...results.loadings].sort((a, b) => 
+    new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+  );
+  const sortedPaddyTrucks = [...results.paddyTrucks].sort((a, b) => 
+    new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+  );
 
   return (
     <div className="max-h-[calc(100vh-8rem)] sm:max-h-[70vh] overflow-y-auto custom-scrollbar py-3">
@@ -581,7 +626,7 @@ export const SearchResults = ({
             Sales ({results.sales.length})
           </h3>
           <div className="space-y-1 px-3">
-            {results.sales.map((result) => renderSaleResult(result))}
+            {sortedSales.map((result) => renderSaleResult(result))}
           </div>
         </div>
       )}
@@ -593,7 +638,7 @@ export const SearchResults = ({
             Loadings ({results.loadings.length})
           </h3>
           <div className="space-y-1 px-3">
-            {results.loadings.map((result) => renderLoadingResult(result))}
+            {sortedLoadings.map((result) => renderLoadingResult(result))}
           </div>
         </div>
       )}
@@ -605,7 +650,7 @@ export const SearchResults = ({
             Paddy Trucks ({results.paddyTrucks.length})
           </h3>
           <div className="space-y-1 px-3">
-            {results.paddyTrucks.map((result) => renderPaddyTruckResult(result))}
+            {sortedPaddyTrucks.map((result) => renderPaddyTruckResult(result))}
           </div>
         </div>
       )}

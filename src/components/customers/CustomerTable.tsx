@@ -13,7 +13,8 @@ import {
   Square,
   FileText,
   Users,
-  RefreshCw
+  RefreshCw,
+  History
 } from 'lucide-react';
 import {
   formatCurrency,
@@ -36,6 +37,7 @@ interface CustomerTableProps {
   onDeleteCustomer: (customerId: string) => void;
   onViewLedger: (customer: Customer) => void;
   onViewBookings: (customer: Customer) => void;
+  onViewHistory: (customer: Customer) => void;
   refreshData?: () => void;
 }
 
@@ -53,6 +55,7 @@ export const CustomerTable = ({
   onDeleteCustomer,
   onViewLedger,
   onViewBookings,
+  onViewHistory,
   refreshData
 }: CustomerTableProps) => {
   const [sortField, setSortField] = useState<SortField>('name');
@@ -230,6 +233,13 @@ export const CustomerTable = ({
                     <Package size={16} />
                   </button>
                   <button
+                    onClick={() => onViewHistory(customer)}
+                    className="p-1.5 rounded-lg hover:bg-white/10 transition-all duration-200"
+                    title="Customer History"
+                  >
+                    <History size={16} className="text-cyan-400" />
+                  </button>
+                  <button
                     onClick={() => handleDeleteConfirm(customer)}
                     className="p-1.5 rounded-lg hover:bg-white/10 transition-all duration-200"
                     title="Delete Customer"
@@ -364,6 +374,13 @@ export const CustomerTable = ({
                         title="View Bookings"
                       >
                         <Package size={14} className="sm:w-4 sm:h-4" />
+                      </button>
+                      <button
+                        onClick={() => onViewHistory(customer)}
+                        className="p-1.5 sm:p-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+                        title="Customer History"
+                      >
+                        <History size={14} className="sm:w-4 sm:h-4 text-cyan-400" />
                       </button>
                       <button
                         onClick={() => handleDeleteConfirm(customer)}

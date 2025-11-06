@@ -20,6 +20,7 @@ import { CustomerTable } from '../../components/customers/CustomerTable';
 import { AddCustomerModal } from '../../components/customers/AddCustomerModal';
 import { EditCustomerModal } from '../../components/customers/EditCustomerModal';
 import { CustomerBookingsModal } from '../../components/customers/CustomerBookingsModal';
+import { CustomerHistoryModal } from '../../components/customers/CustomerHistoryModal';
 import {
   exportCustomersToJSON,
   exportCustomersToCSV,
@@ -36,6 +37,7 @@ export const CustomerList = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingBookingsCustomer, setViewingBookingsCustomer] = useState<Customer | null>(null);
+  const [viewingHistoryCustomer, setViewingHistoryCustomer] = useState<Customer | null>(null);
   const [showImportExportMenu, setShowImportExportMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   
@@ -131,6 +133,10 @@ export const CustomerList = () => {
 
   const handleViewBookings = (customer: Customer) => {
     setViewingBookingsCustomer(customer);
+  };
+
+  const handleViewHistory = (customer: Customer) => {
+    setViewingHistoryCustomer(customer);
   };
 
   const handleExportJSON = (includeRelatedData: boolean = false) => {
@@ -432,6 +438,7 @@ export const CustomerList = () => {
             onDeleteCustomer={handleDeleteCustomer}
             onViewLedger={handleViewLedger}
             onViewBookings={handleViewBookings}
+            onViewHistory={handleViewHistory}
             refreshData={refreshData}
           />
         )}
@@ -455,6 +462,12 @@ export const CustomerList = () => {
         isOpen={!!viewingBookingsCustomer}
         customer={viewingBookingsCustomer}
         onClose={() => setViewingBookingsCustomer(null)}
+      />
+      
+      <CustomerHistoryModal
+        isOpen={!!viewingHistoryCustomer}
+        customer={viewingHistoryCustomer}
+        onClose={() => setViewingHistoryCustomer(null)}
       />
       
       {/* Toast Container */}
