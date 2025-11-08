@@ -37,7 +37,7 @@ export const useCustomersDirect = () => {
       // Check for duplicate
       const existing = customers.find(c => 
         c.name.toLowerCase() === name.toLowerCase() || 
-        c.phone === phone
+        (phone && c.phone === phone)
       );
       
       if (existing) {

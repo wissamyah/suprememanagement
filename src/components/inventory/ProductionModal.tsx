@@ -118,7 +118,8 @@ export const ProductionModal = ({
       </Button>
       <Button 
         variant="primary" 
-        onClick={handleSubmit}
+        type="submit"
+        form="production-form"
         loading={loading}
         loadingText="Processing..."
         disabled={loading}
@@ -136,7 +137,7 @@ export const ProductionModal = ({
       footer={footer}
       size="xl"
     >
-      <div className="space-y-4">
+      <form id="production-form" onSubmit={handleSubmit} className="space-y-4">
         {errors.length > 0 && (
           <div className="p-3 rounded-lg bg-red-500/20 text-red-400">
             <ul className="list-disc list-inside space-y-1">
@@ -246,7 +247,7 @@ export const ProductionModal = ({
           <p>Production entries will increase the "Quantity on Hand" for selected products.</p>
           <p>All entries will be logged in the movement history for tracking.</p>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 };

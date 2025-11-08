@@ -95,7 +95,8 @@ export const StockAdjustmentModal = ({
       </Button>
       <Button 
         variant="primary" 
-        onClick={handleSubmit}
+        type="submit"
+        form="stock-adjustment-form"
         loading={loading}
         loadingText="Adjusting..."
         disabled={loading}
@@ -113,7 +114,7 @@ export const StockAdjustmentModal = ({
       footer={footer}
       size="md"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="stock-adjustment-form" onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="p-3 rounded-lg bg-red-500/20 text-red-400 text-sm flex items-center gap-2">
             <AlertTriangle size={18} />

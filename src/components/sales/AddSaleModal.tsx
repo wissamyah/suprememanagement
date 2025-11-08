@@ -188,7 +188,8 @@ export const AddSaleModal = ({
           </Button>
           <Button 
             variant="primary" 
-            onClick={handleSubmit}
+            type="submit"
+            form="add-sale-form"
             disabled={isSubmitting || items.length === 0}
             loading={isSubmitting}
             loadingText="Creating Sale..."
@@ -198,7 +199,7 @@ export const AddSaleModal = ({
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="add-sale-form" onSubmit={handleSubmit} className="space-y-4">
         {/* Error Messages */}
         {errors.length > 0 && (
           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">

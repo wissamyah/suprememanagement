@@ -106,7 +106,8 @@ export const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }: EditC
           </Button>
           <Button 
             variant="primary" 
-            onClick={handleSubmit}
+            type="submit"
+            form="edit-customer-form"
             disabled={isSubmitting}
             loading={isSubmitting}
             loadingText="Updating Customer..."
@@ -116,7 +117,7 @@ export const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }: EditC
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="edit-customer-form" onSubmit={handleSubmit} className="space-y-4">
         {/* Error Messages */}
         {errors.length > 0 && (
           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">

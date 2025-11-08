@@ -119,10 +119,10 @@ export const checkDuplicateCustomer = (
     c.name.toLowerCase().trim() === normalizedName
   );
   
-  const duplicateByPhone = customers.find(c => 
+  const duplicateByPhone = normalizedPhone ? customers.find(c => 
     c.id !== excludeId && 
     c.phone.replace(/\D/g, '') === normalizedPhone
-  );
+  ) : undefined;
   
   if (duplicateByName) {
     return {

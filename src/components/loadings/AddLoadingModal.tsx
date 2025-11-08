@@ -181,7 +181,7 @@ export const AddLoadingModal = ({
       title="New Loading"
       size="lg"
     >
-      <div className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Error Messages */}
         {errors.length > 0 && (
           <div className="glass rounded-lg p-4 border border-red-500/20 bg-red-500/10">
@@ -330,12 +330,12 @@ export const AddLoadingModal = ({
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-800/50">
-          <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
+          <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button 
             variant="primary" 
-            onClick={handleSubmit} 
+            type="submit"
             loading={isSubmitting}
             loadingText="Creating Loading..."
             disabled={!customerId || items.length === 0}
@@ -344,7 +344,7 @@ export const AddLoadingModal = ({
             Add Loading
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 };

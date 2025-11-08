@@ -77,10 +77,10 @@ export const checkDuplicateSupplier = (
     s.name.toLowerCase().trim() === normalizedName
   );
   
-  const duplicateByPhone = suppliers.find(s => 
+  const duplicateByPhone = normalizedPhone ? suppliers.find(s => 
     s.id !== excludeId && 
     s.phone.replace(/\D/g, '') === normalizedPhone
-  );
+  ) : undefined;
   
   if (duplicateByName) {
     return {

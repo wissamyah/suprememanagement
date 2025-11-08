@@ -185,7 +185,8 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
           </Button>
           <Button 
             variant="primary" 
-            onClick={handleSubmit}
+            type="submit"
+            form="edit-truck-form"
             disabled={isSubmitting}
             loading={isSubmitting}
             loadingText="Saving Changes..."
@@ -195,7 +196,7 @@ export const EditPaddyTruckModal = ({ isOpen, truck, onClose, onUpdate }: EditPa
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="edit-truck-form" onSubmit={handleSubmit} className="space-y-4">
         {/* Error Messages */}
         {errors.length > 0 && (
           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">

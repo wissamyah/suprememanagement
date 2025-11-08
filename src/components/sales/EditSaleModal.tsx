@@ -183,7 +183,8 @@ export const EditSaleModal = ({
           </Button>
           <Button 
             variant="primary" 
-            onClick={handleSubmit}
+            type="submit"
+            form="edit-sale-form"
             disabled={isSubmitting || items.length === 0}
             loading={isSubmitting}
             loadingText="Updating Sale..."
@@ -193,7 +194,7 @@ export const EditSaleModal = ({
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="edit-sale-form" onSubmit={handleSubmit} className="space-y-4">
         {/* Error Messages */}
         {errors.length > 0 && (
           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">

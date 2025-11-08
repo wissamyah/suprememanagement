@@ -109,7 +109,8 @@ export const NotesModal = ({ isOpen, supplier, onClose, onUpdate }: NotesModalPr
           </Button>
           <Button
             variant="primary"
-            onClick={handleSubmit}
+            type="submit"
+            form="notes-form"
             disabled={isSubmitting || !hasChanges}
             loading={isSubmitting}
             loadingText="Saving Notes..."
@@ -120,7 +121,7 @@ export const NotesModal = ({ isOpen, supplier, onClose, onUpdate }: NotesModalPr
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="notes-form" onSubmit={handleSubmit} className="space-y-4">
         {/* Error Messages */}
         {errors.length > 0 && (
           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">

@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Modal } from '../ui/Modal';
-import { Button } from '../ui/Button';
-import { User, AlertCircle, Phone, UserCheck } from 'lucide-react';
-import { validatePhoneNumber, formatPhoneNumber } from '../../utils/suppliers';
+import { useState } from "react";
+import { Modal } from "../ui/Modal";
+import { Button } from "../ui/Button";
+import { User, AlertCircle, Phone, UserCheck } from "lucide-react";
+import { validatePhoneNumber, formatPhoneNumber } from "../../utils/suppliers";
 
 interface AddSupplierModalProps {
   isOpen: boolean;
@@ -11,13 +11,19 @@ interface AddSupplierModalProps {
     name: string,
     phone: string,
     agent: string
-  ) => Promise<{ success: boolean; errors?: string[] }> | { success: boolean; errors?: string[] };
+  ) =>
+    | Promise<{ success: boolean; errors?: string[] }>
+    | { success: boolean; errors?: string[] };
 }
 
-export const AddSupplierModal = ({ isOpen, onClose, onAdd }: AddSupplierModalProps) => {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [agent, setAgent] = useState('');
+export const AddSupplierModal = ({
+  isOpen,
+  onClose,
+  onAdd,
+}: AddSupplierModalProps) => {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [agent, setAgent] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -28,17 +34,17 @@ export const AddSupplierModal = ({ isOpen, onClose, onAdd }: AddSupplierModalPro
 
     // Validation
     const validationErrors: string[] = [];
-    
+
     if (!name.trim()) {
-      validationErrors.push('Supplier name is required');
+      validationErrors.push("Supplier name is required");
     }
-    
+
     if (phone.trim() && !validatePhoneNumber(phone)) {
-      validationErrors.push('Please enter a valid Nigerian phone number');
+      validationErrors.push("Please enter a valid Nigerian phone number");
     }
-    
+
     if (!agent.trim()) {
-      validationErrors.push('Agent name is required');
+      validationErrors.push("Agent name is required");
     }
 
     if (validationErrors.length > 0) {
@@ -49,27 +55,27 @@ export const AddSupplierModal = ({ isOpen, onClose, onAdd }: AddSupplierModalPro
 
     // Add supplier
     const result = await onAdd(name.trim(), phone.trim(), agent.trim());
-    
+
     if (result.success) {
       handleClose();
     } else {
-      setErrors(result.errors || ['Failed to add supplier']);
+      setErrors(result.errors || ["Failed to add supplier"]);
     }
-    
+
     setIsSubmitting(false);
   };
 
   const handleClose = () => {
-    setName('');
-    setPhone('');
-    setAgent('');
+    setName("");
+    setPhone("");
+    setAgent("");
     setErrors([]);
     onClose();
   };
 
   const handlePhoneChange = (value: string) => {
     // Allow only numbers, spaces, and + sign
-    const cleaned = value.replace(/[^\d\s+]/g, '');
+    const cleaned = value.replace(/[^\d\s+]/g, "");
     setPhone(cleaned);
   };
 
@@ -84,9 +90,10 @@ export const AddSupplierModal = ({ isOpen, onClose, onAdd }: AddSupplierModalPro
           <Button variant="ghost" onClick={handleClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleSubmit}
+          <Button
+            variant="primary"
+            type="submit"
+            form="add-supplier-form"
             disabled={isSubmitting}
             loading={isSubmitting}
             loadingText="Adding Supplier..."
@@ -96,7 +103,11 @@ export const AddSupplierModal = ({ isOpen, onClose, onAdd }: AddSupplierModalPro
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        id="add-supplier-form"
+        onSubmit={handleSubmit}
+        className="space-y-4"
+      >
         {/* Error Messages */}
         {errors.length > 0 && (
           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
@@ -104,7 +115,9 @@ export const AddSupplierModal = ({ isOpen, onClose, onAdd }: AddSupplierModalPro
               <AlertCircle className="text-red-400 mt-0.5" size={16} />
               <div className="space-y-1">
                 {errors.map((error, index) => (
-                  <p key={index} className="text-sm text-red-400">{error}</p>
+                  <p key={index} className="text-sm text-red-400">
+                    {error}
+                  </p>
                 ))}
               </div>
             </div>
@@ -117,7 +130,10 @@ export const AddSupplierModal = ({ isOpen, onClose, onAdd }: AddSupplierModalPro
             Supplier Name <span className="text-red-400">*</span>
           </label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={18} />
+            <User
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text"
+              size={18}
+            />
             <input
               type="text"
               value={name}
@@ -132,11 +148,12 @@ export const AddSupplierModal = ({ isOpen, onClose, onAdd }: AddSupplierModalPro
 
         {/* Phone Number */}
         <div>
-          <label className="block text-sm font-medium mb-2">
-            Phone Number
-          </label>
+          <label className="block text-sm font-medium mb-2">Phone Number</label>
           <div className="relative">
-            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={18} />
+            <Phone
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text"
+              size={18}
+            />
             <input
               type="tel"
               value={phone}
@@ -163,7 +180,10 @@ export const AddSupplierModal = ({ isOpen, onClose, onAdd }: AddSupplierModalPro
             Agent <span className="text-red-400">*</span>
           </label>
           <div className="relative">
-            <UserCheck className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text" size={18} />
+            <UserCheck
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-text"
+              size={18}
+            />
             <input
               type="text"
               value={agent}
@@ -174,7 +194,6 @@ export const AddSupplierModal = ({ isOpen, onClose, onAdd }: AddSupplierModalPro
             />
           </div>
         </div>
-
       </form>
     </Modal>
   );

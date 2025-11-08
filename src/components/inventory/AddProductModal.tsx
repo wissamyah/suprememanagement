@@ -80,7 +80,8 @@ export const AddProductModal = ({
       </Button>
       <Button 
         variant="primary" 
-        onClick={handleSubmit}
+        type="submit"
+        form="add-product-form"
         loading={loading}
         loadingText="Adding Product..."
         disabled={loading}
@@ -98,7 +99,7 @@ export const AddProductModal = ({
       footer={footer}
       size="md"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="add-product-form" onSubmit={handleSubmit} className="space-y-4">
         {errors.length > 0 && (
           <div className="p-3 rounded-lg bg-red-500/20 text-red-400">
             <ul className="list-disc list-inside space-y-1">

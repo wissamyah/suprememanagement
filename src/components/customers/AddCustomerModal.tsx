@@ -95,7 +95,8 @@ export const AddCustomerModal = ({ isOpen, onClose, onAdd }: AddCustomerModalPro
           </Button>
           <Button 
             variant="primary" 
-            onClick={handleSubmit}
+            type="submit"
+            form="add-customer-form"
             disabled={isSubmitting}
             loading={isSubmitting}
             loadingText="Adding Customer..."
@@ -105,7 +106,7 @@ export const AddCustomerModal = ({ isOpen, onClose, onAdd }: AddCustomerModalPro
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="add-customer-form" onSubmit={handleSubmit} className="space-y-4">
         {/* Error Messages */}
         {errors.length > 0 && (
           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">

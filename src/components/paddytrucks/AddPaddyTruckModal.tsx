@@ -186,7 +186,8 @@ export const AddPaddyTruckModal = ({ isOpen, onClose, onAdd, preSelectedSupplier
           </Button>
           <Button 
             variant="primary" 
-            onClick={handleSubmit}
+            type="submit"
+            form="add-truck-form"
             disabled={isSubmitting}
             loading={isSubmitting}
             loadingText="Adding Truck..."
@@ -196,7 +197,7 @@ export const AddPaddyTruckModal = ({ isOpen, onClose, onAdd, preSelectedSupplier
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="add-truck-form" onSubmit={handleSubmit} className="space-y-4">
         {/* Error Messages */}
         {errors.length > 0 && (
           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">

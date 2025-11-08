@@ -76,7 +76,8 @@ export const EditProductModal = ({
       </Button>
       <Button 
         variant="primary" 
-        onClick={handleSubmit}
+        type="submit"
+        form="edit-product-form"
         loading={loading}
         loadingText="Updating..."
       >
@@ -95,7 +96,7 @@ export const EditProductModal = ({
       footer={footer}
       size="md"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="edit-product-form" onSubmit={handleSubmit} className="space-y-4">
         {errors.length > 0 && (
           <div className="p-3 rounded-lg bg-red-500/20 text-red-400">
             <ul className="list-disc list-inside space-y-1">
