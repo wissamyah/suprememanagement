@@ -142,7 +142,8 @@ export const AddLoadingModal = ({
     return newErrors.length === 0;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!validateForm()) return;
 
     setIsSubmitting(true);

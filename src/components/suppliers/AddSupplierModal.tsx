@@ -106,7 +106,7 @@ export const AddSupplierModal = ({
       <form
         id="add-supplier-form"
         onSubmit={handleSubmit}
-        className="space-y-4"
+        className="space-y-4 px-1"
       >
         {/* Error Messages */}
         {errors.length > 0 && (

@@ -209,6 +209,8 @@ export const AddCustomerModal = ({ isOpen, onClose, onAdd }: AddCustomerModalPro
           </p>
         </div>
 
+        {/* Hidden submit button for Enter key */}
+        <button type="submit" className="hidden" disabled={isSubmitting} />
       </form>
     </Modal>
   );

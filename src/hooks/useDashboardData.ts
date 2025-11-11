@@ -154,7 +154,7 @@ export const useDashboardData = ({
 
     loadings.slice(-5).forEach(loading => {
       const itemsDescription = loading.items
-        .map(item => `${item.productName} (${item.quantity} bags)`)
+        .map(item => `${item.productName} (${item.quantity} bags @ ₦${item.unitPrice.toLocaleString()})`)
         .join(', ');
       
       activities.push({

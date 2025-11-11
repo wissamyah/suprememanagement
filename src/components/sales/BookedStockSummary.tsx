@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { GlassCard } from '../ui/GlassCard';
-import { Package, Users, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
+import { Package, PackageOpen, Users, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import { useBookedStock } from '../../hooks/useBookedStock';
 import { Tooltip } from '../ui/Tooltip';
 import type { BookedStock } from '../../types';
@@ -9,6 +9,7 @@ import { formatDate } from '../../utils/dateFormatting';
 export const BookedStockSummary = () => {
   const { bookedStock } = useBookedStock();
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   // Filter only active bookings
   const activeBookings = bookedStock.filter(booking => 
@@ -71,11 +72,27 @@ export const BookedStockSummary = () => {
       <GlassCard className="max-w-full overflow-x-hidden">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Booked Stock Summary</h2>
-          <Package className="text-blue-400" size={24} />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-1.5 hover:bg-white/5 rounded-lg transition-all duration-300"
+              aria-label={isCollapsed ? 'Expand' : 'Collapse'}
+            >
+              {isCollapsed ? (
+                <Package size={24} className="text-blue-400 transition-all duration-300" />
+              ) : (
+                <PackageOpen size={24} className="text-blue-400 transition-all duration-300" />
+              )}
+            </button>
+          </div>
         </div>
-        <div className="text-center py-8">
-          <AlertCircle className="mx-auto mb-3 text-muted" size={48} />
-          <p className="text-muted">No active bookings at the moment</p>
+        <div 
+          className={`overflow-hidden transition-all duration-300 ${isCollapsed ? 'max-h-0' : 'max-h-48'}`}
+        >
+          <div className="text-center py-8">
+            <AlertCircle className="mx-auto mb-3 text-muted" size={48} />
+            <p className="text-muted">No active bookings at the moment</p>
+          </div>
         </div>
       </GlassCard>
     );
@@ -83,13 +100,39 @@ export const BookedStockSummary = () => {
 
   return (
     <GlassCard className="max-w-full overflow-x-hidden">
-      <div className="flex items-center justify-between mb-6 max-w-full">
-        <h2 className="text-xl font-semibold truncate">Booked Stock Summary</h2>
-        <Package className="text-blue-400 flex-shrink-0" size={24} />
+      <div className="mb-6 max-w-full">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold truncate">Booked Stock Summary</h2>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-1.5 hover:bg-white/5 rounded-lg transition-all duration-300"
+              aria-label={isCollapsed ? 'Expand' : 'Collapse'}
+            >
+              {isCollapsed ? (
+                <Package size={24} className="text-blue-400 transition-all duration-300" />
+              ) : (
+                <PackageOpen size={24} className="text-blue-400 transition-all duration-300" />
+              )}
+            </button>
+          </div>
+        </div>
+        {isCollapsed && (
+          <div className="mt-2 text-sm text-gray-400 flex flex-wrap gap-x-3 gap-y-1">
+            {productBreakdownArray.map((item, index) => (
+              <span key={index} className="whitespace-nowrap">
+                {item.productName}: <span className="text-yellow-400 font-medium">{item.quantity} {item.unit}</span>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 max-w-full w-full">
+      <div 
+        className={`overflow-hidden transition-all duration-300 ${isCollapsed ? 'max-h-0' : 'max-h-[1000px]'}`}
+      >
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 max-w-full w-full">
         <div className="glass rounded-lg p-3 min-w-0 max-w-full w-full">
           <div className="flex items-center gap-2 text-sm text-muted mb-1">
             <Users size={16} className="flex-shrink-0" />
@@ -203,6 +246,7 @@ export const BookedStockSummary = () => {
             )}
           </div>
         ))}
+      </div>
       </div>
     </GlassCard>
   );

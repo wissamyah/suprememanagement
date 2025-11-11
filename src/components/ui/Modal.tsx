@@ -81,14 +81,15 @@ export const Modal = ({
       
       {/* Modal with scale and fade animation */}
       <div 
-        className={`relative w-full ${sizes[size]} glass rounded-xl shadow-2xl transition-all duration-300 ease-out transform ${
+        className={`relative w-full ${sizes[size]} glass shadow-2xl transition-all duration-300 ease-out transform ${
           isAnimating 
             ? 'opacity-100 scale-100 translate-y-0' 
             : 'opacity-0 scale-95 translate-y-4'
         }`}
+        style={{ borderRadius: '0.75rem', overflow: 'visible' }}
       >
         {/* Header with slide down animation */}
-        <div className={`flex items-center justify-between p-6 border-b border-gray-800/50 transition-all duration-500 ease-out ${
+        <div className={`flex items-center justify-between px-8 py-6 border-b border-gray-800/50 transition-all duration-500 ease-out ${
           isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
         }`}>
           <h2 className="text-xl font-semibold">{title}</h2>
@@ -102,12 +103,13 @@ export const Modal = ({
         
         {/* Content with fade animation */}
         <div 
-          className={`p-6 transition-all duration-500 delay-75 ease-out ${
+          className={`px-10 py-8 transition-all duration-500 delay-75 ease-out ${
             isAnimating ? 'opacity-100' : 'opacity-0'
           }`}
           style={{
             maxHeight: 'calc(100vh - 200px)',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            overflowX: 'visible'
           }}
         >
           {children}
@@ -115,7 +117,7 @@ export const Modal = ({
         
         {/* Footer with slide up animation */}
         {footer && (
-          <div className={`flex justify-end gap-3 p-6 border-t border-gray-800/50 transition-all duration-500 delay-100 ease-out ${
+          <div className={`flex justify-end gap-3 px-8 py-6 border-t border-gray-800/50 transition-all duration-500 delay-100 ease-out ${
             isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
           }`}>
             {footer}
