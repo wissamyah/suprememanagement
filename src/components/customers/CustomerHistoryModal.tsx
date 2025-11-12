@@ -98,6 +98,7 @@ export const CustomerHistoryModal = ({
         transactions.push({
           id: sale.id,
           date: saleDate,
+          createdAt: new Date(sale.createdAt),
           type: 'sale',
           description: `Sale - Order #${sale.orderId}`,
           debit: sale.totalAmount,
@@ -122,6 +123,7 @@ export const CustomerHistoryModal = ({
         transactions.push({
           id: loading.id,
           date: loadingDate,
+          createdAt: new Date(loading.createdAt),
           type: 'loading',
           description: `Loading - #${loading.loadingId}`,
           debit: 0,
@@ -152,6 +154,7 @@ export const CustomerHistoryModal = ({
           transactions.push({
             id: entry.id,
             date: entryDate,
+            createdAt: new Date(entry.createdAt),
             type,
             description: entry.description,
             debit: entry.debit,
@@ -164,16 +167,25 @@ export const CustomerHistoryModal = ({
       }
     });
 
-    // Sort by date (most recent first)
-    transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+    // Sort by date first, then by createdAt for same-day transactions (oldest first)
+    transactions.sort((a, b) => {
+      const dateDiff = a.date.getTime() - b.date.getTime();
+      if (dateDiff !== 0) return dateDiff;
+      // If same day, sort by creation time
+      return a.createdAt.getTime() - b.createdAt.getTime();
+    });
 
-    // Calculate running balance (working backwards from most recent)
-    let runningBalance = customer.balance;
+    // Calculate running balance (working forwards from oldest transaction)
+    // Start with customer's initial balance before these transactions
+    let initialBalance = customer.balance;
+    for (let i = transactions.length - 1; i >= 0; i--) {
+      initialBalance = initialBalance + transactions[i].debit - transactions[i].credit;
+    }
+    
+    let runningBalance = initialBalance;
     for (let i = 0; i < transactions.length; i++) {
+      runningBalance = runningBalance - transactions[i].debit + transactions[i].credit;
       transactions[i].balance = runningBalance;
-      // For next iteration, reverse the effect of this transaction
-      // Going backwards: add back debits (they made balance more negative), subtract credits (they made balance less negative)
-      runningBalance = runningBalance + transactions[i].debit - transactions[i].credit;
     }
 
     return transactions;
@@ -202,7 +214,7 @@ export const CustomerHistoryModal = ({
       totalPayments,
       totalDebits,
       totalCredits,
-      netBalance: totalDebits - totalCredits,
+      netBalance: totalCredits - totalDebits,
       transactionCount: timeline.length
     };
   }, [timeline]);
@@ -383,9 +395,9 @@ export const CustomerHistoryModal = ({
           <div className="glass rounded-lg p-3">
             <div className="flex items-center justify-between mb-1">
               {summary.netBalance < 0 ? (
-                <TrendingUp size={16} className="text-red-400" />
+                <TrendingDown size={16} className="text-red-400" />
               ) : (
-                <TrendingDown size={16} className="text-green-400" />
+                <TrendingUp size={16} className="text-green-400" />
               )}
               <span className="text-xs text-muted">Net Balance</span>
             </div>

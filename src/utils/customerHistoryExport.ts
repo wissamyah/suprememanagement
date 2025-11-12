@@ -2,9 +2,16 @@ import jsPDF from 'jspdf';
 import type { Customer } from '../types';
 import { formatCurrency } from './customers';
 
+// PDF-specific currency formatter - using 'N' to avoid jsPDF rendering issues
+const formatCurrencyForPDF = (amount: number): string => {
+  const formatted = Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return 'N' + formatted;
+};
+
 export interface TimelineTransaction {
   id: string;
   date: Date;
+  createdAt: Date;
   type: 'sale' | 'loading' | 'payment' | 'other';
   description: string;
   debit: number;
@@ -55,7 +62,7 @@ export const exportCustomerHistoryToPDF = (
   // Company Header
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('Supreme Management', pageWidth / 2, yPosition, { align: 'center' });
+  doc.text('Supreme Rice Mills', pageWidth / 2, yPosition, { align: 'center' });
   yPosition += 8;
 
   doc.setFontSize(11);
@@ -69,49 +76,67 @@ export const exportCustomerHistoryToPDF = (
   
   // Column 1: Customer Info
   let col1X = margin;
+  let col1ValueX = margin + 25;
   let col2X = margin + 70;
+  let col2ValueX = col2X + 30;
   let infoY = yPosition;
   
   doc.text('CUSTOMER INFORMATION', col1X, infoY);
   infoY += 5;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Name:', col1X, infoY);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Name: ${customer.name}`, col1X, infoY);
+  doc.text(customer.name, col1ValueX, infoY);
   infoY += 4;
-  doc.text(`Phone: ${customer.phone}`, col1X, infoY);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Phone:', col1X, infoY);
+  doc.setFont('helvetica', 'normal');
+  doc.text(customer.phone, col1ValueX, infoY);
   infoY += 4;
-  doc.text(`State: ${customer.state}`, col1X, infoY);
+  doc.setFont('helvetica', 'bold');
+  doc.text('State:', col1X, infoY);
+  doc.setFont('helvetica', 'normal');
+  doc.text(customer.state, col1ValueX, infoY);
   
   // Column 2: Report Info
   infoY = yPosition;
   doc.setFont('helvetica', 'bold');
   doc.text('REPORT PERIOD', col2X, infoY);
   infoY += 5;
+  doc.setFont('helvetica', 'bold');
+  doc.text('From:', col2X, infoY);
   doc.setFont('helvetica', 'normal');
-  doc.text(`From: ${dateRange.from.toLocaleDateString('en-GB')}`, col2X, infoY);
+  doc.text(dateRange.from.toLocaleDateString('en-GB'), col2ValueX, infoY);
   infoY += 4;
-  doc.text(`To: ${dateRange.to.toLocaleDateString('en-GB')}`, col2X, infoY);
+  doc.setFont('helvetica', 'bold');
+  doc.text('To:', col2X, infoY);
+  doc.setFont('helvetica', 'normal');
+  doc.text(dateRange.to.toLocaleDateString('en-GB'), col2ValueX, infoY);
   infoY += 4;
-  doc.text(`Transactions: ${summary.transactionCount}`, col2X, infoY);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Count:', col2X, infoY);
+  doc.setFont('helvetica', 'normal');
+  doc.text(summary.transactionCount.toString(), col2ValueX, infoY);
   
   // Column 3: Balance Info
   let col3X = margin + 140;
+  let col3ValueX = col3X + 30;
   infoY = yPosition;
   doc.setFont('helvetica', 'bold');
   doc.text('BALANCE SUMMARY', col3X, infoY);
   infoY += 5;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Current:', col3X, infoY);
   doc.setFont('helvetica', 'normal');
-  const currentBalanceStr = customer.balance < 0 
-    ? `-${formatCurrency(Math.abs(customer.balance))}`
-    : `+${formatCurrency(Math.abs(customer.balance))}`;
-  doc.text(`Current: ${currentBalanceStr}`, col3X, infoY);
   doc.setTextColor(customer.balance < 0 ? 255 : 0, customer.balance < 0 ? 0 : 100, 0);
+  doc.text(formatCurrencyForPDF(Math.abs(customer.balance)), col3ValueX, infoY);
   infoY += 4;
+  doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
-  const netBalanceStr = summary.netBalance < 0
-    ? `-${formatCurrency(Math.abs(summary.netBalance))}`
-    : `+${formatCurrency(Math.abs(summary.netBalance))}`;
-  doc.text(`Net Period: ${netBalanceStr}`, col3X, infoY);
-  doc.setTextColor(summary.netBalance < 0 ? 255 : 0, summary.netBalance < 0 ? 0 : 100, 0);
+  doc.text('Net Period:', col3X, infoY);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(summary.netBalance < 0 ? 255 : 0, summary.netBalance >= 0 ? 100 : 0, 0);
+  doc.text(formatCurrencyForPDF(Math.abs(summary.netBalance)), col3ValueX, infoY);
   
   doc.setTextColor(0, 0, 0);
   yPosition += 18;
@@ -125,8 +150,8 @@ export const exportCustomerHistoryToPDF = (
   const ledgerTransactions = transactions.filter(t => t.type !== 'loading');
   const loadingTransactions = transactions.filter(t => t.type === 'loading');
 
-  // Helper function to render a transaction table
-  const renderTransactionTable = (title: string, transactionList: TimelineTransaction[]) => {
+  // Helper function to render ledger entries table
+  const renderLedgerTable = (title: string, transactionList: TimelineTransaction[]) => {
     if (transactionList.length === 0) return;
 
     checkPageBreak(30);
@@ -190,7 +215,7 @@ export const exportCustomerHistoryToPDF = (
       // Debit
       if (transaction.debit > 0) {
         doc.setTextColor(255, 0, 0);
-        doc.text(formatCurrency(transaction.debit), xPos, yPosition);
+        doc.text(formatCurrencyForPDF(transaction.debit), xPos, yPosition);
         doc.setTextColor(0, 0, 0);
       } else {
         doc.text('-', xPos, yPosition);
@@ -200,19 +225,16 @@ export const exportCustomerHistoryToPDF = (
       // Credit
       if (transaction.credit > 0) {
         doc.setTextColor(0, 150, 0);
-        doc.text(formatCurrency(transaction.credit), xPos, yPosition);
+        doc.text(formatCurrencyForPDF(transaction.credit), xPos, yPosition);
         doc.setTextColor(0, 0, 0);
       } else {
         doc.text('-', xPos, yPosition);
       }
       xPos += colWidths.credit;
 
-      // Balance
-      const balanceStr = transaction.balance < 0
-        ? `-${formatCurrency(Math.abs(transaction.balance))}`
-        : `+${formatCurrency(Math.abs(transaction.balance))}`;
+      // Balance (without sign since already in proper column)
       doc.setTextColor(transaction.balance < 0 ? 255 : 0, transaction.balance < 0 ? 0 : 100, 0);
-      doc.text(balanceStr, xPos, yPosition);
+      doc.text(formatCurrencyForPDF(Math.abs(transaction.balance)), xPos, yPosition);
       doc.setTextColor(0, 0, 0);
 
       yPosition += 6;
@@ -223,11 +245,8 @@ export const exportCustomerHistoryToPDF = (
         doc.setTextColor(100, 100, 100);
         transaction.items.forEach(item => {
           checkPageBreak(4);
-          doc.text(
-            `  • ${item.productName}: ${item.quantity} ${item.unit} @ ${formatCurrency(item.price)}`,
-            margin + 5,
-            yPosition
-          );
+          const itemText = '  . ' + item.productName + ': ' + item.quantity + ' ' + item.unit + ' @ ' + formatCurrencyForPDF(item.price);
+          doc.text(itemText, margin + 5, yPosition);
           yPosition += 4;
         });
         doc.setFontSize(8);
@@ -245,13 +264,161 @@ export const exportCustomerHistoryToPDF = (
     });
 
     yPosition += 8;
+
+    // Add totals row for ledger entries
+    if (transactionList.length > 0) {
+      checkPageBreak(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      
+      const totalDebits = transactionList.reduce((sum, t) => sum + t.debit, 0);
+      const totalCredits = transactionList.reduce((sum, t) => sum + t.credit, 0);
+      
+      doc.line(margin, yPosition, pageWidth - margin, yPosition);
+      yPosition += 5;
+      
+      let xPos = margin + colWidths.date + colWidths.type + colWidths.description;
+      doc.text('TOTALS:', margin, yPosition);
+      
+      doc.setTextColor(255, 0, 0);
+      doc.text(formatCurrencyForPDF(totalDebits), xPos, yPosition);
+      xPos += colWidths.debit;
+      
+      doc.setTextColor(0, 150, 0);
+      doc.text(formatCurrencyForPDF(totalCredits), xPos, yPosition);
+      
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'normal');
+      yPosition += 8;
+    }
+  };
+
+  // Helper function to render loadings table
+  const renderLoadingsTable = (title: string, transactionList: TimelineTransaction[]) => {
+    if (transactionList.length === 0) return;
+
+    checkPageBreak(30);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(title, margin, yPosition);
+    yPosition += 7;
+
+    // Table Headers for Loadings
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    const colWidths = {
+      date: 30,
+      reference: 35,
+      description: 70,
+      value: 35
+    };
+
+    let xPos = margin;
+    doc.text('Date', xPos, yPosition);
+    xPos += colWidths.date;
+    doc.text('Reference', xPos, yPosition);
+    xPos += colWidths.reference;
+    doc.text('Items', xPos, yPosition);
+    xPos += colWidths.description;
+    doc.text('Total Value', xPos, yPosition);
+    yPosition += 3;
+
+    // Header line
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 5;
+
+    // Table Rows
+    doc.setFont('helvetica', 'normal');
+    transactionList.forEach((transaction, index) => {
+      const rowHeight = 12;
+      checkPageBreak(rowHeight);
+
+      xPos = margin;
+
+      // Date
+      doc.text(new Date(transaction.date).toLocaleDateString('en-GB'), xPos, yPosition);
+      xPos += colWidths.date;
+
+      // Reference
+      doc.text(transaction.reference || '-', xPos, yPosition);
+      xPos += colWidths.reference;
+
+      // Items summary
+      const itemCount = transaction.items?.length || 0;
+      doc.text(itemCount + ' item(s)', xPos, yPosition);
+      xPos += colWidths.description;
+
+      // Total Value
+      if (transaction.items && transaction.items.length > 0) {
+        const loadedGoodsValue = transaction.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+        doc.setTextColor(200, 150, 0);
+        doc.text(formatCurrencyForPDF(loadedGoodsValue), xPos, yPosition);
+        doc.setTextColor(0, 0, 0);
+      } else {
+        doc.text('-', xPos, yPosition);
+      }
+
+      yPosition += 6;
+
+      // Add item details
+      if (transaction.items && transaction.items.length > 0) {
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 100);
+        transaction.items.forEach(item => {
+          checkPageBreak(4);
+          const itemText = '  . ' + item.productName + ': ' + item.quantity + ' ' + item.unit + ' @ ' + formatCurrencyForPDF(item.price);
+          doc.text(itemText, margin + 5, yPosition);
+          yPosition += 4;
+        });
+        doc.setFontSize(8);
+        doc.setTextColor(0, 0, 0);
+      }
+
+      yPosition += 2;
+
+      // Separator line every 5 transactions
+      if ((index + 1) % 5 === 0 && index < transactionList.length - 1) {
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 3;
+      }
+    });
+
+    yPosition += 8;
+
+    // Add totals row for loadings
+    if (transactionList.length > 0) {
+      checkPageBreak(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      
+      const totalValue = transactionList.reduce((sum, t) => {
+        if (t.items && t.items.length > 0) {
+          return sum + t.items.reduce((itemSum, item) => itemSum + (item.quantity * item.price), 0);
+        }
+        return sum;
+      }, 0);
+      
+      doc.line(margin, yPosition, pageWidth - margin, yPosition);
+      yPosition += 5;
+      
+      let xPos = margin + colWidths.date + colWidths.reference + colWidths.description;
+      doc.text('TOTAL LOADED:', margin, yPosition);
+      
+      doc.setTextColor(200, 150, 0);
+      doc.text(formatCurrencyForPDF(totalValue), xPos, yPosition);
+      
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'normal');
+      yPosition += 8;
+    }
   };
 
   // Render Ledger Entries (Sales and Payments)
-  renderTransactionTable('LEDGER ENTRIES (Sales & Payments)', ledgerTransactions);
+  renderLedgerTable('LEDGER ENTRIES (Sales & Payments)', ledgerTransactions);
 
   // Render Loadings
-  renderTransactionTable('LOADINGS', loadingTransactions);
+  renderLoadingsTable('LOADINGS', loadingTransactions);
 
   // Footer on last page
   yPosition = pageHeight - 15;
