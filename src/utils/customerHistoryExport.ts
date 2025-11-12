@@ -1,6 +1,5 @@
 import jsPDF from 'jspdf';
 import type { Customer } from '../types';
-import { formatCurrency } from './customers';
 
 // PDF-specific currency formatter - using 'N' to avoid jsPDF rendering issues
 const formatCurrencyForPDF = (amount: number): string => {

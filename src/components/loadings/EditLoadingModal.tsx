@@ -81,7 +81,7 @@ export const EditLoadingModal = ({
       const maxQuantity = bookedProduct ? bookedProduct.availableQuantity : 999999;
       item.quantity = Math.min(quantity, maxQuantity);
     } else {
-      (item as any)[field] = value;
+      (item as Record<string, unknown>)[field] = value;
     }
     
     updatedItems[index] = item;
@@ -149,8 +149,8 @@ export const EditLoadingModal = ({
       } else {
         setErrors([result.error || 'Failed to update loading']);
       }
-    } catch (error: any) {
-      setErrors([error.message || 'An error occurred']);
+    } catch (error: unknown) {
+      setErrors([error instanceof Error ? error.message : 'An error occurred']);
     } finally {
       setIsSubmitting(false);
     }

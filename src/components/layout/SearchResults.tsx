@@ -68,7 +68,7 @@ export const SearchResults = ({
   const [quickTruckSupplier, setQuickTruckSupplier] = useState<Supplier | null>(null);
   const [quickSaleCustomer, setQuickSaleCustomer] = useState<Customer | null>(null);
 
-  const handleResultClick = (type: EntityType, data: any) => {
+  const handleResultClick = (type: EntityType, data: Customer | Supplier | Product | Sale | Loading | PaddyTruck | LedgerEntry | BookedStock) => {
     navigateToSearchResult(navigate, type, data);
     onResultClick();
   };
@@ -201,7 +201,7 @@ export const SearchResults = ({
 
   let currentIndex = 0;
 
-  const renderCustomerResult = (result: any) => {
+  const renderCustomerResult = (result: { data: Customer; type: EntityType }) => {
     const customer = result.data as Customer;
     const isSelected = currentIndex === selectedIndex;
     currentIndex++;
@@ -256,7 +256,7 @@ export const SearchResults = ({
     );
   };
 
-  const renderSupplierResult = (result: any) => {
+  const renderSupplierResult = (result: { data: Supplier; type: EntityType }) => {
     const supplier = result.data as Supplier;
     const isSelected = currentIndex === selectedIndex;
     currentIndex++;
@@ -318,7 +318,7 @@ export const SearchResults = ({
     );
   };
 
-  const renderProductResult = (result: any) => {
+  const renderProductResult = (result: { data: Product; type: EntityType }) => {
     const product = result.data as Product;
     const isSelected = currentIndex === selectedIndex;
     currentIndex++;
@@ -409,7 +409,7 @@ export const SearchResults = ({
     );
   };
 
-  const renderSaleResult = (result: any) => {
+  const renderSaleResult = (result: { data: Sale; type: EntityType }) => {
     const sale = result.data as Sale;
     const isSelected = currentIndex === selectedIndex;
     currentIndex++;
@@ -475,7 +475,7 @@ export const SearchResults = ({
     );
   };
 
-  const renderLoadingResult = (result: any) => {
+  const renderLoadingResult = (result: { data: Loading; type: EntityType }) => {
     const loading = result.data as Loading;
     const isSelected = currentIndex === selectedIndex;
     currentIndex++;
@@ -531,7 +531,7 @@ export const SearchResults = ({
     );
   };
 
-  const renderPaddyTruckResult = (result: any) => {
+  const renderPaddyTruckResult = (result: { data: PaddyTruck; type: EntityType }) => {
     const paddyTruck = result.data as PaddyTruck;
     const isSelected = currentIndex === selectedIndex;
     currentIndex++;
