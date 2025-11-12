@@ -13,17 +13,23 @@ import {
   AlertTriangle,
   CheckCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X
 } from 'lucide-react';
 import { useInventoryDirect } from '../hooks/useInventoryDirect';
 import { useSalesDirect } from '../hooks/useSalesDirect';
+import { usePaddyTrucks } from '../hooks/usePaddyTrucks';
 import { formatCurrency } from '../utils/inventory';
 
 export const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [supplierDateFrom, setSupplierDateFrom] = useState('');
+  const [supplierDateTo, setSupplierDateTo] = useState('');
+  const [supplierSearch, setSupplierSearch] = useState('');
   const { products, movements, loading: invLoading } = useInventoryDirect();
   const { sales, bookedStock, loading: salesLoading } = useSalesDirect();
+  const { paddyTrucks, loading: trucksLoading } = usePaddyTrucks();
 
   // Date filtering based on selected period
   const getDateRange = () => {
@@ -206,6 +212,99 @@ export const Reports = () => {
 
   const maxSalesValue = Math.max(...salesTrend.map(d => d.total), 1);
 
+  // Supplier Insights
+  const setSupplierQuickDate = (period: string) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    switch (period) {
+      case 'today':
+        setSupplierDateFrom(today.toISOString().split('T')[0]);
+        setSupplierDateTo(today.toISOString().split('T')[0]);
+        break;
+      case 'week':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        setSupplierDateFrom(weekStart.toISOString().split('T')[0]);
+        setSupplierDateTo(now.toISOString().split('T')[0]);
+        break;
+      case 'month':
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        setSupplierDateFrom(monthStart.toISOString().split('T')[0]);
+        setSupplierDateTo(now.toISOString().split('T')[0]);
+        break;
+      case 'quarter':
+        const quarter = Math.floor(now.getMonth() / 3);
+        const quarterStart = new Date(now.getFullYear(), quarter * 3, 1);
+        setSupplierDateFrom(quarterStart.toISOString().split('T')[0]);
+        setSupplierDateTo(now.toISOString().split('T')[0]);
+        break;
+      case 'year':
+        const yearStart = new Date(now.getFullYear(), 0, 1);
+        setSupplierDateFrom(yearStart.toISOString().split('T')[0]);
+        setSupplierDateTo(now.toISOString().split('T')[0]);
+        break;
+      case 'all':
+        setSupplierDateFrom('');
+        setSupplierDateTo('');
+        break;
+    }
+  };
+
+  const filteredPaddyTrucks = useMemo(() => {
+    let filtered = [...paddyTrucks];
+
+    if (supplierDateFrom) {
+      const fromDate = new Date(supplierDateFrom);
+      filtered = filtered.filter(truck => new Date(truck.date) >= fromDate);
+    }
+    if (supplierDateTo) {
+      const toDate = new Date(supplierDateTo);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(truck => new Date(truck.date) <= toDate);
+    }
+
+    return filtered;
+  }, [paddyTrucks, supplierDateFrom, supplierDateTo]);
+
+  const supplierStats = useMemo(() => {
+    const supplierMap = new Map<string, {
+      name: string;
+      totalWeight: number;
+      totalAmount: number;
+      truckCount: number;
+    }>();
+
+    filteredPaddyTrucks.forEach(truck => {
+      const current = supplierMap.get(truck.supplierId) || {
+        name: truck.supplierName,
+        totalWeight: 0,
+        totalAmount: 0,
+        truckCount: 0
+      };
+
+      supplierMap.set(truck.supplierId, {
+        name: truck.supplierName,
+        totalWeight: current.totalWeight + truck.weightAfterDeduction,
+        totalAmount: current.totalAmount + truck.totalAmount,
+        truckCount: current.truckCount + 1
+      });
+    });
+
+    return Array.from(supplierMap.values())
+      .sort((a, b) => b.totalWeight - a.totalWeight);
+  }, [filteredPaddyTrucks]);
+
+  const topSupplier = supplierStats.length > 0 ? supplierStats[0] : null;
+  const totalSuppliedWeight = supplierStats.reduce((sum, s) => sum + s.totalWeight, 0);
+  const totalSuppliedValue = supplierStats.reduce((sum, s) => sum + s.totalAmount, 0);
+
+  const filteredSupplierStats = useMemo(() => {
+    if (!supplierSearch.trim()) return supplierStats;
+    const searchLower = supplierSearch.toLowerCase();
+    return supplierStats.filter(s => s.name.toLowerCase().includes(searchLower));
+  }, [supplierStats, supplierSearch]);
+
   // Daily product sales breakdown
   const dailyProductSales = useMemo(() => {
     const selectedDateObj = new Date(selectedDate);
@@ -272,7 +371,7 @@ export const Reports = () => {
     { label: 'Low/Out of Stock', value: `${lowStockProducts}/${outOfStockProducts}`, icon: <AlertTriangle size={20} />, color: 'text-red-400' },
   ];
   
-  if (invLoading || salesLoading) {
+  if (invLoading || salesLoading || trucksLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -652,6 +751,248 @@ export const Reports = () => {
             <p className="text-muted text-center py-8">No activities for selected period</p>
           )}
         </GlassCard>
+      </div>
+
+      {/* Supplier Insights */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <Truck size={20} />
+          Supplier Insights
+        </h2>
+        
+        {/* Date Range Filters */}
+        <GlassCard className="mb-4">
+          <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
+            <div className="flex flex-wrap gap-2 flex-1">
+              <button
+                onClick={() => setSupplierQuickDate('today')}
+                className="px-3 py-1.5 text-sm glass rounded-lg hover:bg-white/10 transition-colors"
+              >
+                Today
+              </button>
+              <button
+                onClick={() => setSupplierQuickDate('week')}
+                className="px-3 py-1.5 text-sm glass rounded-lg hover:bg-white/10 transition-colors"
+              >
+                This Week
+              </button>
+              <button
+                onClick={() => setSupplierQuickDate('month')}
+                className="px-3 py-1.5 text-sm glass rounded-lg hover:bg-white/10 transition-colors"
+              >
+                This Month
+              </button>
+              <button
+                onClick={() => setSupplierQuickDate('quarter')}
+                className="px-3 py-1.5 text-sm glass rounded-lg hover:bg-white/10 transition-colors"
+              >
+                This Quarter
+              </button>
+              <button
+                onClick={() => setSupplierQuickDate('year')}
+                className="px-3 py-1.5 text-sm glass rounded-lg hover:bg-white/10 transition-colors"
+              >
+                This Year
+              </button>
+              <button
+                onClick={() => setSupplierQuickDate('all')}
+                className="px-3 py-1.5 text-sm glass rounded-lg hover:bg-white/10 transition-colors"
+              >
+                All Time
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+              <input
+                type="date"
+                value={supplierDateFrom}
+                onChange={(e) => setSupplierDateFrom(e.target.value)}
+                className="px-3 py-1.5 text-sm glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+                placeholder="From"
+              />
+              <span className="text-muted text-center sm:text-left">to</span>
+              <input
+                type="date"
+                value={supplierDateTo}
+                onChange={(e) => setSupplierDateTo(e.target.value)}
+                className="px-3 py-1.5 text-sm glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
+                placeholder="To"
+              />
+            </div>
+          </div>
+        </GlassCard>
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <GlassCard>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm text-muted mb-1">Total Suppliers</p>
+                <p className="text-2xl font-bold">{supplierStats.length}</p>
+              </div>
+              <Users size={20} className="text-blue-400" />
+            </div>
+          </GlassCard>
+          <GlassCard>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm text-muted mb-1">Total Weight</p>
+                <p className="text-2xl font-bold">{totalSuppliedWeight.toLocaleString()} kg</p>
+              </div>
+              <Package size={20} className="text-green-400" />
+            </div>
+          </GlassCard>
+          <GlassCard>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm text-muted mb-1">Total Value</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalSuppliedValue)}</p>
+              </div>
+              <TrendingUp size={20} className="text-purple-400" />
+            </div>
+          </GlassCard>
+          <GlassCard>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm text-muted mb-1">Total Trucks</p>
+                <p className="text-2xl font-bold">{filteredPaddyTrucks.length}</p>
+              </div>
+              <Truck size={20} className="text-yellow-400" />
+            </div>
+          </GlassCard>
+        </div>
+
+        {/* Top Supplier & Detailed Breakdown */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top Performing Supplier */}
+          <GlassCard>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <CheckCircle size={18} className="text-green-400" />
+              Top Performing Supplier
+            </h3>
+            {topSupplier ? (
+              <div className="space-y-4">
+                <div className="p-4 glass rounded-lg border-l-4 border-green-400">
+                  <p className="text-xl font-bold mb-2">{topSupplier.name}</p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted">Total Weight:</span>
+                      <span className="text-sm font-semibold text-green-400">
+                        {topSupplier.totalWeight.toLocaleString()} kg
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted">Total Value:</span>
+                      <span className="text-sm font-semibold text-yellow-400">
+                        {formatCurrency(topSupplier.totalAmount)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted">Number of Trucks:</span>
+                      <span className="text-sm font-semibold text-blue-400">
+                        {topSupplier.truckCount}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted">Avg per Truck:</span>
+                      <span className="text-sm font-semibold">
+                        {(topSupplier.totalWeight / topSupplier.truckCount).toLocaleString(undefined, { maximumFractionDigits: 0 })} kg
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {totalSuppliedWeight > 0 && (
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-muted">Market Share</span>
+                      <span className="font-semibold">
+                        {((topSupplier.totalWeight / totalSuppliedWeight) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-dark-surface rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
+                        style={{ width: `${(topSupplier.totalWeight / totalSuppliedWeight) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-muted text-center py-8">No supplier data for selected period</p>
+            )}
+          </GlassCard>
+
+          {/* All Suppliers Breakdown */}
+          <GlassCard>
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <BarChart3 size={18} />
+              Supplier Performance
+            </h3>
+            <div className="relative mb-3">
+              <input
+                type="text"
+                placeholder="Search suppliers..."
+                value={supplierSearch}
+                onChange={(e) => setSupplierSearch(e.target.value)}
+                className="w-full px-3 py-2 pr-8 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 text-sm placeholder-muted-text"
+              />
+              {supplierSearch && (
+                <button
+                  onClick={() => setSupplierSearch('')}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-white/10 rounded transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X size={16} className="text-muted" />
+                </button>
+              )}
+            </div>
+            {filteredSupplierStats.length > 0 ? (
+              <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+                {filteredSupplierStats.map((supplier, index) => (
+                  <div key={index} className="p-3 glass rounded-lg hover:bg-white/5 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold">
+                          {index + 1}
+                        </div>
+                        <span className="text-sm font-medium">{supplier.name}</span>
+                      </div>
+                      <span className="text-xs text-muted">{supplier.truckCount} trucks</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted">Weight:</span>
+                        <span className="font-semibold text-green-400">
+                          {supplier.totalWeight.toLocaleString()} kg
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted">Value:</span>
+                        <span className="font-semibold text-yellow-400">
+                          {formatCurrency(supplier.totalAmount)}
+                        </span>
+                      </div>
+                    </div>
+                    {totalSuppliedWeight > 0 && (
+                      <div className="mt-2">
+                        <div className="w-full h-1 bg-dark-surface rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                            style={{ width: `${(supplier.totalWeight / totalSuppliedWeight) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted text-center py-8">
+                {supplierSearch ? 'No suppliers match your search' : 'No supplier data for selected period'}
+              </p>
+            )}
+          </GlassCard>
+        </div>
       </div>
     </div>
   );
