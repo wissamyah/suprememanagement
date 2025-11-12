@@ -315,7 +315,7 @@ export const exportCustomerHistoryToPDF = (
     let xPos = margin;
     doc.text('Date', xPos, yPosition);
     xPos += colWidths.date;
-    doc.text('Reference', xPos, yPosition);
+    doc.text('Description', xPos, yPosition);
     xPos += colWidths.reference;
     doc.text('Items', xPos, yPosition);
     xPos += colWidths.description;
@@ -338,8 +338,8 @@ export const exportCustomerHistoryToPDF = (
       doc.text(new Date(transaction.date).toLocaleDateString('en-GB'), xPos, yPosition);
       xPos += colWidths.date;
 
-      // Reference
-      doc.text(transaction.reference || '-', xPos, yPosition);
+      // Description
+      doc.text(transaction.description, xPos, yPosition);
       xPos += colWidths.reference;
 
       // Items summary

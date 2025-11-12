@@ -100,7 +100,7 @@ export const CustomerHistoryModal = ({
           date: saleDate,
           createdAt: new Date(sale.createdAt),
           type: 'sale',
-          description: `Sale - Order #${sale.orderId}`,
+          description: 'Sale',
           debit: sale.totalAmount,
           credit: 0,
           balance: 0, // Will be calculated later
@@ -125,7 +125,7 @@ export const CustomerHistoryModal = ({
           date: loadingDate,
           createdAt: new Date(loading.createdAt),
           type: 'loading',
-          description: `Loading - #${loading.loadingId}`,
+          description: 'Loading',
           debit: 0,
           credit: 0,
           balance: 0, // Will be calculated later
