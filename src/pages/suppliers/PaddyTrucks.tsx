@@ -590,6 +590,7 @@ export const PaddyTrucks = () => {
               dateFrom={undefined}
               dateTo={undefined}
               loading={false}
+              suppliers={suppliers}
               onEditTruck={setEditingTruck}
               onDeleteTruck={handleDeletePaddyTruck}
               refreshData={refreshData}

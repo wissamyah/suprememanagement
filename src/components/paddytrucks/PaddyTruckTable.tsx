@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import type { PaddyTruck } from '../../types';
+import type { PaddyTruck, Supplier } from '../../types';
 import { Button } from '../ui/Button';
 import { ConfirmModal } from '../ui/ConfirmModal';
+import { Tooltip } from '../ui/Tooltip';
 import {
   Truck,
   Edit2,
@@ -33,6 +34,7 @@ interface PaddyTruckTableProps {
   dateFrom?: Date;
   dateTo?: Date;
   loading?: boolean;
+  suppliers: Supplier[];
   onEditTruck: (truck: PaddyTruck) => void;
   onDeleteTruck: (truckId: string) => void;
   refreshData?: () => void;
@@ -41,6 +43,56 @@ interface PaddyTruckTableProps {
 type SortField = 'date' | 'truckPlate' | 'supplier' | 'weight' | 'amount';
 type SortDirection = 'asc' | 'desc';
 
+interface SupplierNotesTooltipProps {
+  notes?: string;
+}
+
+const SupplierNotesTooltip = ({ notes }: SupplierNotesTooltipProps) => {
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!notes) return;
+    
+    try {
+      await navigator.clipboard.writeText(notes);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy notes:', err);
+    }
+  };
+
+  return (
+    <div className="w-full max-w-[min(350px,90vw)] pointer-events-auto">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-xs font-semibold text-white/80">Supplier Notes</div>
+        {notes && (
+          <button
+            onClick={handleCopy}
+            className="p-1 rounded hover:bg-white/10 transition-all duration-200"
+            title="Copy Notes"
+          >
+            <div className="relative w-3.5 h-3.5">
+              <Copy 
+                size={14} 
+                className={`absolute inset-0 transition-all duration-300 ${isCopied ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}
+              />
+              <Check 
+                size={14} 
+                className={`absolute inset-0 text-green-400 transition-all duration-300 ${isCopied ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
+              />
+            </div>
+          </button>
+        )}
+      </div>
+      <div className="text-xs text-white/70 whitespace-pre-wrap break-words">
+        {notes || 'No notes available'}
+      </div>
+    </div>
+  );
+};
+
 export const PaddyTruckTable = ({
   paddyTrucks,
   searchTerm,
@@ -48,6 +100,7 @@ export const PaddyTruckTable = ({
   dateFrom,
   dateTo,
   loading,
+  suppliers,
   onEditTruck,
   onDeleteTruck
 }: PaddyTruckTableProps) => {
@@ -195,7 +248,13 @@ export const PaddyTruckTable = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm truncate flex-shrink-0">{truck.truckPlate}</span>
-                      <span className="text-xs text-muted truncate min-w-0 flex-1">{truck.supplierName}</span>
+                      <Tooltip
+                        content={<SupplierNotesTooltip notes={suppliers.find(s => s.id === truck.supplierId)?.notes} />}
+                        placement="top"
+                        className="pointer-events-auto"
+                      >
+                        <span className="text-xs text-muted truncate min-w-0 flex-1">{truck.supplierName}</span>
+                      </Tooltip>
                       <span className="text-xs text-muted ml-auto whitespace-nowrap flex-shrink-0">{formatDate(truck.date)}</span>
                     </div>
                   </div>
@@ -386,7 +445,13 @@ export const PaddyTruckTable = ({
                     <span className="font-medium text-sm">{truck.truckPlate}</span>
                   </td>
                   <td className="py-3 px-3">
-                    <span className="text-sm">{truck.supplierName}</span>
+                    <Tooltip
+                      content={<SupplierNotesTooltip notes={suppliers.find(s => s.id === truck.supplierId)?.notes} />}
+                      placement="top"
+                      className="pointer-events-auto"
+                    >
+                      <span className="text-sm">{truck.supplierName}</span>
+                    </Tooltip>
                   </td>
                   <td className="py-3 px-3">
                     <span className="text-sm text-muted">{truck.waybillNumber || '-'}</span>

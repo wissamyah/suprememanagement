@@ -21,7 +21,8 @@ export const Tooltip = ({
   const [position, setPosition] = useState({ top: -9999, left: -9999 });
   const triggerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const calculatePosition = () => {
     if (!triggerRef.current || !tooltipRef.current) return;
@@ -35,20 +36,20 @@ export const Tooltip = ({
     // Calculate position relative to viewport (for fixed positioning)
     switch (placement) {
       case 'top':
-        top = triggerRect.top - tooltipRect.height - 8;
+        top = triggerRect.top - tooltipRect.height - 4;
         left = triggerRect.left + (triggerRect.width - tooltipRect.width) / 2;
         break;
       case 'bottom':
-        top = triggerRect.bottom + 8;
+        top = triggerRect.bottom + 4;
         left = triggerRect.left + (triggerRect.width - tooltipRect.width) / 2;
         break;
       case 'left':
         top = triggerRect.top + (triggerRect.height - tooltipRect.height) / 2;
-        left = triggerRect.left - tooltipRect.width - 8;
+        left = triggerRect.left - tooltipRect.width - 4;
         break;
       case 'right':
         top = triggerRect.top + (triggerRect.height - tooltipRect.height) / 2;
-        left = triggerRect.right + 8;
+        left = triggerRect.right + 4;
         break;
     }
 
@@ -66,14 +67,14 @@ export const Tooltip = ({
     if (top < padding) {
       // If tooltip goes above viewport, show it below instead
       if (placement === 'top') {
-        top = triggerRect.bottom + 8;
+        top = triggerRect.bottom + 4;
       } else {
         top = padding;
       }
     } else if (top + tooltipRect.height > window.innerHeight - padding) {
       // If tooltip goes below viewport, show it above instead
       if (placement === 'bottom') {
-        top = triggerRect.top - tooltipRect.height - 8;
+        top = triggerRect.top - tooltipRect.height - 4;
       } else {
         top = window.innerHeight - tooltipRect.height - padding;
       }
@@ -84,17 +85,32 @@ export const Tooltip = ({
   };
 
   const handleMouseEnter = () => {
-    timeoutRef.current = setTimeout(() => {
+    // Clear any pending hide timeout
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    
+    // If already visible, don't set a new timeout
+    if (isVisible) return;
+    
+    showTimeoutRef.current = setTimeout(() => {
       setIsVisible(true);
     }, delay);
   };
 
   const handleMouseLeave = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+    // Clear any pending show timeout
+    if (showTimeoutRef.current) {
+      clearTimeout(showTimeoutRef.current);
+      showTimeoutRef.current = null;
     }
-    setIsVisible(false);
-    setIsPositioned(false);
+    
+    // Add a delay before hiding to allow mouse to reach tooltip
+    hideTimeoutRef.current = setTimeout(() => {
+      setIsVisible(false);
+      setIsPositioned(false);
+    }, 150);
   };
 
   useEffect(() => {
@@ -113,6 +129,14 @@ export const Tooltip = ({
     };
   }, [isVisible]);
 
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (showTimeoutRef.current) clearTimeout(showTimeoutRef.current);
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    };
+  }, []);
+
   return (
     <>
       <div
@@ -127,6 +151,8 @@ export const Tooltip = ({
       {isVisible && createPortal(
         <div
           ref={tooltipRef}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
           className={`
             fixed z-50 pointer-events-none
             glass backdrop-blur-md

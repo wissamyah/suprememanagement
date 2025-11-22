@@ -127,8 +127,6 @@ npm run build
 npm run preview
 ```
 
-The app is available at: `https://wissamyah.github.io/suprememanagement/`
-
 📖 **See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment guide.**
 
 ## Data Storage
