@@ -53,8 +53,8 @@ export const GlobalSearchBar = ({ isOpen, onOpen, onClose }: GlobalSearchBarProp
   const handleBackdropClick = (event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
 
-    // Check if click is inside a modal (modals have z-50 class and are not our overlay)
-    const isInsideModal = target.closest('.search-modal-content') !== null;
+    // Check if click is inside a modal (modals use .modal-content class)
+    const isInsideModal = target.closest('.modal-content') !== null;
 
     if (!isInsideModal && !containerRef.current?.contains(target)) {
       handleClose();
