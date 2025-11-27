@@ -179,29 +179,38 @@ export const SaleTable = ({
   return (
     <>
       {/* Mobile Card View */}
-      <div className="sm:hidden w-full max-w-full overflow-x-hidden">
-        <div className="space-y-2 w-full max-w-full">
+      <div className="sm:hidden w-full max-w-full">
+        <div className="space-y-3 w-full max-w-full">
           {paginatedSales.map((sale) => {
             return (
               <div
                 key={`${sale.id}-${sale.updatedAt}-${forceRender}`}
-                className="glass rounded-lg p-2 hover:bg-glass/50 transition-colors w-full max-w-full overflow-x-hidden"
+                className="relative"
               >
-                {/* Compact Header: Customer, Date, Status, Total, Actions */}
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex-1 min-w-0 pr-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-sm truncate">
+                {/* Payment Status Badge - Floating Top Right (outside card) */}
+                <span className={`absolute -top-1.5 -right-0.5 z-10 px-1.5 py-0.5 text-[9px] rounded leading-none font-medium ${
+                  sale.paymentStatus === 'paid' ? 'bg-green-600 text-white' :
+                  sale.paymentStatus === 'partial' ? 'bg-blue-600 text-white' :
+                  sale.paymentStatus === 'pending' ? 'bg-red-600 text-white' :
+                  'bg-gray-600 text-white'
+                }`}>
+                  {sale.paymentStatus}
+                </span>
+
+                {/* Card Content */}
+                <div className="glass rounded-lg p-2 hover:bg-glass/50 transition-colors w-full max-w-full relative">
+                  {/* Date - Floating Bottom Right */}
+                  <span className="absolute bottom-1.5 right-1.5 text-[10px] text-muted whitespace-nowrap">
+                    {formatDate(sale.date)}
+                  </span>
+
+                  {/* Compact Header: Customer, Total, Actions */}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex-1 min-w-0 pr-12">
+                      <span className="font-bold text-sm truncate block">
                         {sale.customerName}
                       </span>
-                      <span className="text-[10px] text-muted whitespace-nowrap">
-                        {formatDate(sale.date)}
-                      </span>
-                      <span className={`px-1.5 py-0.5 text-[9px] rounded leading-none ${getPaymentStatusColor(sale.paymentStatus)}`}>
-                        {sale.paymentStatus}
-                      </span>
                     </div>
-                  </div>
                   
                   {/* Total & Actions on Same Line */}
                   <div className="flex items-center gap-1.5">
@@ -277,6 +286,7 @@ export const SaleTable = ({
                       )}
                     </div>
                   </Tooltip>
+                </div>
                 </div>
               </div>
             );
