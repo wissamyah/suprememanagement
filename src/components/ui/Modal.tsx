@@ -80,10 +80,10 @@ export const Modal = ({
       />
       
       {/* Modal with scale and fade animation */}
-      <div 
-        className={`relative w-full ${sizes[size]} glass shadow-2xl transition-all duration-300 ease-out transform ${
-          isAnimating 
-            ? 'opacity-100 scale-100 translate-y-0' 
+      <div
+        className={`modal-content relative w-full ${sizes[size]} glass shadow-2xl transition-all duration-300 ease-out transform ${
+          isAnimating
+            ? 'opacity-100 scale-100 translate-y-0'
             : 'opacity-0 scale-95 translate-y-4'
         }`}
         style={{ borderRadius: '0.75rem', overflow: 'visible' }}

@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { 
-  Calendar, 
-  Plus, 
-  Trash2, 
+import {
+  Plus,
+  Trash2,
   AlertCircle,
   ShoppingCart,
   Hash
@@ -231,16 +230,13 @@ export const EditSaleModal = ({
           <label className="block text-sm font-medium mb-2">
             Sale Date <span className="text-red-400">*</span>
           </label>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20"
-              required
-            />
-          </div>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 [&::-webkit-datetime-edit]:ml-2"
+            required
+          />
         </div>
 
         {/* Products Section */}
@@ -260,12 +256,23 @@ export const EditSaleModal = ({
             </Button>
           </div>
 
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+          <div className="space-y-4 max-h-64 overflow-y-auto scrollbar-thin pt-3 pr-1">
             {items.map((item, index) => (
-              <div key={index} className="glass rounded-lg p-3">
-                <div className="grid grid-cols-12 gap-2">
+              <div key={index} className="relative">
+                {/* Remove Button - Floating above top right */}
+                {items.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeItem(index)}
+                    className="absolute -top-2 -right-0 p-1 rounded-full bg-red-500/20 hover:bg-red-500/40 transition-colors z-10"
+                  >
+                    <Trash2 size={14} className="text-red-400" />
+                  </button>
+                )}
+
+                <div className="glass rounded-lg p-3 grid grid-cols-12 gap-2">
                   {/* Product Select */}
-                  <div className="col-span-4">
+                  <div className="col-span-12">
                     <select
                       value={item.productId}
                       onChange={(e) => updateItem(index, 'productId', e.target.value)}
@@ -294,7 +301,7 @@ export const EditSaleModal = ({
                   </div>
 
                   {/* Quantity */}
-                  <div className="col-span-2">
+                  <div className="col-span-4">
                     <input
                       type="number"
                       value={item.quantity}
@@ -307,7 +314,7 @@ export const EditSaleModal = ({
                   </div>
 
                   {/* Unit Price */}
-                  <div className="col-span-2">
+                  <div className="col-span-4">
                     <input
                       type="number"
                       value={item.price || ''}
@@ -321,23 +328,10 @@ export const EditSaleModal = ({
                   </div>
 
                   {/* Line Total */}
-                  <div className="col-span-3 flex items-center">
+                  <div className="col-span-4 flex items-center">
                     <span className="text-sm font-medium">
                       {formatCurrency(item.total)}
                     </span>
-                  </div>
-
-                  {/* Remove Button */}
-                  <div className="col-span-1 flex items-center justify-end">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeItem(index)}
-                      disabled={items.length === 1}
-                    >
-                      <Trash2 size={14} className="text-red-400" />
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -374,12 +368,6 @@ export const EditSaleModal = ({
           </select>
         </div>
 
-        {/* Warning Box */}
-        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-          <p className="text-sm text-yellow-300">
-            Editing this sale will adjust inventory bookings and customer balance based on the changes made.
-          </p>
-        </div>
       </form>
     </Modal>
   );

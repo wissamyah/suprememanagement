@@ -276,12 +276,23 @@ export const AddSaleModal = ({
             </Button>
           </div>
 
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+          <div className="space-y-4 max-h-64 overflow-y-auto scrollbar-thin pt-3 pr-1">
             {items.map((item, index) => (
-              <div key={index} className="glass rounded-lg p-3">
-                <div className="grid grid-cols-12 gap-2">
+              <div key={index} className="relative">
+                {/* Remove Button - Floating above top right */}
+                {items.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeItem(index)}
+                    className="absolute -top-2 -right-0 p-1 rounded-full bg-red-500/20 hover:bg-red-500/40 transition-colors z-10"
+                  >
+                    <Trash2 size={14} className="text-red-400" />
+                  </button>
+                )}
+
+                <div className="glass rounded-lg p-3 grid grid-cols-12 gap-2">
                   {/* Product Select */}
-                  <div className="col-span-12 md:col-span-4">
+                  <div className="col-span-12">
                     <select
                       value={item.productId}
                       onChange={(e) => updateItem(index, 'productId', e.target.value)}
@@ -310,7 +321,7 @@ export const AddSaleModal = ({
                   </div>
 
                   {/* Quantity */}
-                  <div className="col-span-4 md:col-span-2">
+                  <div className="col-span-4">
                     <input
                       type="number"
                       value={item.quantity}
@@ -324,7 +335,7 @@ export const AddSaleModal = ({
                   </div>
 
                   {/* Unit Price */}
-                  <div className="col-span-4 md:col-span-2">
+                  <div className="col-span-4">
                     <input
                       type="number"
                       value={item.price || ''}
@@ -338,23 +349,10 @@ export const AddSaleModal = ({
                   </div>
 
                   {/* Line Total */}
-                  <div className="col-span-3 md:col-span-3 flex items-center">
+                  <div className="col-span-4 flex items-center">
                     <span className="text-sm font-medium">
                       {formatCurrency(item.total)}
                     </span>
-                  </div>
-
-                  {/* Remove Button */}
-                  <div className="col-span-1 md:col-span-1 flex items-center justify-end">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeItem(index)}
-                      disabled={items.length === 1}
-                    >
-                      <Trash2 size={14} className="text-red-400" />
-                    </Button>
                   </div>
                 </div>
               </div>
