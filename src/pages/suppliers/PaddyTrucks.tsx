@@ -24,6 +24,7 @@ import { useToast } from '../../hooks/useToast';
 import { PaddyTruckTable } from '../../components/paddytrucks/PaddyTruckTable';
 import { AddPaddyTruckModal } from '../../components/paddytrucks/AddPaddyTruckModal';
 import { EditPaddyTruckModal } from '../../components/paddytrucks/EditPaddyTruckModal';
+import { ExportCSVModal } from '../../components/paddytrucks/ExportCSVModal';
 import { 
   exportPaddyTrucksToJSON, 
   exportPaddyTrucksToCSV,
@@ -43,6 +44,7 @@ export const PaddyTrucks = () => {
   const [editingTruck, setEditingTruck] = useState<PaddyTruck | null>(null);
   const [showImportExportMenu, setShowImportExportMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showExportCSVModal, setShowExportCSVModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
   
@@ -132,7 +134,7 @@ export const PaddyTrucks = () => {
   // Calculate statistics for filtered trucks
   const filteredStatistics = useMemo(() => {
     const totalTrucks = filteredTrucks.length;
-    const totalWeight = filteredTrucks.reduce((sum, truck) => sum + truck.weightAfterDeduction, 0);
+    const totalWeight = filteredTrucks.reduce((sum, truck) => sum + (truck.netWeight || 0), 0);
     const totalValue = filteredTrucks.reduce((sum, truck) => sum + truck.totalAmount, 0);
 
     const today = new Date();
@@ -236,9 +238,15 @@ export const PaddyTrucks = () => {
   };
 
   const handleExportCSV = () => {
-    exportPaddyTrucksToCSV(paddyTrucks);
-    showSuccess('Paddy trucks exported to CSV');
+    setShowExportCSVModal(true);
     setShowImportExportMenu(false);
+    setShowMobileMenu(false);
+  };
+
+  const handleExportCSVWithDates = (dateFrom: string, dateTo: string) => {
+    exportPaddyTrucksToCSV(paddyTrucks, suppliers, dateFrom, dateTo);
+    showSuccess('Paddy trucks exported to CSV');
+    setShowExportCSVModal(false);
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -737,6 +745,12 @@ export const PaddyTrucks = () => {
         truck={editingTruck}
         onClose={() => setEditingTruck(null)}
         onUpdate={handleUpdatePaddyTruck}
+      />
+
+      <ExportCSVModal
+        isOpen={showExportCSVModal}
+        onClose={() => setShowExportCSVModal(false)}
+        onExport={handleExportCSVWithDates}
       />
       
       {/* Toast Container */}

@@ -195,7 +195,7 @@ export const usePaddyTrucksDirect = () => {
     const todayTrucks = paddyTrucks.filter(t => 
       new Date(t.date).toDateString() === new Date().toDateString()
     ).length;
-    const totalWeight = paddyTrucks.reduce((sum, t) => sum + t.weightAfterDeduction, 0);
+    const totalWeight = paddyTrucks.reduce((sum, t) => sum + (t.netWeight || 0), 0);
     const totalValue = paddyTrucks.reduce((sum, t) => sum + t.totalAmount, 0);
     
     return {
