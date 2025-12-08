@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { GlassCard } from '../components/ui/GlassCard';
+import { CalendarAnalytics } from '../components/reports/CalendarAnalytics';
 import {
   Calendar,
   TrendingUp,
@@ -179,38 +180,6 @@ export const Reports = () => {
 
     return activities;
   }, [filteredMovements, filteredSales]);
-
-  // Sales trend (last 7 days)
-  const salesTrend = useMemo(() => {
-    const days = 7;
-    const trend = [];
-    const now = new Date();
-
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(now.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-
-      const nextDate = new Date(date);
-      nextDate.setDate(date.getDate() + 1);
-
-      const daySales = sales.filter(s => {
-        const saleDate = new Date(s.date);
-        return saleDate >= date && saleDate < nextDate;
-      });
-
-      const total = daySales.reduce((sum, s) => sum + s.totalAmount, 0);
-      trend.push({
-        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        total,
-        orders: daySales.length
-      });
-    }
-
-    return trend;
-  }, [sales]);
-
-  const maxSalesValue = Math.max(...salesTrend.map(d => d.total), 1);
 
   // Supplier Insights
   const setSupplierQuickDate = (period: string) => {
@@ -534,34 +503,8 @@ export const Reports = () => {
         )}
       </GlassCard>
 
-      {/* Sales Trend */}
-      <GlassCard>
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <BarChart3 size={20} />
-          Sales Trend (Last 7 Days)
-        </h2>
-
-        <div className="h-64 flex items-end justify-between gap-2">
-          {salesTrend.map((day, index) => {
-            const height = maxSalesValue > 0 ? (day.total / maxSalesValue) * 100 : 0;
-            return (
-              <div key={index} className="flex-1 flex flex-col items-center gap-2 group">
-                <div className="relative w-full">
-                  <div
-                    className="w-full bg-gradient-to-t from-blue-500/50 to-blue-400/50 rounded-t-lg transition-all duration-300 hover:from-blue-500/70 hover:to-blue-400/70"
-                    style={{ height: `${Math.max(height, 5)}px`, minHeight: '20px' }}
-                  />
-                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-dark-surface px-2 py-1 rounded text-xs whitespace-nowrap">
-                    {formatCurrency(day.total)}
-                  </div>
-                </div>
-                <span className="text-xs text-muted">{day.day}</span>
-                <span className="text-xs text-muted/60">{day.orders} orders</span>
-              </div>
-            );
-          })}
-        </div>
-      </GlassCard>
+      {/* Calendar Analytics */}
+      <CalendarAnalytics sales={sales} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Category Distribution */}

@@ -29,9 +29,28 @@ export const GlobalSearchBar = ({ isOpen, onOpen, onClose }: GlobalSearchBarProp
       // Trigger animation after DOM is ready
       setTimeout(() => {
         setIsAnimating(true);
-        // Focus input after animation starts
-        inputRef.current?.focus();
       }, 10);
+
+      // Focus input with multiple attempts for mobile compatibility
+      // Mobile browsers sometimes need a slight delay and user interaction context
+      const focusInput = () => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          // For iOS, we need to ensure the input is focused
+          inputRef.current.click();
+        }
+      };
+
+      // Immediate focus attempt
+      focusInput();
+      // Delayed focus for mobile browsers
+      const focusTimer = setTimeout(focusInput, 50);
+      const focusTimer2 = setTimeout(focusInput, 150);
+
+      return () => {
+        clearTimeout(focusTimer);
+        clearTimeout(focusTimer2);
+      };
     } else {
       setIsAnimating(false);
       const timer = setTimeout(() => {
@@ -177,6 +196,8 @@ export const GlobalSearchBar = ({ isOpen, onOpen, onClose }: GlobalSearchBarProp
                     transition-all duration-200
                   "
                   autoComplete="off"
+                  autoFocus
+                  enterKeyHint="search"
                 />
 
                 <div className="absolute inset-y-0 right-0 flex items-center gap-3 pr-5">

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Edit2, Trash2, Eye, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit2, Trash2, Eye, FileText, ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
 import { Tooltip, ProductTooltip } from '../ui/Tooltip';
@@ -36,6 +36,7 @@ export const SaleTable = ({
   }, [sales]);
 
   const [deletingSaleId, setDeletingSaleId] = useState<string | null>(null);
+  const [copiedSaleId, setCopiedSaleId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [forceRender, setForceRender] = useState(0);
   const itemsPerPage = 10;
@@ -140,6 +141,20 @@ export const SaleTable = ({
     setDeletingSaleId(null);
   };
 
+  const handleCopySale = async (sale: Sale) => {
+    const lines = [
+      sale.customerName,
+      ...sale.items.map(item => `${item.quantity} ${item.productName}`)
+    ];
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      setCopiedSaleId(sale.id);
+      setTimeout(() => setCopiedSaleId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
       case 'paid':
@@ -231,6 +246,22 @@ export const SaleTable = ({
                           <Eye size={13} />
                         </button>
                       )}
+                      <button
+                        onClick={() => handleCopySale(sale)}
+                        className="p-1 rounded hover:bg-white/10 transition-colors"
+                        title="Copy Sale"
+                      >
+                        <div className="relative w-3.5 h-3.5">
+                          <Copy
+                            size={13}
+                            className={`absolute inset-0 transition-all duration-300 ${copiedSaleId === sale.id ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}
+                          />
+                          <Check
+                            size={13}
+                            className={`absolute inset-0 text-green-400 transition-all duration-300 ${copiedSaleId === sale.id ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
+                          />
+                        </div>
+                      </button>
                       <button
                         onClick={() => onEditSale(sale)}
                         className="p-1 rounded hover:bg-white/10 transition-colors"
@@ -373,6 +404,22 @@ export const SaleTable = ({
                           <Eye size={14} className="sm:w-4 sm:h-4" />
                         </button>
                       )}
+                      <button
+                        className="p-1.5 sm:p-2 rounded-lg text-gray-300 hover:bg-white/10 transition-all duration-200"
+                        onClick={() => handleCopySale(sale)}
+                        title="Copy Sale"
+                      >
+                        <div className="relative w-3.5 h-3.5 sm:w-4 sm:h-4">
+                          <Copy
+                            size={14}
+                            className={`absolute inset-0 sm:w-4 sm:h-4 transition-all duration-300 ${copiedSaleId === sale.id ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}
+                          />
+                          <Check
+                            size={14}
+                            className={`absolute inset-0 sm:w-4 sm:h-4 text-green-400 transition-all duration-300 ${copiedSaleId === sale.id ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
+                          />
+                        </div>
+                      </button>
                       <button
                         className="p-1.5 sm:p-2 rounded-lg text-gray-300 hover:bg-white/10 transition-all duration-200"
                         onClick={() => onEditSale(sale)}
